@@ -67,3 +67,12 @@ def test_add():
     print(f"B: {BMAT1[:, :].to_petsc()[:, :]}")
     print(f"A+B: {BMAT3[:, :].to_petsc()[:, :]}")
 
+def test_zero_mat():
+    print(bmat.zero_mat(5, 6)[:, :])
+
+def test_ident_mat():
+    print(bmat.ident_mat(5)[:, :])
+
+if __name__ == '__main__':
+    test_zero_mat()
+    test_ident_mat()

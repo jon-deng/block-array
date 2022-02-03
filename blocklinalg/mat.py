@@ -9,6 +9,7 @@ from collections import OrderedDict
 import numpy as np
 from petsc4py import PETSc
 
+# Utilies for constructing block matrices
 def form_block_matrix(blocks, finalize=True, comm=None):
     """
     Form a monolithic block matrix by combining matrices in `blocks`
@@ -373,6 +374,31 @@ def reorder_mat_cols(mat, cols_in, cols_out, n_out, finalize=True):
 
     return mat_out
 
+# Utilities for making specific types of matrices
+def zero_mat(n, m, comm=None):
+    comm = PETSc.COMM_WORLD if comm is None else comm
+
+    mat = PETSc.Mat().create(comm)
+    mat.setSizes([n, m])
+    mat.setUp()
+    mat.assemble()
+    return mat
+
+def ident_mat(n, comm=None):
+    comm = PETSc.COMM_WORLD if comm is None else comm
+
+    diag = PETSc.Vec().create(comm)
+    diag.setSizes(n)
+    diag.setUp()
+    diag.array[:] = 1
+    diag.assemble()
+
+    mat = PETSc.Mat().create(comm)
+    mat.setSizes([n, n])
+    mat.setUp()
+    mat.setDiagonal(diag)
+    mat.assemble()
+    return mat
 
 def add(A, B):
     """
