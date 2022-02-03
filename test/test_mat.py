@@ -61,3 +61,9 @@ BMAT3 = BMAT1+BMAT2
 print(BMAT1.to_petsc()[:, :])
 print(BMAT3.to_petsc()[:, :])
 
+def test_add():
+    BMAT3 = BMAT1 + BMAT2
+    print(f"A: {BMAT1[:, :].to_petsc()[:, :]}")
+    print(f"B: {BMAT1[:, :].to_petsc()[:, :]}")
+    print(f"A+B: {BMAT3[:, :].to_petsc()[:, :]}")
+

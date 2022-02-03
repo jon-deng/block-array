@@ -8,7 +8,9 @@ from collections import OrderedDict
 import numpy as np
 from petsc4py import PETSc
 
-from .vec import BlockVec
+# from .vec import BlockVec, general_vec_set, generic_vec_size
+from .vec import *
+from .mat import *
 
 def generic_mult_mat_vec(A, x):
     """
