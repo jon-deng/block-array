@@ -5,9 +5,13 @@ block vectors
 
 import operator
 from collections import OrderedDict
+from typing import TypeVar, Generic, List, Optional, String
 
 import numpy as np
 from petsc4py import PETSc
+
+# Type variable for a 'sub'vector
+T = TypeVar('T')
 
 # BlockVec methods
 def general_vec_set(vec, vals):
@@ -190,7 +194,7 @@ def generic_vec_size(vec):
     else:
         return len(vec)
 
-class BlockVec:
+class BlockVec(Generic[T]):
     """
     Represents a block vector with blocks indexed by keys
 
@@ -199,7 +203,7 @@ class BlockVec:
     vecs : tuple(PETsc.Vec or dolfin.cpp.la.PETScVec or np.ndarray)
     keys : tuple(str)
     """
-    def __init__(self, vecs, keys=None):
+    def __init__(self, vecs: List[T], keys: Optional[List[str]]=None):
         if keys is None:
             keys = tuple(range(len(vecs)))
 
