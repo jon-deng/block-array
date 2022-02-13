@@ -28,7 +28,7 @@ def general_vec_set(vec, vals):
     else:
         vec[:] = vals
 
-def concatenate(*args):
+def concatenate_vec(*args):
     """
     Concatenate a series of BlockVecs into a single BlockVec
 
