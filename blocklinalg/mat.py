@@ -476,6 +476,29 @@ def generic_mat_size(generic_mat):
         assert len(generic_mat.shape) == 2
         return generic_mat.shape
 
+def concatenate_mat(bmats):
+    """
+    Form a block matrix by joining other block matrices
+
+    Parameters
+    ----------
+    bmats : tuple(tupe(BlockMat))
+    """
+    # check the array is 2D by checking that the number of columns in each row
+    # are equal, pairwise
+    NUM_BROW, NUM_BCOL = get_blocks_shape(bmats)
+
+    mats = []
+    for brow in range(NUM_BROW):
+        for row in range(bmats[brow][0].bsize[0]):
+            mats_row = []
+            for bcol in range(NUM_BCOL):
+                mats_row.extend(bmats[brow][bcol].mats[row])
+            mats.append(mats_row)
+
+    row_keys = [key for key in bmats[ii][0].row_keys for ii in range(NUM_BROW)]
+    col_keys = [key for key in bmats[0][jj].col_keys for jj in range(NUM_BCOL)]
+    return BlockMat(mats, row_keys, col_keys)
 
 class BlockMat:
     """
@@ -524,6 +547,11 @@ class BlockMat:
         row_sizes = [generic_mat_size(self.mats[krow][0]) for krow, row_key in enumerate(self.row_keys)]
         col_sizes = [generic_mat_size(self.mats[0][kcol]) for kcol, col_key in enumerate(self.col_keys)]
         return tuple(row_sizes), tuple(col_sizes)
+
+    @property
+    def bsize(self):
+        """Return block size of the matrix"""
+        return tuple([len(self.row_keys), len(self.col_keys)])
 
     def __add__(self, other):
         return add(self, other)
