@@ -5,7 +5,7 @@ block vectors
 
 import operator
 from collections import OrderedDict
-from typing import TypeVar, Generic, List, Optional, String
+from typing import TypeVar, Generic, List, Optional
 
 import numpy as np
 from petsc4py import PETSc
@@ -32,13 +32,13 @@ def general_vec_set(vec, vals):
     else:
         vec[:] = vals
 
-def concatenate_vec(*args):
+def concatenate_vec(args):
     """
     Concatenate a series of BlockVecs into a single BlockVec
 
     Parameters
     ----------
-    args : BlockVec
+    args : List of BlockVec
     """
     vecs = []
     keys = []
