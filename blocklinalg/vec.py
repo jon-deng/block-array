@@ -8,7 +8,7 @@ from typing import TypeVar, Generic, List, Optional
 import numpy as np
 from petsc4py import PETSc
 
-from .genericops import set_vec, size_vec
+from .genericops import set_vec, size_vec, convert_vec_to_petsc
 
 ## pylint: disable=no-member
 
@@ -178,8 +178,8 @@ def convert_bvec_to_petsc(bvec):
     ----------
     bmat: BlockMat
     """
-    vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.vecs]
-    return BlockMat(vecs, bvec.keys)
+    vecs = [convert_vec_to_petsc(subvec) for subvec in bvec.vecs]
+    return BlockVec(vecs, bvec.keys)
 
 class BlockVec(Generic[T]):
     """
