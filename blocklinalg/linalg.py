@@ -4,8 +4,11 @@ This module contains various linear algebra operations on block matrices/vectors
 
 import operator
 from collections import OrderedDict
+from functools import reduce
 
 import numpy as np
+import jax
+import dolfin as dfn
 from petsc4py import PETSc
 
 # from .vec import BlockVec, general_vec_set, generic_vec_size
@@ -16,18 +19,21 @@ def generic_mult_mat_vec(A, x):
     """
     Return a generic matrix vector multiplication
     """
-    if isinstance(A, PETSc.Mat):
-        y = A.getVecLeft()
-        return A.matMult(x, y)
+    np_array_types = (np.ndarray, jax.numpy.ndarray)
+    if isinstance(A, np_array_types) and isinstance(x, np_array_types):
+        return A@x
     else:
-        raise NotImplementedError("")
+        try:
+            return A*x
+        except:
+            raise
 
 def mult_mat_vec(A, x):
     y_vecs = []
-    for m_row, x_vec in enumerate(x.vecs):
-        y_vec = generic_mult_mat_vec(A.mats[m_row][0], x_vec)
-        for n in range(1, len(A.col_keys)):
-            y_vec += generic_mult_mat_vec(A.mats[m_row][n], x_vec)
+    for submat_row in A.mats:
+        y_vec = reduce(
+            lambda a, b: a+b, 
+            [generic_mult_mat_vec(submat, subvec) for submat, subvec in zip(submat_row, x.vecs)])
         y_vecs.append(y_vec)
     return BlockVec(y_vecs, x.keys)
 
