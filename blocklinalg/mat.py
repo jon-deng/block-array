@@ -9,6 +9,10 @@ from collections import OrderedDict
 import numpy as np
 from petsc4py import PETSc
 
+from . import genericops as gops
+
+# pylint: disable=no-member
+
 # Utilies for constructing block matrices
 def form_block_matrix(blocks, finalize=True, comm=None):
     """
@@ -434,7 +438,7 @@ def scalar_mul(a, B):
     a: float 
     B: BlockMat
     """
-    row_keys, col_keys = A.row_keys, A.col_keys
+    row_keys, col_keys = B.row_keys, B.col_keys
     mats = [
         [a*B.mats[mm][nn] 
         for nn, col_key in enumerate(col_keys)] 
@@ -451,30 +455,10 @@ def norm(A):
     """
     row_keys, col_keys = A.row_keys, A.col_keys
     frobenius_norm = np.sum([
-        generic_mat_norm(A.mats[mm][nn])**2
+        gops.norm_mat(A.mats[mm][nn])**2
         for nn, col_key in enumerate(col_keys)
         for mm, row_key in enumerate(row_keys)])**0.5
     return frobenius_norm
-
-def generic_mat_norm(generic_mat):
-    if isinstance(generic_mat, PETSc.Mat):
-        return generic_mat.norm(norm_type=PETSc.NormType.FROBENIUS)
-    else:
-        return np.sqrt(np.sum(generic_mat**2))
-
-def generic_mat_size(generic_mat):
-    """
-    Return matrix shape for different matrix types
-
-    Parameters
-    ----------
-    generic_mat : PETSc.Mat or np.ndarray
-    """
-    if isinstance(PETSc.Mat):
-        return generic_mat.getSize()
-    else:
-        assert len(generic_mat.shape) == 2
-        return generic_mat.shape
 
 def concatenate_mat(bmats):
     """
@@ -544,8 +528,8 @@ class BlockMat:
         col_key0 = self.col_keys[0]
         row_key0 = self.row_keys[0]
 
-        row_sizes = [generic_mat_size(self.mats[krow][0]) for krow, row_key in enumerate(self.row_keys)]
-        col_sizes = [generic_mat_size(self.mats[0][kcol]) for kcol, col_key in enumerate(self.col_keys)]
+        row_sizes = [gops.shape_mat(self.mats[krow][0]) for krow, row_key in enumerate(self.row_keys)]
+        col_sizes = [gops.shape_mat(self.mats[0][kcol]) for kcol, col_key in enumerate(self.col_keys)]
         return tuple(row_sizes), tuple(col_sizes)
 
     @property

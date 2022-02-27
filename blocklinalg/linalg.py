@@ -15,25 +15,14 @@ from petsc4py import PETSc
 from .vec import *
 from .mat import *
 
-def generic_mult_mat_vec(A, x):
-    """
-    Return a generic matrix vector multiplication
-    """
-    np_array_types = (np.ndarray, jax.numpy.ndarray)
-    if isinstance(A, np_array_types) and isinstance(x, np_array_types):
-        return A@x
-    else:
-        try:
-            return A*x
-        except:
-            raise
+from . import genericops as gops
 
 def mult_mat_vec(A, x):
     y_vecs = []
     for submat_row in A.mats:
         y_vec = reduce(
             lambda a, b: a+b, 
-            [generic_mult_mat_vec(submat, subvec) for submat, subvec in zip(submat_row, x.vecs)])
+            [gops.mult_mat_vec(submat, subvec) for submat, subvec in zip(submat_row, x.vecs)])
         y_vecs.append(y_vec)
     return BlockVec(y_vecs, x.keys)
 

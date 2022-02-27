@@ -3,14 +3,14 @@ This module contains the block vector definition and various operations on
 block vectors
 """
 
-import operator
-from collections import OrderedDict
 from typing import TypeVar, Generic, List, Optional
 
 import numpy as np
 from petsc4py import PETSc
 
 from .genericops import set_vec
+
+## pylint: disable=no-member
 
 # Type variable for a 'sub'vector
 T = TypeVar('T')
