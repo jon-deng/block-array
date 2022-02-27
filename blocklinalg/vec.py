@@ -170,6 +170,16 @@ def pos(a):
     vecs = tuple([+ai for ai in a])
     return BlockVec(vecs, keys)
 
+def convert_bvec_to_petsc(bvec):
+    """
+    Converts a block matrix from one submatrix type to the PETSc submatrix type
+
+    Parameters
+    ----------
+    bmat: BlockMat
+    """
+    vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.vecs]
+    return BlockMat(vecs, bvec.keys)
 
 class BlockVec(Generic[T]):
     """
