@@ -16,6 +16,17 @@ from .genericops import set_vec, size_vec, convert_vec_to_petsc
 T = TypeVar('T')
 
 # BlockVec methods
+def split_bvec(bvec, block_sizes):
+    """
+    Splits a block vector into multiple block vectors
+    """
+    split_bvecs = []
+    _bvec = bvec
+    for bsize in block_sizes:
+        split_bvecs.append(_bvec[:bsize])
+        _bvec = _bvec[bsize:]
+    return tuple(split_bvecs)
+
 def concatenate_vec(args):
     """
     Concatenate a series of BlockVecs into a single BlockVec
