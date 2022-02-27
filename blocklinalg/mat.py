@@ -404,6 +404,7 @@ def ident_mat(n, comm=None):
     mat.assemble()
     return mat
 
+## Basic BlockMat operations
 def add(A, B):
     """
     Add two block matrices, A + B
@@ -460,6 +461,7 @@ def norm(A):
         for mm, row_key in enumerate(row_keys)])**0.5
     return frobenius_norm
 
+## More utilities
 def concatenate_mat(bmats):
     """
     Form a block matrix by joining other block matrices
@@ -482,6 +484,19 @@ def concatenate_mat(bmats):
 
     row_keys = [key for key in bmats[ii][0].row_keys for ii in range(NUM_BROW)]
     col_keys = [key for key in bmats[0][jj].col_keys for jj in range(NUM_BCOL)]
+    return BlockMat(mats, row_keys, col_keys)
+
+def convert_bmat_to_petsc(bmat):
+    """
+    Converts a block matrix from one submatrix type to the PETSc submatrix type
+
+    Parameters
+    ----------
+    bmat: BlockMat
+    """
+    row_keys = bmat.row_keys
+    col_keys = bmat.col_keys
+    mats = [[gops.convert_mat_to_petsc(mat) for mat in row] for row in bmat.mats]
     return BlockMat(mats, row_keys, col_keys)
 
 class BlockMat:

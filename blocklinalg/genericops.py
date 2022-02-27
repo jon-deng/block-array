@@ -6,6 +6,7 @@ This is needed for BlockVector and BlockMatrix to work with different
 subelements from the different packages.
 """
 
+import dolfin as dfn
 import numpy as np
 import jax
 from petsc4py import PETSc
@@ -112,6 +113,31 @@ def size_vec(vec):
     else:
         return len(vec)
 
+def shape_vec(vec):
+    """
+    Return vector shape
+
+    This is just a tuple version of the `size_vec`
+
+    Parameters
+    ----------
+    vec : dolfin.PETScVector, PETSc.Mat or np.ndarray
+    """
+    return tuple(size_vec(vec))
+
+def size_mat(mat):
+    """
+    Return matrix size for different matrix types
+
+    This is just the total number of elements in the matrix
+
+    Parameters
+    ----------
+    generic_mat : PETSc.Mat or np.ndarray
+    """
+    shape = shape_mat(mat)
+    return shape[0]*shape[1]
+
 def shape_mat(mat):
     """
     Return matrix shape for different matrix types
@@ -125,3 +151,48 @@ def shape_mat(mat):
     else:
         assert len(mat.shape) == 2
         return mat.shape
+
+
+## Convert matrix/vector types
+def convert_mat_to_petsc(mat, comm=None, keep_diagonal=True):
+    """
+    Return a `PETSc.Mat` representation of `mat`
+    """
+    mat_shape = shape_mat(mat)
+    if isinstance(mat, NDARRAY_LIKE_TYPES):
+        COL_IDXS = np.arange(mat_shape[1], dtype=np.int32)
+        out = PETSc.Mat().createAIJ(mat_shape, comm=comm)
+        out.setUp()
+        for ii in range(mat_shape[0]):
+            current_row = mat[ii, :]
+            idx_nonzero = row == 0
+            out.setValues(
+                ii, COL_IDXS[idx_nonzero], current_row[idx_nonzero], 
+                addv=PETSc.InsertMode.ADD_VALUES)
+
+        if keep_diagonal:
+            for ii in range(mat_shape[0]):
+                out.setValue(ii, ii, 0, addv=PETSc.InsertMode.ADD_VALUES)
+        out.assemble()
+    elif isinstance(mat, dfn.PETScMatrix):
+        out = mat.mat()
+    else:
+        out = mat
+
+    return out
+
+def convert_vec_to_petsc(vec, comm=None):
+    """
+    Return a `PETSc.Vec` representation of `vec`
+    """
+    M = size_vec(vec)
+    if isinstance(vec, NDARRAY_LIKE_TYPES):
+        out = PETSc.Vec().create(M, comm=comm)
+        out.setUp()
+        out.array[:] = vec
+        out.assemble()
+    elif isinstance(vec, dfn.PETScVec):
+        out = vec.vec()
+    else:
+        out = vec
+    return out
