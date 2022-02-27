@@ -8,7 +8,7 @@ from typing import TypeVar, Generic, List, Optional
 import numpy as np
 from petsc4py import PETSc
 
-from .genericops import set_vec
+from .genericops import set_vec, size_vec
 
 ## pylint: disable=no-member
 
@@ -170,13 +170,6 @@ def pos(a):
     vecs = tuple([+ai for ai in a])
     return BlockVec(vecs, keys)
 
-def generic_vec_size(vec):
-    if isinstance(vec, np.ndarray):
-        return vec.size
-    elif isinstance(vec, float):
-        return 1
-    else:
-        return len(vec)
 
 class BlockVec(Generic[T]):
     """
@@ -198,7 +191,7 @@ class BlockVec(Generic[T]):
     @property
     def size(self):
         """Return sizes of each block"""
-        return tuple([generic_vec_size(vec) for vec in self.vecs])
+        return tuple([size_vec(vec) for vec in self.vecs])
 
     @property
     def bsize(self):
@@ -230,7 +223,7 @@ class BlockVec(Generic[T]):
         return self.__str__()
 
     def __str__(self):
-        desc = ", ".join([f"{key}:{generic_vec_size(vec)}" for key, vec in zip(self.keys, self.vecs)])
+        desc = ", ".join([f"{key}:{size_vec(vec)}" for key, vec in zip(self.keys, self.vecs)])
         return f"({desc})"
 
     ## Dict-like interface

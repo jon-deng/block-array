@@ -98,6 +98,20 @@ def norm_mat(mat):
     else:
         return np.sqrt(np.sum(mat**2))
 
+
+def size_vec(vec):
+    """
+    Return vector size
+
+    Parameters
+    ----------
+    vec : dolfin.PETScVector, PETSc.Mat or np.ndarray
+    """
+    if isinstance(vec, NDARRAY_LIKE_TYPES):
+        return vec.size
+    else:
+        return len(vec)
+
 def shape_mat(mat):
     """
     Return matrix shape for different matrix types
