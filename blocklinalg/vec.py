@@ -10,28 +10,12 @@ from typing import TypeVar, Generic, List, Optional
 import numpy as np
 from petsc4py import PETSc
 
+from .genericops import set_vec
+
 # Type variable for a 'sub'vector
 T = TypeVar('T')
 
 # BlockVec methods
-def general_vec_set(vec, vals):
-    """
-    Set the specified values to a vector
-
-    This handles the different indexing notations that vectors can have based on the type, shape,
-    etc.
-
-    Parameters
-    ----------
-    vec : PETScVec, PETsc.Vec, np.ndarray
-        One of the valid types that can be contained in a BlockVec
-    vals : float, array_like, etc.
-    """
-    if isinstance(vec, np.ndarray) and vec.shape == ():
-        vec[()] = vals
-    else:
-        vec[:] = vals
-
 def concatenate_vec(args):
     """
     Concatenate a series of BlockVecs into a single BlockVec
@@ -337,7 +321,7 @@ class BlockVec(Generic[T]):
         Set a constant value for the block vector
         """
         for vec in self:
-            general_vec_set(vec, scalar)
+            set_vec(vec, scalar)
 
     def set_vec(self, vec):
         """
