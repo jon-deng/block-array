@@ -198,7 +198,7 @@ class BlockVec(Generic[T]):
 
     Parameters
     ----------
-    vecs : tuple(PETsc.Vec or dolfin.cpp.la.PETScVec or np.ndarray)
+    vecs : tuple(PETsc.Vec or dolfin.cpp.la.PETScVector or np.ndarray)
     keys : tuple(str)
     """
     def __init__(self, vecs: List[T], keys: Optional[List[str]]=None):

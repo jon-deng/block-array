@@ -10,6 +10,7 @@ import dolfin as dfn
 import numpy as np
 import jax
 from petsc4py import PETSc
+
 NDARRAY_LIKE_TYPES = (np.ndarray, jax.numpy.ndarray)
 
 # pylint: disable=no-member
@@ -110,6 +111,8 @@ def size_vec(vec):
     """
     if isinstance(vec, NDARRAY_LIKE_TYPES):
         return vec.size
+    elif isinstance(vec, PETSc.Vec):
+        return vec.size
     else:
         return len(vec)
 
@@ -187,11 +190,11 @@ def convert_vec_to_petsc(vec, comm=None):
     """
     M = size_vec(vec)
     if isinstance(vec, NDARRAY_LIKE_TYPES):
-        out = PETSc.Vec().create(M, comm=comm)
+        out = PETSc.Vec().createSeq(M, comm=comm)
         out.setUp()
         out.array[:] = vec
         out.assemble()
-    elif isinstance(vec, dfn.PETScVec):
+    elif isinstance(vec, dfn.PETScVector):
         out = vec.vec()
     else:
         out = vec
