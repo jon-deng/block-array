@@ -17,22 +17,30 @@ from .mat import *
 
 from . import genericops as gops
 
-def mult_mat_vec(A, x):
-    y_vecs = []
-    for submat_row in A.mats:
-        y_vec = reduce(
+def mult_mat_vec(bmat, bvec):
+    vecs = []
+    for submat_row in bmat.mats:
+        vec = reduce(
             lambda a, b: a+b, 
-            [gops.mult_mat_vec(submat, subvec) for submat, subvec in zip(submat_row, x.vecs)])
-        y_vecs.append(y_vec)
-    return BlockVec(y_vecs, x.keys)
+            [gops.mult_mat_vec(submat, subvec) for submat, subvec in zip(submat_row, bvec.vecs)])
+        vecs.append(vec)
+    return BlockVec(vecs, bvec.keys)
 
-# def mult_mat_mat(A, B):
-#     A_v = []
-#     for m_row, xvec in enumerate(x.vecs):
-#         yvec = generic_mult_mat_mat(A.mats[m_row][0], vec)
-#         for n in range(1, len(A.col_keys)):
-#             yvec += generic_mult_mat_vec(A.mats[m_row][n], vec)
-#         yvecs.append(yvec)
-#     return BlockVec(yvecs, x.keys)
+def mult_mat_mat(bmata, bmatb):
+    ## ii/jj denote the current row/col indices
+    NROW, NCOL = bmata.bsize[0], bmatb.bsize[1]
+    
+    assert bmata.bsize[1] == bmatb.bsize[0]
+    NREDUCE = bmata.bsize[1]
 
-# def mult_mat_mat(A, B):
+    mats = []
+    for ii in range(NROW):
+        mat_row = [
+            reduce(
+                lambda a, b: a + b, 
+                [gops.mult_mat_mat(bmata.mats[ii][kk], bmatb.mats[kk][jj]) for kk in range(NREDUCE)]
+            )
+            for jj in range(NCOL)
+        ]
+        mats.append(mat_row)
+    return BlockMat(mats, bmata.row_keys, bmatb.col_keys)

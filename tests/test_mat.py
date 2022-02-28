@@ -2,6 +2,7 @@ import numpy as np
 import petsc4py.PETSc as PETSc
 
 from blocklinalg import mat as bmat
+from blocklinalg import linalg as bla
 
 COMM = PETSc.COMM_WORLD
 A = PETSc.Mat().create(COMM)
@@ -73,6 +74,17 @@ def test_zero_mat():
 def test_ident_mat():
     print(bmat.ident_mat(5)[:, :])
 
+def test_concatenate_mat():
+    cbmat = bmat.concatenate_mat([[BMAT1], [BMAT2]])
+    print(cbmat.bsize)
+    print(BMAT1.bsize)
+
+def test_mult_mat():
+    cbmat = bla.
+    print(cbmat.bsize)
+    print(BMAT1.bsize)
+
 if __name__ == '__main__':
     test_zero_mat()
     test_ident_mat()
+    test_concatenate_mat()

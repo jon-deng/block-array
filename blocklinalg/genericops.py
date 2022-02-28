@@ -69,12 +69,16 @@ def mult_mat_vec(mat, vec, out=None):
     vec : dolfin.PETScVector, PETsc.Vec, np.ndarray
     """
     if isinstance(mat, NDARRAY_LIKE_TYPES) and isinstance(vec, NDARRAY_LIKE_TYPES):
-        return mat@vec
+        if out is None:
+            out = mat@vec
+        else:
+            out[:] = mat@vec # TODO: This doesn't make use of out
+    elif isinstance(mat, PETSc.Mat):
+        out = mat.createVecLeft() if out is None else out
+        mat.mult(vec, out)
     else:
-        try:
-            return mat*vec
-        except:
-            raise
+        out = mat*vec
+    return out
 
 def mult_mat_mat(mata, matb, out=None):
     """
@@ -88,10 +92,7 @@ def mult_mat_mat(mata, matb, out=None):
     if isinstance(mata, NDARRAY_LIKE_TYPES) and isinstance(matb, NDARRAY_LIKE_TYPES):
         return mata@matb
     else:
-        try:
-            return mata*matb
-        except:
-            raise
+        return mata*matb
 
 
 def norm_mat(mat):
