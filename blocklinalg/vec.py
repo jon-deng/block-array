@@ -8,7 +8,7 @@ from typing import TypeVar, Generic, List, Optional
 import numpy as np
 from petsc4py import PETSc
 
-from .genericops import set_vec, size_vec, convert_vec_to_petsc
+from .genericops import set_vec, size_vec, shape_vec, convert_vec_to_petsc
 
 ## pylint: disable=no-member
 
@@ -211,15 +211,31 @@ class BlockVec(Generic[T]):
 
     @property
     def size(self):
-        """Return sizes of each block"""
-        return tuple([size_vec(vec) for vec in self.vecs])
-
+        """
+        Return the size (total number of blocks)
+        """
+        return len(self.vecs)
+        
     @property
     def bsize(self):
         """
-        Block size of the vector (number of blocks)
+        Return the block size (total size of each block)
         """
-        return len(self.vecs)
+        return np.array([size_vec(vec) for vec in self.vecs])
+
+    @property
+    def shape(self):
+        """
+        Return the shape (number of blocks in each axis)
+        """
+        return tuple(len(self.vecs))
+        
+    @property
+    def bshape(self):
+        """
+        Return the block shape (shape of each block as a tuple)
+        """
+        return np.array([shape_vec(vec) for vec in self.vecs])
 
     @property
     def keys(self):

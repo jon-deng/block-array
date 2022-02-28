@@ -539,18 +539,31 @@ class BlockMat:
 
     @property
     def size(self):
-        """Return sizes of the row and column blocks"""
-        col_key0 = self.col_keys[0]
-        row_key0 = self.row_keys[0]
-
-        row_sizes = [gops.shape_mat(self.mats[krow][0]) for krow, row_key in enumerate(self.row_keys)]
-        col_sizes = [gops.shape_mat(self.mats[0][kcol]) for kcol, col_key in enumerate(self.col_keys)]
-        return tuple(row_sizes), tuple(col_sizes)
+        """
+        Return the size (total number of blocks)
+        """
+        return np.prod(self.shape)
 
     @property
     def bsize(self):
-        """Return block size of the matrix"""
-        return tuple([len(self.row_keys), len(self.col_keys)])
+        """
+        Return the block size (total size of each block)
+        """
+        return np.prod(self.bshape, axis=-1)
+
+    @property
+    def shape(self):
+        """
+        Return the shape (number of blocks in each axis)
+        """
+        return (len(self.row_keys), len(self.col_keys))
+        
+    @property
+    def bshape(self):
+        """
+        Return the block shape (shape of each block as a tuple)
+        """
+        return np.array([[gops.shape_mat(mat) for mat in row] for row in self.mats])
 
     def __add__(self, other):
         return add(self, other)
