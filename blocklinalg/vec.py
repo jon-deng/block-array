@@ -228,7 +228,7 @@ class BlockVec(Generic[T]):
         """
         Return the shape (number of blocks in each axis)
         """
-        return tuple(len(self.vecs))
+        return (len(self.vecs),)
         
     @property
     def bshape(self):

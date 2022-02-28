@@ -127,7 +127,7 @@ def shape_vec(vec):
     ----------
     vec : dolfin.PETScVector, PETSc.Mat or np.ndarray
     """
-    return tuple(size_vec(vec))
+    return (size_vec(vec),)
 
 def size_mat(mat):
     """

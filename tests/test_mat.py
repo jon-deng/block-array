@@ -62,6 +62,12 @@ BMAT3 = BMAT1+BMAT2
 print(BMAT1.to_petsc()[:, :])
 print(BMAT3.to_petsc()[:, :])
 
+def test_mat_size_shape():
+    print(BMAT1.size)
+    print(BMAT1.shape)
+    print(BMAT1.bsize)
+    print(BMAT1.bshape)
+
 def test_add():
     BMAT3 = BMAT1 + BMAT2
     print(f"A: {BMAT1[:, :].to_petsc()[:, :]}")
@@ -80,11 +86,11 @@ def test_concatenate_mat():
     print(BMAT1.bsize)
 
 def test_mult_mat():
-    cbmat = bla.
-    print(cbmat.bsize)
-    print(BMAT1.bsize)
+    out = bla.mult_mat_mat(BMAT1, BMAT2)
+    print(out.bsize)
 
 if __name__ == '__main__':
+    test_mat_size_shape()
     test_zero_mat()
     test_ident_mat()
     test_concatenate_mat()
