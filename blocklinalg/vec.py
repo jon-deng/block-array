@@ -8,7 +8,7 @@ from typing import TypeVar, Generic, List, Optional
 import numpy as np
 from petsc4py import PETSc
 
-from .genericops import set_vec, size_vec, shape_vec, convert_vec_to_petsc
+from . import genericops as gops
 
 ## pylint: disable=no-member
 
@@ -189,7 +189,7 @@ def convert_bvec_to_petsc(bvec):
     ----------
     bmat: BlockMat
     """
-    vecs = [convert_vec_to_petsc(subvec) for subvec in bvec.vecs]
+    vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.vecs]
     return BlockVec(vecs, bvec.keys)
 
 class BlockVec(Generic[T]):
@@ -221,7 +221,7 @@ class BlockVec(Generic[T]):
         """
         Return the block size (total size of each block)
         """
-        return np.array([size_vec(vec) for vec in self.vecs])
+        return np.array([gops.size_vec(vec) for vec in self.vecs])
 
     @property
     def shape(self):
@@ -235,7 +235,7 @@ class BlockVec(Generic[T]):
         """
         Return the block shape (shape of each block as a tuple)
         """
-        return np.array([shape_vec(vec) for vec in self.vecs])
+        return np.array([gops.shape_vec(vec) for vec in self.vecs])
 
     @property
     def keys(self):
@@ -260,7 +260,7 @@ class BlockVec(Generic[T]):
         return self.__str__()
 
     def __str__(self):
-        desc = ", ".join([f"{key}:{size_vec(vec)}" for key, vec in zip(self.keys, self.vecs)])
+        desc = ", ".join([f"{key}:{gops.size_vec(vec)}" for key, vec in zip(self.keys, self.vecs)])
         return f"({desc})"
 
     ## Dict-like interface
@@ -339,7 +339,7 @@ class BlockVec(Generic[T]):
                 raise e
         elif isinstance(key, slice):
             assert isinstance(value, BlockVec)
-            assert self.size[key] == value.size
+            assert np.all(self.bsize[key] == value.bsize)
             
             for vec, val, name in zip(self.vecs[key], value.vecs, self.keys[key]):
                 vec[:] = val
@@ -351,17 +351,17 @@ class BlockVec(Generic[T]):
         Set a constant value for the block vector
         """
         for vec in self:
-            set_vec(vec, scalar)
+            gops.set_vec(vec, scalar)
 
     def set_vec(self, vec):
         """
         Sets all values based on a vector
         """
         # Check sizes are compatible
-        assert vec.size == np.sum(self.size)
+        assert vec.size == np.sum(self.bsize)
 
         # indices of the boundaries of each block
-        n_blocks = np.concatenate(([0], np.cumsum(self.size)))
+        n_blocks = np.concatenate(([0], np.cumsum(self.bsize)))
         for i, (n_start, n_stop) in enumerate(zip(n_blocks[:-1], n_blocks[1:])):
             self[i][:] = vec[n_start:n_stop]
 
@@ -371,7 +371,7 @@ class BlockVec(Generic[T]):
         return np.concatenate(ndarray_vecs, axis=0)
 
     def to_petsc_seq(self, comm=None):
-        total_size = np.sum(self.size)
+        total_size = np.sum(self.bsize)
         vec = PETSc.Vec.createSeq(total_size, comm=comm)
         vec.setArray(self.to_ndarray)
         vec.assemblyBegin()
