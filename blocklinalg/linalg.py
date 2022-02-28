@@ -28,10 +28,10 @@ def mult_mat_vec(bmat, bvec):
 
 def mult_mat_mat(bmata, bmatb):
     ## ii/jj denote the current row/col indices
-    NROW, NCOL = bmata.bsize[0], bmatb.bsize[1]
+    NROW, NCOL = bmata.shape[0], bmatb.shape[1]
     
-    assert bmata.bsize[1] == bmatb.bsize[0]
-    NREDUCE = bmata.bsize[1]
+    assert bmata.shape[1] == bmatb.shape[0]
+    NREDUCE = bmata.shape[1]
 
     mats = []
     for ii in range(NROW):

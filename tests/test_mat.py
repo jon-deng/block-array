@@ -82,12 +82,12 @@ def test_ident_mat():
 
 def test_concatenate_mat():
     cbmat = bmat.concatenate_mat([[BMAT1], [BMAT2]])
-    print(cbmat.bsize)
-    print(BMAT1.bsize)
+    print(cbmat.shape)
+    print(BMAT1.shape)
 
 def test_mult_mat():
     out = bla.mult_mat_mat(BMAT1, BMAT2)
-    print(out.bsize)
+    print(out.shape)
 
 if __name__ == '__main__':
     test_mat_size_shape()

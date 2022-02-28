@@ -64,7 +64,7 @@ def handle_scalars(bvec_op):
         if not validate_blockvec_size(*bvecs):
             raise ValueError(f"Could not perform operation on BlockVecs with sizes", [vec.size for vec in bvecs])
 
-        bsize = bvecs[0].bsize
+        bsize = bvecs[0].size
         keys = bvecs[0].keys
 
         # Convert floats to scalar BlockVecs in a new argument list

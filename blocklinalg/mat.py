@@ -476,7 +476,7 @@ def concatenate_mat(bmats):
 
     mats = []
     for brow in range(NUM_BROW):
-        for row in range(bmats[brow][0].bsize[0]):
+        for row in range(bmats[brow][0].shape[0]):
             mats_row = []
             for bcol in range(NUM_BCOL):
                 mats_row.extend(bmats[brow][bcol].mats[row])
