@@ -149,8 +149,10 @@ def shape_mat(mat):
     ----------
     generic_mat : PETSc.Mat or np.ndarray
     """
-    if isinstance(PETSc.Mat):
+    if isinstance(mat, PETSc.Mat):
         return mat.getSize()
+    if isinstance(mat, dfn.PETScMatrix):
+        return tuple([mat.size(i) for i in range(2)])
     else:
         assert len(mat.shape) == 2
         return mat.shape

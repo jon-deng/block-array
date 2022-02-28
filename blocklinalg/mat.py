@@ -482,8 +482,8 @@ def concatenate_mat(bmats):
                 mats_row.extend(bmats[brow][bcol].mats[row])
             mats.append(mats_row)
 
-    row_keys = [key for key in bmats[ii][0].row_keys for ii in range(NUM_BROW)]
-    col_keys = [key for key in bmats[0][jj].col_keys for jj in range(NUM_BCOL)]
+    row_keys = [key for ii in range(NUM_BROW) for key in bmats[ii][0].row_keys]
+    col_keys = [key for jj in range(NUM_BCOL) for key in bmats[0][jj].col_keys]
     return BlockMat(mats, row_keys, col_keys)
 
 def convert_bmat_to_petsc(bmat):
