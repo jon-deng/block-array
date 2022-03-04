@@ -1,9 +1,9 @@
 """
-This module contains generic functions that should work across the different
-vector/matrix objects from PETSc, numpy, and FEniCS
+This module contains generic functions for operating on vector/matrix objects 
+from PETSc, numpy, and FEniCS.
 
 This is needed for BlockVector and BlockMatrix to work with different
-subelements from the different packages.
+'subelements' from the different packages.
 """
 
 import dolfin as dfn
