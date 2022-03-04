@@ -171,7 +171,7 @@ def convert_mat_to_petsc(mat, comm=None, keep_diagonal=True):
         out.setUp()
         for ii in range(mat_shape[0]):
             current_row = mat[ii, :]
-            idx_nonzero = current_row == 0
+            idx_nonzero = current_row != 0
             out.setValues(
                 ii, COL_IDXS[idx_nonzero], current_row[idx_nonzero], 
                 addv=PETSc.InsertMode.ADD_VALUES)
