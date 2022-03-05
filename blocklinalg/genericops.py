@@ -92,7 +92,7 @@ def mult_mat_mat(mata, matb, out=None):
     if isinstance(mata, NDARRAY_LIKE_TYPES) and isinstance(matb, NDARRAY_LIKE_TYPES):
         return mata@matb
     else:
-        return mata*matb
+        return mata.matMult(matb)
 
 
 def norm_mat(mat):
@@ -165,13 +165,14 @@ def convert_mat_to_petsc(mat, comm=None, keep_diagonal=True):
     Return a `PETSc.Mat` representation of `mat`
     """
     mat_shape = shape_mat(mat)
+    assert len(mat_shape) == 2
     if isinstance(mat, NDARRAY_LIKE_TYPES):
         COL_IDXS = np.arange(mat_shape[1], dtype=np.int32)
         out = PETSc.Mat().createAIJ(mat_shape, comm=comm)
         out.setUp()
         for ii in range(mat_shape[0]):
-            current_row = mat[ii, :]
-            idx_nonzero = current_row != 0
+            current_row = np.array(mat[ii, :]).copy()
+            idx_nonzero = np.array(current_row != 0).copy()
             out.setValues(
                 ii, COL_IDXS[idx_nonzero], current_row[idx_nonzero], 
                 addv=PETSc.InsertMode.ADD_VALUES)

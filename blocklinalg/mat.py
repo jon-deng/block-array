@@ -591,3 +591,6 @@ class BlockMat:
 
     def to_petsc(self, comm=None):
         return form_block_matrix(self.mats)
+
+    def norm(self):
+        return norm(self)
