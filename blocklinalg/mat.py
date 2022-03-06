@@ -380,24 +380,20 @@ def reorder_mat_cols(mat, cols_in, cols_out, n_out, finalize=True):
 
 # Utilities for making specific types of matrices
 def zero_mat(n, m, comm=None):
-    comm = PETSc.COMM_WORLD if comm is None else comm
-
-    mat = PETSc.Mat().create(comm)
+    mat = PETSc.Mat().create(comm=comm)
     mat.setSizes([n, m])
     mat.setUp()
     mat.assemble()
     return mat
 
 def ident_mat(n, comm=None):
-    comm = PETSc.COMM_WORLD if comm is None else comm
-
-    diag = PETSc.Vec().create(comm)
+    diag = PETSc.Vec().create(comm=comm)
     diag.setSizes(n)
     diag.setUp()
     diag.array[:] = 1
     diag.assemble()
 
-    mat = PETSc.Mat().create(comm)
+    mat = PETSc.Mat().create(comm=comm)
     mat.setSizes([n, n])
     mat.setUp()
     mat.setDiagonal(diag)

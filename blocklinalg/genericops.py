@@ -92,6 +92,15 @@ def mult_mat_mat(mata, matb, out=None):
     if isinstance(mata, NDARRAY_LIKE_TYPES) and isinstance(matb, NDARRAY_LIKE_TYPES):
         return mata@matb
     else:
+        matc = PETSc.Mat().createAIJ([mata.size[1], 5])
+        matc.setUp()
+        matc.setValue(0, 0, 1)
+        matc.assemble()
+
+        matc = PETSc.Mat().createAIJ([matb.size[1], 5])
+        matc.setUp()
+        matc.setValue(0, 0, 1)
+        matc.assemble()
         return mata.matMult(matb)
 
 
@@ -166,20 +175,23 @@ def convert_mat_to_petsc(mat, comm=None, keep_diagonal=True):
     """
     mat_shape = shape_mat(mat)
     assert len(mat_shape) == 2
+    is_square = mat_shape[0] == mat_shape[1]
     if isinstance(mat, NDARRAY_LIKE_TYPES):
         COL_IDXS = np.arange(mat_shape[1], dtype=np.int32)
         out = PETSc.Mat().createAIJ(mat_shape, comm=comm)
         out.setUp()
         for ii in range(mat_shape[0]):
-            current_row = np.array(mat[ii, :]).copy()
-            idx_nonzero = np.array(current_row != 0).copy()
-            out.setValues(
-                ii, COL_IDXS[idx_nonzero], current_row[idx_nonzero], 
-                addv=PETSc.InsertMode.ADD_VALUES)
+            current_row = np.array(mat[ii, :])
+            idx_nonzero = np.array(current_row != 0)
 
-        if keep_diagonal:
+            rows = [ii]
+            cols = COL_IDXS[idx_nonzero]
+            vals = current_row[idx_nonzero]
+            out.setValues(rows, cols, vals, addv=PETSc.InsertMode.ADD_VALUES)
+
+        if keep_diagonal and is_square:
             for ii in range(mat_shape[0]):
-                out.setValue(ii, ii, 0, addv=PETSc.InsertMode.ADD_VALUES)
+                out.setValue(ii, ii, 0.0, addv=PETSc.InsertMode.ADD_VALUES)
         out.assemble()
     elif isinstance(mat, dfn.PETScMatrix):
         out = mat.mat()
