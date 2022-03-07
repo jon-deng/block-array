@@ -3,24 +3,81 @@ A BlockArray is a multidimensional array of a fixed shape, (similar to numpy arr
 arbitrary objects and with blocks indexed by keys
 """
 
+from typing import TypeVar, Tuple
+from itertools import product
+
 import numpy as np
 import math
 import functools as ft
 
-l, m, n = 2, 3, 4
-SHAPE = (l, m, n)
-LABELS = (('a', 'b'), ('a', 'b', 'c'), ('a', 'b', 'c', 'd'))
+T = TypeVar("T")
+Shape = Tuple[int, ...]
 
-SIZE = math.prod(SHAPE)
-MULTI_LABEL_TO_IDX = tuple(
-    [{key: ii for key, ii in zip(keys, idxs)} 
-    for keys, idxs in zip(LABELS, [range(axis_size) for axis_size in SHAPE])])
+class BlockArray:
+    """
+    An N-dimensional array
 
-import string
-ARRAY = string.ascii_lowercase[:SIZE]
+    Parameters
+    ----------
+    array : tuple of objects, length N
+    shape : tuple of ints, length N
+    """
 
-NDIM = len(SHAPE)
-STRIDES = tuple([math.prod(SHAPE[ii+1:], start=1) for ii in range(len(SHAPE))])
+    def __init__(self, array: Tuple[T, ...], shape: Shape, labels: Tuple[Tuple[str, ...], ...]):
+        # Validate the array shape and labels
+        assert len(labels) == len(shape)
+        for ii, axis_size in enumerate(shape):
+            assert len(labels[ii]) == axis_size
+        assert len(array) == math.prod(shape)
+
+        # Assign basic data
+        self._array = array
+        self._shape = shape
+        self._labels = labels
+
+        # Compute convenience constants
+        self._STRIDES = tuple([
+            math.prod(self.shape[ii+1:], start=1) 
+            for ii in range(len(self.shape))])
+        self._MULTI_LABEL_TO_IDX = tuple([
+            {key: ii for key, ii in zip(keys, idxs)} 
+            for keys, idxs in zip(LABELS, [range(axis_size) for axis_size in SHAPE])])
+
+    @property
+    def array(self):
+        return self._array
+
+    @property
+    def shape(self):
+        return self._shape
+
+    @property
+    def labels(self):
+        return self._labels
+
+    @property 
+    def size(self):
+        return math.prod(self.shape)
+
+    def __len__(self):
+        return self.size
+
+    def __getitem__(self, multi_idx):
+        multi_idx = process_multi_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
+        
+        # Find the returned BlockArray's shape and labels
+        ret_shape = tuple([len(axis_idxs) for axis_idxs in multi_idx if isinstance(axis_idxs, tuple)])
+        ret_labels = tuple([
+            tuple([self.labels[ii] for ii in axis_idxs])
+            for axis_idxs in multi_idx if isinstance(axis_idxs, tuple)
+        ])
+
+        # enclose single ints in a list so it works with itertools
+        multi_idx = [(idx,) if isinstance(idx, int) else idx for idx in multi_idx]
+        ret_flat_idxs = [process_flat_idx(idx, self._STRIDES) for idx in product(*multi_idx)]
+
+        ret_array = tuple([self.array[flat_idx] for flat_idx in ret_flat_idxs])
+        return BlockArray(ret_array, ret_shape, ret_labels)
 
 
 def process_flat_idx(multi_idx, strides):
@@ -92,11 +149,18 @@ def convert_stop_idx(idx, size):
 
 
 if __name__ == '__main__':
-    # print(STRIDES)
-    multi_index = (0, 0, 3)
-    multi_index = (slice(0, None), slice(0, 1), 3)
-    multi_index = (1, slice(0, 2), 3)
+    l, m, n = 2, 3, 4
+    SHAPE = (l, m, n)
+    LABELS = (('a', 'b'), ('a', 'b', 'c'), ('a', 'b', 'c', 'd'))
+    SIZE = math.prod(SHAPE)
 
-    print(process_multi_idx(multi_index, SHAPE, MULTI_LABEL_TO_IDX))
+    import string
+    ARRAY = string.ascii_lowercase[:SIZE]
 
-    # print(test[process_flat_idx(multi_index, STRIDES)])
+    test = BlockArray(ARRAY, SHAPE, LABELS)
+
+    print(f"test has shape {test.shape} and vals {test.array}")
+    print(f"test[:, :, 0] has shape {test[:, :, 0].shape} and vals {test[:, :, 0].array}")
+    print(f"test[:, :, 1:2] has shape {test[:, :, 1:2].shape} and vals {test[:, :, 1:2].array}")
+    print(f"test[:, :, 0:1] has shape {test[:, :, 0:1].shape} and vals {test[:, :, 0:1].array}")
+    
