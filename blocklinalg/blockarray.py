@@ -45,18 +45,30 @@ class BlockArray:
 
     @property
     def array(self):
+        """
+        Return raw array
+        """
         return self._array
 
     @property
     def shape(self):
+        """
+        Return array shape
+        """
         return self._shape
 
     @property
     def labels(self):
+        """
+        Return array axis block labels
+        """
         return self._labels
 
     @property 
     def size(self):
+        """
+        Return array size
+        """
         return math.prod(self.shape)
 
     def __len__(self):
@@ -64,7 +76,7 @@ class BlockArray:
 
     def __getitem__(self, multi_idx):
         multi_idx = process_multi_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
-        
+
         # Find the returned BlockArray's shape and labels
         ret_shape = tuple([len(axis_idxs) for axis_idxs in multi_idx if isinstance(axis_idxs, tuple)])
         ret_labels = tuple([
@@ -81,9 +93,19 @@ class BlockArray:
 
 
 def process_flat_idx(multi_idx, strides):
+    """
+    Return a flat index given a multi-index and strides for each dimension
+    """
     return sum([idx*stride for idx, stride in zip(multi_idx, strides)])
 
 def process_multi_idx(multi_idx, shape, multi_label_to_idx):
+    """
+    Return a standard multi-index from a more general multi-index
+
+    The standard multi-index has the type Tuple[Union[Int, Tuple[int, ...]], ...].
+    In other words it's a tuple with each element being either a single int, or an 
+    iterable of ints, representing the indexes being selected from the given axis.
+    """
     out_multi_idx = [
         process_axis_idx(index, axis_size, axis_label_to_idx) 
         for index, axis_size, axis_label_to_idx in zip(multi_idx, shape, multi_label_to_idx)]
@@ -98,15 +120,18 @@ def process_axis_idx(idx, size, label_to_idx):
     if isinstance(idx, slice):
         return convert_slice(idx, size)
     elif isinstance(idx, (list, tuple)):
-        return tuple([convert_label_idx(key, label_to_idx, size) for key in list])
+        return tuple([convert_label_idx(key, label_to_idx, size) for key in label_to_idx])
     elif isinstance(idx, str):
-        return convert_label_idx(key, label_to_idx, size)
+        return convert_label_idx(idx, label_to_idx, size)
     elif isinstance(idx, int):
         return convert_neg_idx(idx, size)
     else:
         raise TypeError(f"Unknown index {idx} of type {type(idx)}.")
 
 def convert_slice(idx, size):
+    """
+    Return a tuple of ints representing elements indexed by a slice object
+    """
     start = convert_start_idx(idx.start, size)
     stop = convert_stop_idx(idx.stop, size)
     if idx.step is None:
@@ -116,11 +141,20 @@ def convert_slice(idx, size):
     return tuple(range(start, stop, step))
 
 def convert_label_idx(idx, label_to_idx, size):
+    """
+    Return an int representing the indexed corresponding to a labelled block
+    """
     out_index = label_to_idx[idx]
     assert out_index >= 0 and out_index < size
     return out_index
 
 def _convert_neg_idx(idx, size):
+    """
+    Return an int representing the equivalent negative index
+
+    For an array of size N, a negative index `-k`, correspond to the positive
+    index `N-k`.
+    """
     if idx >= 0:
         out_idx = idx
     else:
@@ -128,12 +162,21 @@ def _convert_neg_idx(idx, size):
     return out_idx
 
 def convert_neg_idx(idx, size):
+    """
+    Return an int representing the equivalent negative index
+
+    For an array of size N, a negative index `-k`, correspond to the positive
+    index `N-k`.
+    """
     out_idx = _convert_neg_idx(idx, size)
 
     assert out_idx >= 0 and out_idx < size
     return out_idx
 
 def convert_start_idx(idx, size):
+    """
+    Return an int representing the starting index from a slice object
+    """
     if idx is None:
         out_idx = 0
     else:
@@ -141,6 +184,9 @@ def convert_start_idx(idx, size):
     return out_idx
 
 def convert_stop_idx(idx, size):
+    """
+    Return an int representing the end index from a slice object
+    """
     if idx is None:
         out_idx = size
     else:
