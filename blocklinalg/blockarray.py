@@ -3,7 +3,7 @@ A BlockArray is a multidimensional array of a fixed shape, (similar to numpy arr
 arbitrary objects and with blocks indexed by keys
 """
 
-from typing import TypeVar, Tuple
+from typing import TypeVar, Tuple, Union, Mapping
 from itertools import product
 
 import numpy as np
@@ -11,7 +11,17 @@ import math
 import functools as ft
 
 T = TypeVar("T")
+Array = Tuple[T, ...]
 Shape = Tuple[int, ...]
+Labels = Tuple[str, ...]
+AxisBlockLabels = Tuple[Tuple[str, ...], ...]
+
+Index = int
+Indices = Tuple[int, ...]
+EllipsisType = type(...)
+
+GeneralIndex = Union[slice, Index, str, Indices, EllipsisType]
+StandardIndex = Union[Index, Indices]
 
 class BlockArray:
     """
@@ -23,7 +33,7 @@ class BlockArray:
     shape : tuple of ints, length N
     """
 
-    def __init__(self, array: Tuple[T, ...], shape: Shape, labels: Tuple[Tuple[str, ...], ...]):
+    def __init__(self, array: Array, shape: Shape, labels: AxisBlockLabels):
         # Validate the array shape and labels
         assert len(labels) == len(shape)
         for ii, axis_size in enumerate(shape):
@@ -75,7 +85,7 @@ class BlockArray:
         return self.size
 
     def __getitem__(self, multi_idx):
-        multi_idx = process_multi_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
+        multi_idx = convert_general_multi_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
 
         # Find the returned BlockArray's shape and labels
         ret_shape = tuple([len(axis_idxs) for axis_idxs in multi_idx if isinstance(axis_idxs, tuple)])
@@ -86,38 +96,40 @@ class BlockArray:
 
         # enclose single ints in a list so it works with itertools
         multi_idx = [(idx,) if isinstance(idx, int) else idx for idx in multi_idx]
-        ret_flat_idxs = [process_flat_idx(idx, self._STRIDES) for idx in product(*multi_idx)]
+        ret_flat_idxs = [to_flat_idx(idx, self._STRIDES) for idx in product(*multi_idx)]
 
         ret_array = tuple([self.array[flat_idx] for flat_idx in ret_flat_idxs])
         return BlockArray(ret_array, ret_shape, ret_labels)
 
 
-def process_flat_idx(multi_idx, strides):
+def to_flat_idx(multi_idx: StandardIndex, strides: Tuple[int, ...]) -> Union[Index, Indices]:
     """
     Return a flat index given a multi-index and strides for each dimension
+
+    Parameters
+    ----------
+    multi_idx: tuple(GeneralIndex)
+        A tuple of general indices used to index individual axes
+    strides: tuple(int)
+        The integer offset for each axis according to c-ordering
+    shape: tuple(int)
+        The shape of the array being indexed
     """
     return sum([idx*stride for idx, stride in zip(multi_idx, strides)])
 
-def process_multi_idx(multi_idx, shape, multi_label_to_idx):
-    """
-    Return a standard multi-index from a general multi-index
-
-    The standard multi-index has the type Tuple[Union[Int, Tuple[int, ...]], ...].
-    In other words it's a tuple with each element being either a single int, or an 
-    iterable of ints, representing the indexes being selected from the given axis.
-    """
-    multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
-
-    multi_idx = expand_multi_idx(multi_idx, shape)
-    print(multi_idx)
-    out_multi_idx = [
-        process_axis_idx(index, axis_size, axis_label_to_idx) 
-        for index, axis_size, axis_label_to_idx in zip(multi_idx, shape, multi_label_to_idx)]
-    return tuple(out_multi_idx)
-
-def expand_multi_idx(multi_idx, shape):
+def expand_multi_idx(multi_idx: GeneralIndex, shape: Shape) -> GeneralIndex:
     """
     Expands missing axis indices or ellipses in a general multi-index
+
+    This ensures the number of axis indices in a general multi index
+    matches the total number of axes.
+
+    Parameters
+    ----------
+    multi_idx: tuple(GeneralIndex)
+        A tuple of general indices used to index individual axes
+    shape: tuple(int)
+        The shape of the array being indexed
     """
     num_ellipse = multi_idx.count(...)
     assert num_ellipse <= 1
@@ -133,19 +145,59 @@ def expand_multi_idx(multi_idx, shape):
         + num_missing_axis_idx*[slice(None)]
         + list(multi_idx[axis_expand+num_ellipse:])
         )
-    print(f"{multi_idx[:axis_expand]} + {num_missing_axis_idx*[slice(None)]} + {multi_idx[axis_expand+num_ellipse:]}")
     return new_multi_idx
 
-def process_axis_idx(idx, size, label_to_idx):
+def convert_general_multi_idx(
+    multi_idx: Tuple[GeneralIndex, ...], 
+    shape: Shape, 
+    multi_label_to_idx: Tuple[Mapping[str, int], ...]) -> StandardIndex:
     """
-    Converts one of the ways of indexing an axis to a numeric index
+    Return a standard multi-index from a general multi-index
+
+    The standard multi-index has the type Tuple[Union[Int, Tuple[int, ...]], ...].
+    In other words it's a tuple with each element being either a single int, or an 
+    iterable of ints, representing the indexes being selected from the given axis.
+
+    Parameters
+    ----------
+    multi_idx: tuple(GeneralIndex)
+        A tuple of general indices used to index individual axes
+    shape: tuple(int)
+        The shape of the array being indexed
+    multi_label_to_idx:
+        A tuple of mappings, where each mapping contains the map from label to index
+        for the given axis
+    """
+    multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
+
+    multi_idx = expand_multi_idx(multi_idx, shape)
+    out_multi_idx = [
+        convert_general_idx(index, axis_size, axis_label_to_idx) 
+        for index, axis_size, axis_label_to_idx in zip(multi_idx, shape, multi_label_to_idx)]
+    return tuple(out_multi_idx)
+
+def convert_general_idx(idx: GeneralIndex, size, label_to_idx) -> Union[Indices, Index]:
+    """
+    Return a standard index corresponding to any of the general index approaches
+
+    Parameters
+    ----------
+    idx : str
+        A general index
+    label_to_idx : Dict
+        Mapping from label indices to corresponding integer indices
+    size : int
+        Size of the iterable
     """
     assert len(label_to_idx) == size
 
     if isinstance(idx, slice):
         return convert_slice(idx, size)
     elif isinstance(idx, (list, tuple)):
-        return tuple([convert_label_idx(key, label_to_idx, size) for key in label_to_idx])
+        return tuple(
+            [convert_label_idx(ii, label_to_idx, size) if isinstance(ii, str) else ii
+            for ii in idx]
+            )
     elif isinstance(idx, str):
         return convert_label_idx(idx, label_to_idx, size)
     elif isinstance(idx, int):
@@ -153,9 +205,11 @@ def process_axis_idx(idx, size, label_to_idx):
     else:
         raise TypeError(f"Unknown index {idx} of type {type(idx)}.")
 
-def convert_slice(idx, size):
+# The below functions convert general 1D slice indices to standard 1D slice indices, 
+# tuples of positive integers
+def convert_slice(idx: slice, size: int) -> Indices:
     """
-    Return a tuple of ints representing elements indexed by a slice object
+    Return the sequence of indexes corresponding to a slice
     """
     start = convert_start_idx(idx.start, size)
     stop = convert_stop_idx(idx.stop, size)
@@ -165,59 +219,74 @@ def convert_slice(idx, size):
         step = idx.step
     return tuple(range(start, stop, step))
 
-def convert_label_idx(idx, label_to_idx, size):
+# The below functions convert general single indexes to a standard single index, a positive integer
+def convert_label_idx(idx: str, label_to_idx: Mapping[str, int], size: int) -> int:
     """
-    Return an int representing the indexed corresponding to a labelled block
-    """
-    out_index = label_to_idx[idx]
-    assert out_index >= 0 and out_index < size
-    return out_index
+    Return an integer index corresponding to a label
 
-def _convert_neg_idx(idx, size):
+    Parameters
+    ----------
+    idx : str
+        Label index of an element
+    label_to_idx : Dict
+        Mapping from label indices to corresponding integer indices
+    size : int
+        Size of the iterable
     """
-    Return an int representing the equivalent negative index
+    ret_index = label_to_idx[idx]
+    assert ret_index >= 0 and ret_index < size
+    return ret_index
+
+def convert_neg_idx(idx: int, size: int) -> int:
+    """
+    Return the index representing the equivalent negative index
 
     For an array of size N, a negative index `-k`, correspond to the positive
     index `N-k`.
+
+    Parameters
+    ----------
+    idx : int
+        Index of the element
+    size : int
+        Size of the iterable
     """
     if idx >= 0:
-        out_idx = idx
+        return idx
     else:
-        out_idx = size-idx
-    return out_idx
+        return size-idx
 
-def convert_neg_idx(idx, size):
-    """
-    Return an int representing the equivalent negative index
-
-    For an array of size N, a negative index `-k`, correspond to the positive
-    index `N-k`.
-    """
-    out_idx = _convert_neg_idx(idx, size)
-
-    assert out_idx >= 0 and out_idx < size
-    return out_idx
-
-def convert_start_idx(idx, size):
+def convert_start_idx(idx: Union[int, None], size: int) -> int:
     """
     Return an int representing the starting index from a slice object
+
+    Parameters
+    ----------
+    idx : int
+        Index of the element representing a slice objects `.start` attribute
+    size : int
+        Size of the iterable
     """
     if idx is None:
-        out_idx = 0
+        return 0
     else:
-        out_idx = _convert_neg_idx(idx, size)
-    return out_idx
+        return convert_neg_idx(idx, size)
 
-def convert_stop_idx(idx, size):
+def convert_stop_idx(idx: Union[int, None], size: int) -> int:
     """
     Return an int representing the end index from a slice object
+
+    Parameters
+    ----------
+    idx : int
+        Index of the element representing a slice objects `.stop` attribute
+    size : int
+        Size of the iterable
     """
     if idx is None:
-        out_idx = size
+        return size
     else:
-        out_idx = _convert_neg_idx(idx, size)
-    return out_idx
-
+        return convert_neg_idx(idx, size)
 
 if __name__ == '__main__':
     l, m, n = 2, 3, 4
