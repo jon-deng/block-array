@@ -80,8 +80,8 @@ class BlockArray:
         # Find the returned BlockArray's shape and labels
         ret_shape = tuple([len(axis_idxs) for axis_idxs in multi_idx if isinstance(axis_idxs, tuple)])
         ret_labels = tuple([
-            tuple([self.labels[ii] for ii in axis_idxs])
-            for axis_idxs in multi_idx if isinstance(axis_idxs, tuple)
+            tuple([axis_labels[ii] for ii in axis_idxs])
+            for axis_labels, axis_idxs in zip(self.labels, multi_idx) if isinstance(axis_idxs, tuple)
         ])
 
         # enclose single ints in a list so it works with itertools
@@ -100,16 +100,41 @@ def process_flat_idx(multi_idx, strides):
 
 def process_multi_idx(multi_idx, shape, multi_label_to_idx):
     """
-    Return a standard multi-index from a more general multi-index
+    Return a standard multi-index from a general multi-index
 
     The standard multi-index has the type Tuple[Union[Int, Tuple[int, ...]], ...].
     In other words it's a tuple with each element being either a single int, or an 
     iterable of ints, representing the indexes being selected from the given axis.
     """
+    multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
+
+    multi_idx = expand_multi_idx(multi_idx, shape)
+    print(multi_idx)
     out_multi_idx = [
         process_axis_idx(index, axis_size, axis_label_to_idx) 
         for index, axis_size, axis_label_to_idx in zip(multi_idx, shape, multi_label_to_idx)]
     return tuple(out_multi_idx)
+
+def expand_multi_idx(multi_idx, shape):
+    """
+    Expands missing axis indices or ellipses in a general multi-index
+    """
+    num_ellipse = multi_idx.count(...)
+    assert num_ellipse <= 1
+
+    if num_ellipse == 1:
+        num_missing_axis_idx = len(shape) - len(multi_idx) + 1
+        axis_expand = multi_idx.index(...)
+    else:
+        num_missing_axis_idx = len(shape) - len(multi_idx)
+        axis_expand = len(multi_idx)
+    new_multi_idx = tuple(
+        list(multi_idx[:axis_expand])
+        + num_missing_axis_idx*[slice(None)]
+        + list(multi_idx[axis_expand+num_ellipse:])
+        )
+    print(f"{multi_idx[:axis_expand]} + {num_missing_axis_idx*[slice(None)]} + {multi_idx[axis_expand+num_ellipse:]}")
+    return new_multi_idx
 
 def process_axis_idx(idx, size, label_to_idx):
     """
@@ -209,4 +234,6 @@ if __name__ == '__main__':
     print(f"test[:, :, 0] has shape {test[:, :, 0].shape} and vals {test[:, :, 0].array}")
     print(f"test[:, :, 1:2] has shape {test[:, :, 1:2].shape} and vals {test[:, :, 1:2].array}")
     print(f"test[:, :, 0:1] has shape {test[:, :, 0:1].shape} and vals {test[:, :, 0:1].array}")
+    print(f"test[:, :, :] has shape {test[:, :, :].shape} and vals {test[:, :, :].array}")
+    print(f"test[:] has shape {test[:].shape} and vals {test[:].array}")
     
