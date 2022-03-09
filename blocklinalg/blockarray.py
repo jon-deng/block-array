@@ -4,7 +4,7 @@ arbitrary objects and with blocks indexed by keys
 """
 
 from typing import TypeVar, Tuple, Union, Mapping
-from itertools import product
+from itertools import product, chain
 
 import numpy as np
 import math
@@ -22,6 +22,35 @@ EllipsisType = type(...)
 
 GeneralIndex = Union[slice, Index, str, Indices, EllipsisType]
 StandardIndex = Union[Index, Indices]
+
+def flatten_array(array):
+    """
+    Flattens and return the shape of a nested array
+    """
+
+    def check_is_nested(array):
+        elem_is_array = [isinstance(elem, (list, tuple)) for elem in array]
+        is_array_count = elem_is_array.count(True)
+        if is_array_count == len(elem_is_array):
+            # Make sure the nested sizes are correct
+            assert all([len(elem) == len(array[0]) for elem in array])
+            return True
+        elif is_array_count == 0:
+            return False
+        else:
+            raise ValueError("Improperly nested array")
+
+    flat_array = array
+    shape = []
+    while check_is_nested(flat_array):
+        print(flat_array)
+        shape.append(len(flat_array))
+        flat_array = [elem for elem in chain(*flat_array)]
+
+    shape.append(len(flat_array)//math.prod(shape))
+
+    return flat_array, tuple(shape)
+
 
 class BlockArray:
     """
@@ -305,4 +334,6 @@ if __name__ == '__main__':
     print(f"test[:, :, 0:1] has shape {test[:, :, 0:1].shape} and vals {test[:, :, 0:1].array}")
     print(f"test[:, :, :] has shape {test[:, :, :].shape} and vals {test[:, :, :].array}")
     print(f"test[:] has shape {test[:].shape} and vals {test[:].array}")
+
+    print(flatten_array([[1, 2, 3], [4, 5, 6]]))
     
