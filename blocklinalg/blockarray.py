@@ -23,6 +23,21 @@ EllipsisType = type(...)
 GeneralIndex = Union[slice, Index, str, Indices, EllipsisType]
 StandardIndex = Union[Index, Indices]
 
+def block_array(array, labels):
+    """
+    Return a BlockArray from nested lists/tuples
+
+    Parameters
+    ----------
+    array : nested tuple/lists 
+        Nested list representation of an nd array
+    labels : AxisBlockLabels
+        list of labels for each axis index. The number of labels along each axis
+        should match the size of that axis
+    """
+    flat_array, shape = flatten_array(array)
+    return BlockArray(flat_array, shape, labels)
+
 def flatten_array(array):
     """
     Flattens and return the shape of a nested array
@@ -321,9 +336,9 @@ if __name__ == '__main__':
     l, m, n = 2, 3, 4
     SHAPE = (l, m, n)
     LABELS = (('a', 'b'), ('a', 'b', 'c'), ('a', 'b', 'c', 'd'))
-    SIZE = math.prod(SHAPE)
+    SIZE = math.prod(SHAPE)  
 
-    import string
+    import string   
     ARRAY = string.ascii_lowercase[:SIZE]
 
     test = BlockArray(ARRAY, SHAPE, LABELS)
