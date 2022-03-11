@@ -95,7 +95,7 @@ class BlockArray:
             for ii in range(len(self.shape))])
         self._MULTI_LABEL_TO_IDX = tuple([
             {key: ii for key, ii in zip(keys, idxs)} 
-            for keys, idxs in zip(LABELS, [range(axis_size) for axis_size in SHAPE])])
+            for keys, idxs in zip(self.labels, [range(axis_size) for axis_size in self.shape])])
 
     @property
     def array(self):
@@ -143,7 +143,12 @@ class BlockArray:
         ret_flat_idxs = [to_flat_idx(idx, self._STRIDES) for idx in product(*multi_idx)]
 
         ret_array = tuple([self.array[flat_idx] for flat_idx in ret_flat_idxs])
-        return BlockArray(ret_array, ret_shape, ret_labels)
+
+        if ret_shape == ():
+            assert len(ret_array) == 1
+            return ret_array[0]
+        else:
+            return BlockArray(ret_array, ret_shape, ret_labels)
 
 
 def to_flat_idx(multi_idx: StandardIndex, strides: Tuple[int, ...]) -> Union[Index, Indices]:

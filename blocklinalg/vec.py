@@ -9,8 +9,11 @@ import numpy as np
 from petsc4py import PETSc
 
 from . import genericops as gops
+from . import blockarray as barr
 
 ## pylint: disable=no-member
+
+# TODO: Rename keys to labels
 
 # Type variable for a 'sub'vector
 T = TypeVar('T')
@@ -201,50 +204,55 @@ class BlockVec(Generic[T]):
     vecs : tuple(PETsc.Vec or dolfin.cpp.la.PETScVector or np.ndarray)
     keys : tuple(str)
     """
-    def __init__(self, vecs: List[T], keys: Optional[List[str]]=None):
-        if keys is None:
-            keys = tuple(range(len(vecs)))
+    def __init__(self, vecs: List[T], labels: Optional[List[str]]=None):
+        if labels is None:
+            labels = tuple(str(range(len(vecs))))
 
-        self._keys = tuple(keys)
-        self._vecs = tuple(vecs)
-        self.data = dict(zip(keys, vecs))
+        self._labels = tuple(labels)
+        self._array = barr.block_array(vecs, (labels,))
+
+    @property
+    def array(self):
+        return self._array
 
     @property
     def size(self):
         """
         Return the size (total number of blocks)
         """
-        return len(self.vecs)
-        
-    @property
-    def bsize(self):
-        """
-        Return the block size (total size of each block)
-        """
-        return np.array([gops.size_vec(vec) for vec in self.vecs])
+        return self.array.size
 
     @property
     def shape(self):
         """
         Return the shape (number of blocks in each axis)
         """
-        return (len(self.vecs),)
+        return self.array.shape
+        
+    @property
+    def bsize(self):
+        """
+        Return the block size (total size of each block)
+        """
+        return tuple([gops.size_vec(vec) for vec in self.array.array])
         
     @property
     def bshape(self):
         """
         Return the block shape (shape of each block as a tuple)
         """
-        return np.array([gops.shape_vec(vec) for vec in self.vecs])
+        # TODO: Refactor this to be generic for different block tensors
+        # the shape should be the lengths of each block along each axis
+        return (tuple([gops.shape_vec(vec)[0] for vec in self.vecs]),)
 
     @property
     def keys(self):
-        return self._keys
+        return self._labels
 
     @property
     def vecs(self):
         """Return tuple of vectors from each block"""
-        return self._vecs
+        return self.array.array
 
     def copy(self):
         """Return a copy of the block vector"""
@@ -265,11 +273,11 @@ class BlockVec(Generic[T]):
 
     ## Dict-like interface
     def __contains__(self, key):
-        return key in self.data
+        return key in self.array
 
     def __iter__(self):
         for key in self.keys:
-            yield self.data[key]
+            yield self.array[key]
 
     def items(self):
         return zip(self.keys, self.vecs)
@@ -300,22 +308,8 @@ class BlockVec(Generic[T]):
         key : str, int, slice
             A block label
         """
-        if isinstance(key, str):
-            try:
-                return self.data[key]
-            except KeyError:
-                raise KeyError(f"`{key}` is not a valid block key")
-        elif isinstance(key, int):
-            try:
-                return self.vecs[key]
-            except IndexError as e:
-                raise e
-        elif isinstance(key, slice):
-            vecs = self.vecs[key]
-            keys = self.keys[key]
-            return BlockVec(vecs, keys)
-        else:
-            raise TypeError(f"`{key}` must be either str, int or slice")
+        ret_array = self.array[key]
+        return BlockVec(ret_array.array, ret_array.labels[0])
     
     def __setitem__(self, key, value):
         """
@@ -327,24 +321,12 @@ class BlockVec(Generic[T]):
             A block label
         value : array_like or BlockVec
         """
-        if isinstance(key, str):
-            if key in self.data:
-                self.data[key][:] = value
-            else:
-                raise KeyError(f"`{key}` is not a valid block key")
-        elif isinstance(key, int):
-            try:
-                self.vecs[key][:] = value
-            except IndexError as e:
-                raise e
-        elif isinstance(key, slice):
-            assert isinstance(value, BlockVec)
-            assert np.all(self.bsize[key] == value.bsize)
-            
-            for vec, val, name in zip(self.vecs[key], value.vecs, self.keys[key]):
-                vec[:] = val
+        _array = self.array[key]
+        if isinstance(_array, barr.BlockArray):
+            for subvec in _array.array:
+                gops.set_vec(subvec, value)
         else:
-            raise TypeError(f"`{key}` must be either str, int or slice")
+            gops.set_vec(_array, value)
 
     def set(self, scalar):
         """
