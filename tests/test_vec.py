@@ -8,12 +8,12 @@ from blocklinalg import vec as bvec
 a = np.arange(5)
 b = np.arange(3)
 c = np.arange(4)
-VEC1 = bvec.BlockVec((a, b, c), ('a', 'b', 'c'))
+VEC1 = bvec.BlockVec((a, b, c), (('a', 'b', 'c'),))
 
 a = np.arange(5)+1
 b = np.arange(3)+2
 c = np.arange(4)+3
-VEC2 = bvec.BlockVec((a, b, c), ('a', 'b', 'c'))
+VEC2 = bvec.BlockVec((a, b, c), (('a', 'b', 'c'),))
 
 def test_vec_size_shape():
     print(VEC1.size)

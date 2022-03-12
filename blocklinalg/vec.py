@@ -10,6 +10,7 @@ from petsc4py import PETSc
 
 from . import genericops as gops
 from . import blockarray as barr
+from .tensor import BlockTensor
 
 ## pylint: disable=no-member
 
@@ -195,7 +196,7 @@ def convert_bvec_to_petsc(bvec):
     vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.vecs]
     return BlockVec(vecs, bvec.keys)
 
-class BlockVec(Generic[T]):
+class BlockVec(BlockTensor):
     """
     Represents a block vector with blocks indexed by keys
 
@@ -204,50 +205,6 @@ class BlockVec(Generic[T]):
     vecs : tuple(PETsc.Vec or dolfin.cpp.la.PETScVector or np.ndarray)
     keys : tuple(str)
     """
-    def __init__(self, vecs: List[T], labels: Optional[List[str]]=None):
-        if labels is None:
-            labels = tuple(str(range(len(vecs))))
-
-        self._labels = tuple(labels)
-        self._barray = barr.block_array(vecs, (labels,))
-
-    @property
-    def barray(self):
-        return self._barray
-
-    @property
-    def size(self):
-        """
-        Return the size (total number of blocks)
-        """
-        return self.barray.size
-
-    @property
-    def shape(self):
-        """
-        Return the shape (number of blocks in each axis)
-        """
-        return self.barray.shape
-        
-    @property
-    def bsize(self):
-        """
-        Return the block size (total size of each block)
-        """
-        return tuple([gops.size_vec(vec) for vec in self.barray.array])
-        
-    @property
-    def bshape(self):
-        """
-        Return the block shape (shape of each block as a tuple)
-        """
-        # TODO: Refactor this to be generic for different block tensors
-        # the shape should be the lengths of each block along each axis
-        return (tuple([gops.shape_vec(vec)[0] for vec in self.vecs]),)
-
-    @property
-    def keys(self):
-        return self._labels
 
     @property
     def vecs(self):

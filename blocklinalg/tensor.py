@@ -23,15 +23,9 @@ class BlockTensor:
         labels: Optional[barr.AxisBlockLabels]=None):
 
         if isinstance(barray, barr.BlockArray):
-            self._barray = self._init_block_array(barray)
+            self._barray = barray
         else:
-            self._barray = self._init_nested_list(barray, labels)
-            
-    def _init_block_array(self, blockarray):
-        return blockarray
-
-    def _init_nested_list(self, nested_array, labels):
-        return barr.block_array(nested_array, labels)
+            self._barray = barr.block_array(barray, labels)
 
     @property
     def barray(self):
@@ -39,6 +33,16 @@ class BlockTensor:
         Return the block array
         """
         return self._barray
+
+    @property
+    def keys(self):
+        """Return the axis labels"""
+        return self.barray.labels
+
+    @property
+    def labels(self):
+        """Return the axis labels"""
+        return self.barray.labels
 
     @property
     def size(self):
