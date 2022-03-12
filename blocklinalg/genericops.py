@@ -11,9 +11,12 @@ import numpy as np
 import jax
 from petsc4py import PETSc
 
-NDARRAY_LIKE_TYPES = (np.ndarray, jax.numpy.ndarray)
-
 # pylint: disable=no-member
+
+NDARRAY_TYPES = (np.ndarray, jax.numpy.ndarray)
+PETSC_VECTOR_TYPES = (dfn.PETScVector, PETSc.Vec)
+PETSC_MATRIX_TYPES = (dfn.PETScMatrix, PETSc.Mat)
+# VECTOR_TYPES = NDARRAY_LIKE_TYPES + PETSC_VECTOR_TYPES
 
 
 def set_vec(veca, vecb):
@@ -27,7 +30,7 @@ def set_vec(veca, vecb):
     ----------
     veca, vecb : dolfin.PETScVector, PETSc.Vec, np.ndarray
     """
-    if isinstance(veca, NDARRAY_LIKE_TYPES) and veca.shape == ():
+    if isinstance(veca, NDARRAY_TYPES) and veca.shape == ():
         veca[()] = vecb
     elif isinstance(veca, PETSc.Vec):
         veca.array[:] = vecb
@@ -46,7 +49,7 @@ def set_mat(mata, matb):
     ----------
     mata, matb : dolfin.PETScMatrix, PETSc.Mat, np.ndarray
     """
-    if isinstance(mata, NDARRAY_LIKE_TYPES):
+    if isinstance(mata, NDARRAY_TYPES):
         mata[:] = matb
     else:
         mata.set(matb)
@@ -68,7 +71,7 @@ def mult_mat_vec(mat, vec, out=None):
     mat : dolfin.PETScMatrix, PETSc.Mat, np.ndarray
     vec : dolfin.PETScVector, PETsc.Vec, np.ndarray
     """
-    if isinstance(mat, NDARRAY_LIKE_TYPES) and isinstance(vec, NDARRAY_LIKE_TYPES):
+    if isinstance(mat, NDARRAY_TYPES) and isinstance(vec, NDARRAY_TYPES):
         if out is None:
             out = mat@vec
         else:
@@ -89,7 +92,7 @@ def mult_mat_mat(mata, matb, out=None):
     mata, matb : dolfin.PETScMatrix, PETSc.Mat, np.ndarray
     """
     
-    if isinstance(mata, NDARRAY_LIKE_TYPES) and isinstance(matb, NDARRAY_LIKE_TYPES):
+    if isinstance(mata, NDARRAY_TYPES) and isinstance(matb, NDARRAY_TYPES):
         return mata@matb
     else:
         matc = PETSc.Mat().createAIJ([mata.size[1], 5])
@@ -110,6 +113,16 @@ def norm_mat(mat):
     else:
         return np.sqrt(np.sum(mat**2))
 
+def size(tensor):
+    """
+    Return the size of a tensor
+    """
+    if isinstance(tensor, PETSC_VECTOR_TYPES):
+        return size_vec(tensor)
+    elif isinstance(tensor, PETSC_MATRIX_TYPES):
+        return size_mat(tensor)
+    else:
+        return tensor.size
 
 def size_vec(vec):
     """
@@ -119,12 +132,23 @@ def size_vec(vec):
     ----------
     vec : dolfin.PETScVector, PETSc.Mat or np.ndarray
     """
-    if isinstance(vec, NDARRAY_LIKE_TYPES):
+    if isinstance(vec, NDARRAY_TYPES):
         return vec.size
     elif isinstance(vec, PETSc.Vec):
         return vec.size
     else:
         return len(vec)
+
+def shape(tensor):
+    """
+    Return the shape of a tensor
+    """
+    if isinstance(tensor, PETSC_VECTOR_TYPES):
+        return shape_vec(tensor)
+    elif isinstance(tensor, PETSC_MATRIX_TYPES):
+        return shape_mat(tensor)
+    else:
+        return tensor.shape
 
 def shape_vec(vec):
     """
@@ -176,7 +200,7 @@ def convert_mat_to_petsc(mat, comm=None, keep_diagonal=True):
     mat_shape = shape_mat(mat)
     assert len(mat_shape) == 2
     is_square = mat_shape[0] == mat_shape[1]
-    if isinstance(mat, NDARRAY_LIKE_TYPES):
+    if isinstance(mat, NDARRAY_TYPES):
         COL_IDXS = np.arange(mat_shape[1], dtype=np.int32)
         out = PETSc.Mat().createAIJ(mat_shape, comm=comm)
         out.setUp()
@@ -205,7 +229,7 @@ def convert_vec_to_petsc(vec, comm=None):
     Return a `PETSc.Vec` representation of `vec`
     """
     M = size_vec(vec)
-    if isinstance(vec, NDARRAY_LIKE_TYPES):
+    if isinstance(vec, NDARRAY_TYPES):
         out = PETSc.Vec().createSeq(M, comm=comm)
         out.setUp()
         out.array[:] = vec
