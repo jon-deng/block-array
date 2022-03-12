@@ -11,6 +11,7 @@ import math
 import functools as ft
 
 T = TypeVar("T")
+NestedArray = Tuple['NestedArray', ...]
 Array = Tuple[T, ...]
 Shape = Tuple[int, ...]
 Labels = Tuple[str, ...]

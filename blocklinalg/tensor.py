@@ -1,14 +1,14 @@
 """
 This module contains the block tensor definition which provides some basic operations
 """
-from typing import TypeVar, Generic, Optional
+from typing import TypeVar, Generic, Optional, Union
 
 from . import blockarray as barr
 from . import genericops as gops
 
 T = TypeVar('T')
 
-class BlockTensor(Generic[T]):
+class BlockTensor:
     """
     Represents a block vector with blocks indexed by keys
 
@@ -17,12 +17,28 @@ class BlockTensor(Generic[T]):
     subtensors : tuple(PETsc.Vec or dolfin.cpp.la.PETScVector or np.ndarray)
     keys : tuple(str)
     """
-    def __init__(self, blockarray):
-        self._array = blockarray
+    def __init__(
+        self, 
+        barray: Union[barr.BlockArray, barr.NestedArray],
+        labels: Optional[barr.AxisBlockLabels]=None):
+
+        if isinstance(barray, barr.BlockArray):
+            self._barray = self._init_block_array(barray)
+        else:
+            self._barray = self._init_nested_list(barray, labels)
+            
+    def _init_block_array(self, blockarray):
+        return blockarray
+
+    def _init_nested_list(self, nested_array, labels):
+        return barr.block_array(nested_array, labels)
 
     @property
     def barray(self):
-        return self._array
+        """
+        Return the block array
+        """
+        return self._barray
 
     @property
     def size(self):
