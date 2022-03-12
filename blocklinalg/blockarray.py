@@ -151,6 +151,16 @@ class BlockArray:
         else:
             return BlockArray(ret_array, ret_shape, ret_labels)
 
+    def copy(self):
+        """Return a copy"""
+        ret_labels = self.labels
+        ret_shape = self.shape
+        ret_array = [elem.copy() for elem in self.array]
+        return self.__class__(ret_array, ret_shape, ret_labels)
+
+    def __copy__(self):
+        return self.copy()
+
 
 def to_flat_idx(multi_idx: StandardIndex, strides: Tuple[int, ...]) -> Union[Index, Indices]:
     """

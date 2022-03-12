@@ -210,15 +210,6 @@ class BlockVec(BlockTensor):
     def vecs(self):
         """Return tuple of vectors from each block"""
         return self.barray.array
-
-    def copy(self):
-        """Return a copy of the block vector"""
-        keys = self.keys
-        vecs = tuple([vec.copy() for vec in self.vecs])
-        return type(self)(vecs, keys)
-
-    def __copy__(self):
-        return self.copy()
     
     ## Basic string representation functions
     def __repr__(self):

@@ -81,6 +81,14 @@ class BlockTensor:
             ret_bshape.append(tuple(axis_sizes))
         return tuple(ret_bshape)
 
+    def copy(self):
+        """Return a copy"""
+        labels = self.labels
+        return self.__class__(self.barray.copy(), labels)
+
+    def __copy__(self):
+        return self.copy()
+
     def __getitem__(self, key):
         """
         Return the vector or BlockVec corresponding to the index
