@@ -115,6 +115,10 @@ class BlockArray:
         return self._shape
 
     @property
+    def ndim(self):
+        return len(self.shape)
+
+    @property
     def labels(self):
         """
         Return array axis block labels

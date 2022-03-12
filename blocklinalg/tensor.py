@@ -61,6 +61,10 @@ class BlockTensor:
         return self.barray.shape
 
     @property
+    def ndim(self):
+        return self.barray.ndim
+
+    @property
     def bsize(self):
         """
         Return the block size (total size of each block for each axis)
