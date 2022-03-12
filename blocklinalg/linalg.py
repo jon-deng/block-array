@@ -19,12 +19,12 @@ from . import genericops as gops
 
 def mult_mat_vec(bmat, bvec):
     vecs = []
-    for submat_row in bmat.mats:
+    for submat_row in bmat:
         vec = reduce(
             lambda a, b: a+b, 
             [gops.mult_mat_vec(submat, subvec) for submat, subvec in zip(submat_row, bvec.vecs)])
         vecs.append(vec)
-    return BlockVec(vecs, bmat.row_keys)
+    return BlockVec(vecs, bmat.labels[0])
 
 def mult_mat_mat(bmata, bmatb):
     ## ii/jj denote the current row/col indices
@@ -38,9 +38,11 @@ def mult_mat_mat(bmata, bmatb):
         mat_row = [
             reduce(
                 lambda a, b: a + b, 
-                [gops.mult_mat_mat(bmata.mats[ii][kk], bmatb.mats[kk][jj]) for kk in range(NREDUCE)]
+                [gops.mult_mat_mat(bmata[ii, kk], bmatb[kk, jj]) for kk in range(NREDUCE)]
             )
             for jj in range(NCOL)
         ]
         mats.append(mat_row)
-    return BlockMat(mats, bmata.row_keys, bmatb.col_keys)
+
+    labels = tuple([bmata.labels[0], bmatb.labels[1]])
+    return BlockMat(mats, labels)
