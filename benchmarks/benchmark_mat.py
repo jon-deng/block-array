@@ -1,8 +1,10 @@
-import numpy as np
+import timeit
+
 import petsc4py.PETSc as PETSc
+import numpy as np
 
 from blocklinalg import mat as bmat
-from blocklinalg import linalg as bla
+
 
 COMM = PETSc.COMM_WORLD
 A = PETSc.Mat().create(COMM)
@@ -29,7 +31,6 @@ A.assemble()
 # A.assemblyBegin()
 # A.assemblyEnd()
 # print(A.getInfo())
-print(A[:, :])
 
 B = PETSc.Mat().create(COMM)
 B.setSizes([3, 2])
@@ -55,42 +56,12 @@ MATS = \
     [[A, B],
      [C, D]]
 
-BMAT1 = bmat.BlockMat(MATS, labels=(('a', 'b'), ('a', 'b')))
-BMAT2 = bmat.BlockMat(MATS, labels=(('a', 'b'), ('a', 'b')))
-BMAT3 = BMAT1+BMAT2
-
-print(BMAT1.to_petsc()[:, :])
-print(BMAT3.to_petsc()[:, :])
-
-def test_mat_size_shape():
-    print(BMAT1.size)
-    print(BMAT1.shape)
-    print(BMAT1.bsize)
-    print(BMAT1.bshape)
-
-def test_add():
-    BMAT3 = BMAT1 + BMAT2
-    print(f"A: {BMAT1[:, :].to_petsc()[:, :]}")
-    print(f"B: {BMAT1[:, :].to_petsc()[:, :]}")
-    print(f"A+B: {BMAT3[:, :].to_petsc()[:, :]}")
-
-def test_zero_mat():
-    print(bmat.zero_mat(5, 6)[:, :])
-
-def test_ident_mat():
-    print(bmat.ident_mat(5)[:, :])
-
-def test_concatenate_mat():
-    cbmat = bmat.concatenate_mat([[BMAT1], [BMAT2]])
-    print(cbmat.shape)
-    print(BMAT1.shape)
-
-def test_mult_mat():
-    out = bla.mult_mat_mat(BMAT1, BMAT2)
-    print(out.shape)
+def benchmark_create_bmat():
+    """Create a BlockMat"""
+    bmat.BlockMat(MATS, labels=(('a', 'b'), ('a', 'b')))
+    return None
 
 if __name__ == '__main__':
-    test_mat_size_shape()
-    test_zero_mat()
-    test_ident_mat()
-    test_concatenate_mat()
+    print(globals())
+
+    print(timeit.timeit('benchmark_create_bmat()', globals=globals(), number=100))

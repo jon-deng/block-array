@@ -255,18 +255,6 @@ class BlockVec(BlockTensor):
         Return an object allowing indexing of the block vector as a monolithic vector
         """
         return MonotoBlock(self)
-
-    def __getitem__(self, key):
-        """
-        Return the vector or BlockVec corresponding to the index
-
-        Parameters
-        ----------
-        key : str, int, slice
-            A block label
-        """
-        ret_array = self.barray[key]
-        return BlockVec(ret_array.array, ret_array.labels[0])
     
     def __setitem__(self, key, value):
         """

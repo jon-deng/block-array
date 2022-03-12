@@ -7,9 +7,11 @@ import operator
 from collections import OrderedDict
 
 import numpy as np
+from blocklinalg.tensor import BlockTensor
 from petsc4py import PETSc
 
 from . import genericops as gops
+from .tensor import BlockTensor
 
 # pylint: disable=no-member
 
@@ -409,12 +411,12 @@ def add(A, B):
     ----------
     A, B: BlockMat
     """
-    row_keys, col_keys = A.row_keys, A.col_keys
+    labels = tuple([A.labels[0], B.labels[1]])
     mats = [
-        [A.mats[mm][nn] + B.mats[mm][nn] 
-        for nn, col_key in enumerate(col_keys)] 
-        for mm, row_key in enumerate(row_keys)]
-    return BlockMat(mats, row_keys, col_keys)
+        [A[mm, nn] + B[mm, nn] 
+        for nn in range(A.shape[0])] 
+        for mm in range(A.shape[1])]
+    return BlockMat(mats, labels)
 
 def sub(A, B):
     """
@@ -495,7 +497,7 @@ def convert_bmat_to_petsc(bmat):
     mats = [[gops.convert_mat_to_petsc(mat) for mat in row] for row in bmat.mats]
     return BlockMat(mats, row_keys, col_keys)
 
-class BlockMat:
+class BlockMat(BlockTensor):
     """
     Represents a block matrix with blocks indexed by keys
 
@@ -504,62 +506,10 @@ class BlockMat:
     mats : tuple(tuple(PETsc.Mat))
     row keys, col_keys : tuple(str)
     """
-    def __init__(self, mats, row_keys=None, col_keys=None):
-        nrow, ncol = get_blocks_shape(mats)
-
-        if row_keys is None:
-            row_keys = tuple(range(nrow))
-        if col_keys is None:
-            col_keys = tuple(range(ncol))
-
-        self._col_keys = col_keys
-        self._row_keys = row_keys
-        self._mats = tuple([tuple([mat for mat in mat_row]) for mat_row in mats])
-
-        self.data = {
-            f'{row_key}/{col_key}': self._mats[n][m] 
-            for n, row_key in enumerate(row_keys)
-            for m, col_key in enumerate(col_keys)}
 
     @property
     def mats(self):
-        return self._mats
-
-    @property
-    def row_keys(self):
-        return self._row_keys
-
-    @property
-    def col_keys(self):
-        return self._col_keys
-
-    @property
-    def size(self):
-        """
-        Return the size (total number of blocks)
-        """
-        return np.prod(self.shape)
-
-    @property
-    def bsize(self):
-        """
-        Return the block size (total size of each block)
-        """
-        return np.prod(self.bshape, axis=-1)
-
-    @property
-    def shape(self):
-        """
-        Return the shape (number of blocks in each axis)
-        """
-        return (len(self.row_keys), len(self.col_keys))
-        
-    @property
-    def bshape(self):
-        """
-        Return the block shape (shape of each block as a tuple)
-        """
-        return np.array([[gops.shape_mat(mat) for mat in row] for row in self.mats])
+        return self.barray.array
 
     def __add__(self, other):
         return add(self, other)
