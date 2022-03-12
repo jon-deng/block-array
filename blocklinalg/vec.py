@@ -209,32 +209,32 @@ class BlockVec(Generic[T]):
             labels = tuple(str(range(len(vecs))))
 
         self._labels = tuple(labels)
-        self._array = barr.block_array(vecs, (labels,))
+        self._barray = barr.block_array(vecs, (labels,))
 
     @property
-    def array(self):
-        return self._array
+    def barray(self):
+        return self._barray
 
     @property
     def size(self):
         """
         Return the size (total number of blocks)
         """
-        return self.array.size
+        return self.barray.size
 
     @property
     def shape(self):
         """
         Return the shape (number of blocks in each axis)
         """
-        return self.array.shape
+        return self.barray.shape
         
     @property
     def bsize(self):
         """
         Return the block size (total size of each block)
         """
-        return tuple([gops.size_vec(vec) for vec in self.array.array])
+        return tuple([gops.size_vec(vec) for vec in self.barray.array])
         
     @property
     def bshape(self):
@@ -252,7 +252,7 @@ class BlockVec(Generic[T]):
     @property
     def vecs(self):
         """Return tuple of vectors from each block"""
-        return self.array.array
+        return self.barray.array
 
     def copy(self):
         """Return a copy of the block vector"""
@@ -273,11 +273,11 @@ class BlockVec(Generic[T]):
 
     ## Dict-like interface
     def __contains__(self, key):
-        return key in self.array
+        return key in self.barray
 
     def __iter__(self):
         for key in self.keys:
-            yield self.array[key]
+            yield self.barray[key]
 
     def items(self):
         return zip(self.keys, self.vecs)
@@ -308,7 +308,7 @@ class BlockVec(Generic[T]):
         key : str, int, slice
             A block label
         """
-        ret_array = self.array[key]
+        ret_array = self.barray[key]
         return BlockVec(ret_array.array, ret_array.labels[0])
     
     def __setitem__(self, key, value):
@@ -321,7 +321,7 @@ class BlockVec(Generic[T]):
             A block label
         value : array_like or BlockVec
         """
-        _array = self.array[key]
+        _array = self.barray[key]
         if isinstance(_array, barr.BlockArray):
             for subvec in _array.array:
                 gops.set_vec(subvec, value)
