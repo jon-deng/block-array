@@ -104,9 +104,8 @@ def add(a, b):
     ----------
     a, b: BlockVec or float
     """
-    keys = a.keys
     vecs = tuple([ai+bi for ai, bi in zip(a.vecs, b.vecs)])
-    return BlockVec(vecs, keys)
+    return BlockVec(vecs, a.labels)
 
 @handle_scalars
 def sub(a, b):
@@ -117,9 +116,8 @@ def sub(a, b):
     ----------
     a, b: BlockVec or float
     """
-    keys = a.keys
     vecs = tuple([ai-bi for ai, bi in zip(a, b)])
-    return BlockVec(vecs, keys)
+    return BlockVec(vecs, a.labels)
 
 @handle_scalars
 def mul(a, b):
@@ -130,9 +128,8 @@ def mul(a, b):
     ----------
     a, b: BlockVec or float
     """
-    keys = a.keys
     vecs = tuple([ai*bi for ai, bi in zip(a.vecs, b.vecs)])
-    return BlockVec(vecs, keys)
+    return BlockVec(vecs, a.labels)
 
 @handle_scalars
 def div(a, b):
@@ -143,9 +140,8 @@ def div(a, b):
     ----------
     a, b: BlockVec or float
     """
-    keys = a.keys
     vecs = tuple([ai/bi for ai, bi in zip(a, b)])
-    return BlockVec(vecs, keys)
+    return BlockVec(vecs, a.labels)
 
 @handle_scalars
 def power(a, b):
@@ -156,9 +152,8 @@ def power(a, b):
     ----------
     a, b: BlockVec or float
     """
-    keys = a.keys
     vecs = tuple([ai**bi for ai, bi in zip(a, b)])
-    return BlockVec(vecs, keys)
+    return BlockVec(vecs, a.labels)
 
 @handle_scalars
 def neg(a):
@@ -169,18 +164,16 @@ def neg(a):
     ----------
     a: BlockVec
     """
-    keys = a.keys
     vecs = tuple([-ai for ai in a])
-    return BlockVec(vecs, keys)
+    return BlockVec(vecs, a.labels)
 
 @handle_scalars
 def pos(a):
     """
     Positifiy block vector a
     """
-    keys = a.keys
     vecs = tuple([+ai for ai in a])
-    return BlockVec(vecs, keys)
+    return BlockVec(vecs, a.labels)
 
 def convert_bvec_to_petsc(bvec):
     """
