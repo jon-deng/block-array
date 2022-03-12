@@ -60,3 +60,18 @@ class BlockTensor(Generic[T]):
                 axis_sizes.append(axis_size)
             ret_bshape.append(tuple(axis_sizes))
         return tuple(ret_bshape)
+
+    def __getitem__(self, key):
+        """
+        Return the vector or BlockVec corresponding to the index
+
+        Parameters
+        ----------
+        key : str, int, slice
+            A block label
+        """
+        ret = self.barray[key]
+        if isinstance(ret, barr.BlockArray):
+            return self.__class__(ret)
+        else:
+            return ret
