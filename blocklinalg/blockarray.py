@@ -1,6 +1,6 @@
 """
-A BlockArray is a multidimensional array of a fixed shape, (similar to numpy arrays), containing
-arbitrary objects and with blocks indexed by keys
+A BlockArray is a multidimensional array of a fixed shape (similar to numpy arrays) containing
+arbitrary objects and where axis index has a label
 """
 
 from typing import TypeVar, Tuple, Union, Mapping
@@ -95,8 +95,8 @@ class BlockArray:
             math.prod(self.shape[ii+1:], start=1) 
             for ii in range(len(self.shape))])
         self._MULTI_LABEL_TO_IDX = tuple([
-            {key: ii for key, ii in zip(keys, idxs)} 
-            for keys, idxs in zip(self.labels, [range(axis_size) for axis_size in self.shape])])
+            {label: ii for label, ii in zip(axis_labels, idxs)} 
+            for axis_labels, idxs in zip(self.labels, [range(axis_size) for axis_size in self.shape])])
 
     @property
     def array(self):

@@ -110,6 +110,10 @@ class BlockTensor:
     def __contains__(self, key):
         return key in self.barray
 
+    def items(self):
+        return zip(self.labels[0], self)
+
+    ## Iterable interface over the first axis
     def __iter__(self):
-        for key in self.labels[0]:
-            yield self.barray[key]
+        for ii in range(self.shape[0]):
+            yield self[ii]
