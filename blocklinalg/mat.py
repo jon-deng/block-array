@@ -507,9 +507,9 @@ class BlockMat(BlockTensor):
     row keys, col_keys : tuple(str)
     """
 
-    @property
-    def mats(self):
-        return self.barray.array
+    # @property
+    # def mats(self):
+    #     return self.barray.nested_array
 
     def __add__(self, other):
         return add(self, other)

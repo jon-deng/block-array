@@ -67,6 +67,21 @@ def flatten_array(array):
 
     return flat_array, tuple(shape)
 
+# TODO: Implement recursive function to create a nested array from a shape
+# def nest_array(array, shape):
+#     """
+#     Convert a flat array into a nested array with given shape
+#     """
+#     assert math.prod(shape) == len(array)
+#     ret_array = []
+
+#     if len(shape) > 1:
+#         return [nest_array(array, shape)] 
+#     else:
+#         ret_array = array
+
+#     return ret_array
+
 
 class BlockArray:
     """
@@ -106,6 +121,10 @@ class BlockArray:
         Return raw array
         """
         return self._array
+
+    # @property
+    # def nested_array(self):
+    #     return nest_array(self.array, self.shape)
 
     @property
     def shape(self):
