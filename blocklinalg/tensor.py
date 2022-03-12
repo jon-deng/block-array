@@ -34,6 +34,7 @@ class BlockTensor:
         """
         return self._barray
 
+    # TODO: Remove the keys attribute
     @property
     def keys(self):
         """Return the axis labels"""
@@ -81,6 +82,7 @@ class BlockTensor:
             ret_bshape.append(tuple(axis_sizes))
         return tuple(ret_bshape)
 
+    ## Copy methods
     def copy(self):
         """Return a copy"""
         labels = self.labels
@@ -103,3 +105,11 @@ class BlockTensor:
             return self.__class__(ret)
         else:
             return ret
+
+    ## Dict-like interface over the first dimension
+    def __contains__(self, key):
+        return key in self.barray
+
+    def __iter__(self):
+        for key in self.labels[0]:
+            yield self.barray[key]

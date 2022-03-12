@@ -151,6 +151,7 @@ class BlockArray:
         else:
             return BlockArray(ret_array, ret_shape, ret_labels)
 
+    ## Copy methods
     def copy(self):
         """Return a copy"""
         ret_labels = self.labels
@@ -160,6 +161,18 @@ class BlockArray:
 
     def __copy__(self):
         return self.copy()
+
+    ## Dict like interface, over the first axis
+    def __contains__(self, key):
+        return key in self._MULTI_LABEL_TO_IDX[0]
+
+    def items(self):
+        return zip(self.labels[0], self)
+
+    ## Iterable interface over the first axis
+    def __iter__(self):
+        for ii in range(self.shape[0]):
+            yield self[ii]
 
 
 def to_flat_idx(multi_idx: StandardIndex, strides: Tuple[int, ...]) -> Union[Index, Indices]:

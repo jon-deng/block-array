@@ -198,12 +198,7 @@ def convert_bvec_to_petsc(bvec):
 
 class BlockVec(BlockTensor):
     """
-    Represents a block vector with blocks indexed by keys
-
-    Parameters
-    ----------
-    vecs : tuple(PETsc.Vec or dolfin.cpp.la.PETScVector or np.ndarray)
-    keys : tuple(str)
+    Represents a block vector with blocks indexed by labels
     """
 
     @property
@@ -218,17 +213,6 @@ class BlockVec(BlockTensor):
     def __str__(self):
         desc = ", ".join([f"{key}:{gops.size_vec(vec)}" for key, vec in zip(self.keys, self.vecs)])
         return f"({desc})"
-
-    ## Dict-like interface
-    def __contains__(self, key):
-        return key in self.barray
-
-    def __iter__(self):
-        for key in self.keys:
-            yield self.barray[key]
-
-    def items(self):
-        return zip(self.keys, self.vecs)
 
     def print_summary(self):
         summary_strings = [
