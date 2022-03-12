@@ -437,12 +437,12 @@ def scalar_mul(a, B):
     a: float 
     B: BlockMat
     """
-    row_keys, col_keys = B.row_keys, B.col_keys
     mats = [
-        [a*B.mats[mm][nn] 
-        for nn, col_key in enumerate(col_keys)] 
-        for mm, row_key in enumerate(row_keys)]
-    return BlockMat(mats, row_keys, col_keys)
+        [a*B[mm, nn] 
+        for nn in range(B.shape[1])] 
+        for mm in range(B.shape[0])]
+    labels = B.labels
+    return BlockMat(mats, labels)
 
 def norm(A):
     """
@@ -452,11 +452,10 @@ def norm(A):
     ----------
     A : BlockMat
     """
-    row_keys, col_keys = A.row_keys, A.col_keys
     frobenius_norm = np.sum([
-        gops.norm_mat(A.mats[mm][nn])**2
-        for nn, col_key in enumerate(col_keys)
-        for mm, row_key in enumerate(row_keys)])**0.5
+        gops.norm_mat(A[mm, nn])**2
+        for nn in range(A.shape[1])
+        for mm in range(A.shape[0])])**0.5
     return frobenius_norm
 
 ## More utilities
@@ -477,12 +476,13 @@ def concatenate_mat(bmats):
         for row in range(bmats[brow][0].shape[0]):
             mats_row = []
             for bcol in range(NUM_BCOL):
-                mats_row.extend(bmats[brow][bcol].mats[row])
+                mats_row.extend(bmats[brow][bcol][row, :])
             mats.append(mats_row)
 
-    row_keys = [key for ii in range(NUM_BROW) for key in bmats[ii][0].row_keys]
-    col_keys = [key for jj in range(NUM_BCOL) for key in bmats[0][jj].col_keys]
-    return BlockMat(mats, row_keys, col_keys)
+    row_labels = [key for ii in range(NUM_BROW) for key in bmats[ii][0].labels[0]]
+    col_labels = [key for jj in range(NUM_BCOL) for key in bmats[0][jj].labels[1]]
+    labels = (tuple(row_labels), tuple(col_labels))
+    return BlockMat(mats, labels)
 
 def convert_bmat_to_petsc(bmat):
     """
@@ -492,10 +492,8 @@ def convert_bmat_to_petsc(bmat):
     ----------
     bmat: BlockMat
     """
-    row_keys = bmat.row_keys
-    col_keys = bmat.col_keys
-    mats = [[gops.convert_mat_to_petsc(mat) for mat in row] for row in bmat.mats]
-    return BlockMat(mats, row_keys, col_keys)
+    mats = [gops.convert_mat_to_petsc(mat) for mat in bmat.array]
+    return BlockMat(mats, bmat.labels)
 
 class BlockMat(BlockTensor):
     """
