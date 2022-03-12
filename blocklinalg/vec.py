@@ -3,7 +3,7 @@ This module contains the block vector definition and various operations on
 block vectors
 """
 
-from typing import TypeVar, Generic, List, Optional
+from typing import TypeVar
 
 import numpy as np
 from petsc4py import PETSc
@@ -14,7 +14,6 @@ from .tensor import BlockTensor
 
 ## pylint: disable=no-member
 
-# TODO: Rename keys to labels
 
 # Type variable for a 'sub'vector
 T = TypeVar('T')
@@ -42,21 +41,19 @@ def concatenate_vec(args):
     vecs = []
     keys = []
     for bvec in args:
-        vecs += bvec.vecs
+        vecs += bvec.array
         keys += bvec.keys
 
-    return BlockVec(vecs, keys)
+    return BlockVec(vecs, (keys,))
 
 def validate_blockvec_size(*args):
     """
     Check if a collection of BlockVecs have compatible block sizes
     """
-    size = args[0].size
-    for arg in args:
-        if arg.size != size:
-            return False
+    ref_bsize = args[0].bsize
+    valid_bsizes = [arg.bsize == ref_bsize for arg in args]
 
-    return True
+    return all(valid_bsizes)
 
 def handle_scalars(bvec_op):
     """
@@ -68,7 +65,7 @@ def handle_scalars(bvec_op):
         if not validate_blockvec_size(*bvecs):
             raise ValueError(f"Could not perform operation on BlockVecs with sizes", [vec.size for vec in bvecs])
 
-        bsize = bvecs[0].size
+        bsize = bvecs[0].bsize
         keys = bvecs[0].keys
 
         # Convert floats to scalar BlockVecs in a new argument list
@@ -200,18 +197,30 @@ class BlockVec(BlockTensor):
     """
     Represents a block vector with blocks indexed by labels
     """
+    def __init__(self, barray, labels=None):
+        # Support the special case of supplying labels in single tuple
+        # ('a', 'b', 'c', ...) rather than a nested form, if needed
+        if not labels is None:
+            flat_labels = all([not isinstance(label, (tuple, list)) for label in labels])
+        else:
+            flat_labels = False
+        
+        if flat_labels:
+            super().__init__(barray, (labels,))
+        else:
+            super().__init__(barray, labels)
 
+    ## Add vecs property for special case/backwards compatibilty
     @property
     def vecs(self):
-        """Return tuple of vectors from each block"""
-        return self.barray.array
+        return self.array
     
     ## Basic string representation functions
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        desc = ", ".join([f"{key}:{gops.size_vec(vec)}" for key, vec in zip(self.keys, self.vecs)])
+        desc = ", ".join([f"{key}:{gops.size_vec(vec)}" for key, vec in self.items()])
         return f"({desc})"
 
     def print_summary(self):
@@ -241,10 +250,14 @@ class BlockVec(BlockTensor):
             A block label
         value : array_like or BlockVec
         """
-        _array = self.barray[key]
-        if isinstance(_array, barr.BlockArray):
-            for subvec in _array.array:
-                gops.set_vec(subvec, value)
+        _array = self[key]
+        if isinstance(_array, BlockTensor):
+            if isinstance(value, BlockTensor):
+                for subvec, subvec_value in zip(_array.array, value):
+                    gops.set_vec(subvec, subvec_value)
+            else:
+                for subvec in _array.array:
+                    gops.set_vec(subvec, value)
         else:
             gops.set_vec(_array, value)
 
@@ -269,7 +282,7 @@ class BlockVec(BlockTensor):
 
     ## Conversion and treatment as a monolithic vector
     def to_ndarray(self):
-        ndarray_vecs = [np.array(vec) for vec in self.vecs]
+        ndarray_vecs = [np.array(vec) for vec in self]
         return np.concatenate(ndarray_vecs, axis=0)
 
     def to_petsc_seq(self, comm=None):

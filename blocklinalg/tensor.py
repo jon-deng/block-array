@@ -20,7 +20,7 @@ class BlockTensor:
     def __init__(
         self, 
         barray: Union[barr.BlockArray, barr.NestedArray],
-        labels: Optional[barr.AxisBlockLabels]=None):
+        labels: Optional[barr.AxisBlockLabels] = None):
 
         if isinstance(barray, barr.BlockArray):
             self._barray = barray
@@ -28,17 +28,18 @@ class BlockTensor:
             self._barray = barr.block_array(barray, labels)
 
     @property
+    def array(self):
+        """
+        Return the flat tuple storing all subtensors
+        """
+        return self._barray.array
+
+    @property
     def barray(self):
         """
         Return the block array
         """
         return self._barray
-
-    # TODO: Remove the keys attribute
-    @property
-    def keys(self):
-        """Return the axis labels"""
-        return self.barray.labels
 
     @property
     def labels(self):
@@ -107,6 +108,11 @@ class BlockTensor:
             return ret
 
     ## Dict-like interface over the first dimension
+    @property
+    def keys(self):
+        """Return the first axis' labels"""
+        return self.barray.labels[0]
+
     def __contains__(self, key):
         return key in self.barray
 

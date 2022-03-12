@@ -3,7 +3,7 @@ A BlockArray is a multidimensional array of a fixed shape (similar to numpy arra
 arbitrary objects and where axis index has a label
 """
 
-from typing import TypeVar, Tuple, Union, Mapping
+from typing import TypeVar, Tuple, Union, Mapping, Optional
 from itertools import product, chain
 
 import numpy as np
@@ -78,7 +78,9 @@ class BlockArray:
     shape : tuple of ints, length N
     """
 
-    def __init__(self, array: Array, shape: Shape, labels: AxisBlockLabels):
+    def __init__(self, array: Array, shape: Shape, labels: Optional[AxisBlockLabels]=None):
+        if labels is None:
+            labels = tuple([tuple([str(ii) for ii in range(axis_size)]) for axis_size in shape])
         # Validate the array shape and labels
         assert len(labels) == len(shape)
         for ii, axis_size in enumerate(shape):
