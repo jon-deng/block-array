@@ -26,6 +26,9 @@ def test_vec_size_shape():
 def test_vec_add():
     print(VEC1+VEC2)
 
+def test_vec_scalar_mul():
+    print(5*VEC1)
+
 def test_vec_set():
     VEC1['a'] = 5
     print(VEC1)
@@ -34,3 +37,4 @@ if __name__ == '__main__':
     test_vec_size_shape()
     test_vec_add()
     test_vec_set()
+    test_vec_scalar_mul()

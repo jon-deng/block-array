@@ -65,17 +65,17 @@ def handle_scalars(bvec_op):
         if not validate_blockvec_size(*bvecs):
             raise ValueError(f"Could not perform operation on BlockVecs with sizes", [vec.size for vec in bvecs])
 
-        bsize = bvecs[0].bsize
+        size = bvecs[0].size
         keys = bvecs[0].keys
 
         # Convert floats to scalar BlockVecs in a new argument list
         new_args = []
         for arg in args:
-            if isinstance(arg, float):
-                _vecs = tuple([arg]*bsize)
+            if isinstance(arg, (float, int)):
+                _vecs = tuple([arg]*size)
                 new_args.append(BlockVec(_vecs, keys))
             elif isinstance(arg, np.ndarray) and arg.shape == ():
-                _vecs = tuple([float(arg)]*bsize)
+                _vecs = tuple([float(arg)]*size)
                 new_args.append(BlockVec(_vecs, keys))
             else:
                 new_args.append(arg)

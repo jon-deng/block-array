@@ -11,6 +11,7 @@ from blocklinalg.tensor import BlockTensor
 from petsc4py import PETSc
 
 from . import genericops as gops
+from .blockarray import BlockArray
 from .tensor import BlockTensor
 
 # pylint: disable=no-member
@@ -493,7 +494,8 @@ def convert_bmat_to_petsc(bmat):
     bmat: BlockMat
     """
     mats = [gops.convert_mat_to_petsc(mat) for mat in bmat.array]
-    return BlockMat(mats, bmat.labels)
+    barray = BlockArray(mats, bmat.shape, bmat.labels)
+    return BlockMat(barray)
 
 class BlockMat(BlockTensor):
     """
