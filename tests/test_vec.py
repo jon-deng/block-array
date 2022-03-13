@@ -5,36 +5,68 @@ from blocklinalg import mat as bmat
 from blocklinalg import linalg as bla
 from blocklinalg import vec as bvec
 
-a = np.arange(5)
+# pylint: disable=unused-import
+# pylint: disable=missing-function-docstring
+
+a = np.arange(2)
 b = np.arange(3)
 c = np.arange(4)
 VEC1 = bvec.BlockVec((a, b, c), (('a', 'b', 'c'),))
 
-a = np.arange(5)+1
-b = np.arange(3)+2
-c = np.arange(4)+3
+a = np.arange(2)+1
+b = np.arange(3)+1
+c = np.arange(4)+1
 VEC2 = bvec.BlockVec((a, b, c), (('a', 'b', 'c'),))
 
 VEC3 = bvec.BlockVec((a, b, c))
 
-def test_vec_size_shape():
+def test_size_shape():
     print(VEC1.size)
     print(VEC1.shape)
     print(VEC1.bsize)
     print(VEC1.bshape)
+    assert VEC1.size == 3
+    assert VEC1.shape == (3,)
+    assert VEC1.bsize == (2+3+4, )
+    assert VEC1.bshape == ((2, 3, 4),)
 
-def test_vec_add():
-    print(VEC1+VEC2)
+def _test_binary_op(op, vec_a, vec_b, element_op=None):
+    """
+    Tests a binary operation against the equivalent operation on the subtensors
+    """
+    element_op = op if element_op is None else element_op
+    vec_c = op(vec_a, vec_b)
+    for subvec_c, subvec_a, subvec_b in zip(vec_c, vec_a, vec_b):
+        assert np.all(subvec_c == element_op(subvec_a, subvec_b))
 
-def test_vec_scalar_mul():
-    print(5*VEC1)
+def test_add():
+    _test_binary_op(lambda x, y: x+y, VEC1, VEC2)
+
+def test_div():
+    _test_binary_op(lambda x, y: x/y, VEC1, VEC2)
+
+def test_mul():
+    _test_binary_op(lambda x, y: x*y, VEC1, VEC2)
+
+def test_power():
+    _test_binary_op(bvec.power, VEC1, VEC2, element_op=lambda x, y: x**y)
+
+def test_scalar_mul():
+    alpha = 5.0
+    ans = alpha*VEC1
+    for vec_ans, vec in zip(ans, VEC1):
+        assert np.all(vec_ans == alpha*vec)
 
 def test_vec_set():
     VEC1['a'] = 5
+    assert np.all(VEC1['a'] == 5)
     print(VEC1)
 
 if __name__ == '__main__':
-    test_vec_size_shape()
-    test_vec_add()
+    test_size_shape()
+    test_add()
+    test_div()
+    test_mul()
+    test_power()
+    test_scalar_mul()
     test_vec_set()
-    test_vec_scalar_mul()
