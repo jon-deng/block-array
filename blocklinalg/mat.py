@@ -536,7 +536,7 @@ class BlockMat(BlockTensor):
         return scalar_mul(other, self)
 
     def to_petsc(self, comm=None):
-        return form_block_matrix(self.mats)
+        return form_block_matrix(self.array_nested)
 
     def norm(self):
         return norm(self)
