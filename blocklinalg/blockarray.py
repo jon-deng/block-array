@@ -60,7 +60,6 @@ def flatten_array(array):
     flat_array = array
     shape = []
     while check_is_nested(flat_array):
-        print(flat_array)
         shape.append(len(flat_array))
         flat_array = [elem for elem in chain(*flat_array)]
 
