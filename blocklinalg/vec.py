@@ -11,6 +11,7 @@ from petsc4py import PETSc
 from . import genericops as gops
 from . import blockarray as barr
 from .tensor import BlockTensor
+from .mat import BlockMat
 
 ## pylint: disable=no-member
 
@@ -185,6 +186,18 @@ def convert_bvec_to_petsc(bvec):
     """
     vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.vecs]
     return BlockVec(vecs, bvec.keys)
+
+def convert_bvec_to_petsc_rowbmat(bvec):
+    mats = tuple([
+        tuple([gops.convert_vec_to_rowmat(vec) for vec in bvec.array])
+        ])
+    return BlockMat(mats)
+
+def convert_bvec_to_petsc_colbmat(bvec):
+    mats = tuple([
+        tuple([gops.convert_vec_to_colmat(vec)]) for vec in bvec.array
+        ])
+    return BlockMat(mats)
 
 class BlockVec(BlockTensor):
     """
