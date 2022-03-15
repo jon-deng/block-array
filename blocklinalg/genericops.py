@@ -239,3 +239,23 @@ def convert_vec_to_petsc(vec, comm=None):
     else:
         out = vec
     return out
+
+## Convert vectors to row/column matrices
+def convert_vec_to_rowmat(vec, comm=None):
+    if isinstance(vec, dfn.PETScVector):
+        vec = vec.vec()
+
+    if isinstance(vec, PETSc.Vec):
+        vec = np.array(vec.array)
+
+    return convert_mat_to_petsc(vec.reshape(1, vec.size))
+
+def convert_vec_to_colmat(vec, comm=None):
+    if isinstance(vec, dfn.PETScVector):
+        vec = vec.vec()
+
+    if isinstance(vec, PETSc.Vec):
+        vec = np.array(vec.array)
+
+    return convert_mat_to_petsc(vec.reshape(vec.size, 1))
+    
