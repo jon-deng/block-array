@@ -170,10 +170,10 @@ class BlockArray:
         multi_idx = convert_general_multi_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
 
         # Find the returned BlockArray's shape and labels
-        ret_shape = tuple([len(axis_idxs) for axis_idxs in multi_idx if isinstance(axis_idxs, tuple)])
+        ret_shape = tuple([len(axis_idxs) for axis_idxs in multi_idx if isinstance(axis_idxs, (list, tuple))])
         ret_labels = tuple([
             tuple([axis_labels[ii] for ii in axis_idxs])
-            for axis_labels, axis_idxs in zip(self.labels, multi_idx) if isinstance(axis_idxs, tuple)
+            for axis_labels, axis_idxs in zip(self.labels, multi_idx) if isinstance(axis_idxs, (list, tuple))
         ])
 
         # enclose single ints in a list so it works with itertools
@@ -212,7 +212,7 @@ class BlockArray:
             yield self[ii]
 
 
-def to_flat_idx(multi_idx: StandardIndex, strides: Tuple[int, ...]) -> Union[Index, Indices]:
+def to_flat_idx(multi_idx: StandardIndex, strides: Strides) -> Union[Index, Indices]:
     """
     Return a flat index given a multi-index and strides for each dimension
 
@@ -241,6 +241,9 @@ def expand_multi_idx(multi_idx: GeneralIndex, shape: Shape) -> GeneralIndex:
     shape: tuple(int)
         The shape of the array being indexed
     """
+    # Check that there are fewer dimensions indexed than number of dimensions
+    assert len(multi_idx) <= len(shape)
+
     num_ellipse = multi_idx.count(...)
     assert num_ellipse <= 1
 
@@ -250,10 +253,10 @@ def expand_multi_idx(multi_idx: GeneralIndex, shape: Shape) -> GeneralIndex:
     else:
         num_missing_axis_idx = len(shape) - len(multi_idx)
         axis_expand = len(multi_idx)
-    new_multi_idx = tuple(
-        list(multi_idx[:axis_expand])
-        + num_missing_axis_idx*[slice(None)]
-        + list(multi_idx[axis_expand+num_ellipse:])
+    new_multi_idx = (
+        multi_idx[:axis_expand]
+        + tuple(num_missing_axis_idx*[slice(None)])
+        + multi_idx[axis_expand+num_ellipse:]
         )
     return new_multi_idx
 
