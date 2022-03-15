@@ -105,6 +105,9 @@ class BlockArray:
     def __init__(self, array: Array, shape: Shape, labels: Optional[AxisBlockLabels]=None):
         if labels is None:
             labels = tuple([tuple([str(ii) for ii in range(axis_size)]) for axis_size in shape])
+        # Convert any lists to tuples in labels
+        labels = tuple([tuple(dim_labels) for dim_labels in labels])
+
         # Validate the array shape and labels
         assert len(labels) == len(shape)
         for ii, axis_size in enumerate(shape):
@@ -300,11 +303,10 @@ def convert_general_idx(idx: GeneralIndex, size, label_to_idx) -> Union[Indices,
 
     if isinstance(idx, slice):
         return convert_slice(idx, size)
-    elif isinstance(idx, (list, tuple)):
-        return tuple(
-            [convert_label_idx(ii, label_to_idx, size) if isinstance(ii, str) else ii
+    elif isinstance(idx, list):
+        return [
+            convert_label_idx(ii, label_to_idx, size) if isinstance(ii, str) else ii
             for ii in idx]
-            )
     elif isinstance(idx, str):
         return convert_label_idx(idx, label_to_idx, size)
     elif isinstance(idx, int):
@@ -326,7 +328,7 @@ def convert_slice(idx: slice, size: int) -> Indices:
         step = idx.step
     return tuple(range(start, stop, step))
 
-# The below functions convert general single indexes to a standard single index, a positive integer
+# The below functions convert general single indexes to a standard single index (a positive integer)
 def convert_label_idx(idx: str, label_to_idx: Mapping[str, int], size: int) -> int:
     """
     Return an integer index corresponding to a label
