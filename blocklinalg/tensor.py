@@ -35,6 +35,13 @@ class BlockTensor:
         return self._barray.array
 
     @property
+    def array_nested(self):
+        """
+        Return the nested tuple storing all subtensors
+        """
+        return self._barray.array_nested
+
+    @property
     def barray(self):
         """
         Return the block array

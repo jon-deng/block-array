@@ -14,6 +14,7 @@ T = TypeVar("T")
 NestedArray = Tuple['NestedArray', ...]
 Array = Tuple[T, ...]
 Shape = Tuple[int, ...]
+Strides = Tuple[int, ...]
 Labels = Tuple[str, ...]
 AxisBlockLabels = Tuple[Tuple[str, ...], ...]
 
@@ -59,7 +60,6 @@ def flatten_array(array):
     flat_array = array
     shape = []
     while check_is_nested(flat_array):
-        print(flat_array)
         shape.append(len(flat_array))
         flat_array = [elem for elem in chain(*flat_array)]
 
@@ -67,21 +67,30 @@ def flatten_array(array):
 
     return flat_array, tuple(shape)
 
-# TODO: Implement recursive function to create a nested array from a shape
-# def nest_array(array, shape):
-#     """
-#     Convert a flat array into a nested array with given shape
-#     """
-#     assert math.prod(shape) == len(array)
-#     ret_array = []
+def nest_array(array: Array, strides: Strides):
+    """
+    Convert a flat array into a nested array from given strides
 
-#     if len(shape) > 1:
-#         return [nest_array(array, shape)] 
-#     else:
-#         ret_array = array
+    Parameters
+    ----------
+    array: Tuple, list
+        A flat array
+    strides
+        A tuple of strides
+    """
+    size = len(array)
+    for stride in strides:
+        assert math.remainder(size, stride) == 0
 
-#     return ret_array
-
+    stride = strides[0]
+    if stride == 1:
+        return array 
+    else:
+        ret_array = [
+            nest_array(array[ii*stride:(ii+1)*stride], strides[1:])
+            for ii in range(size//stride)
+            ]
+        return ret_array
 
 class BlockArray:
     """
@@ -122,9 +131,9 @@ class BlockArray:
         """
         return self._array
 
-    # @property
-    # def nested_array(self):
-    #     return nest_array(self.array, self.shape)
+    @property
+    def array_nested(self):
+        return nest_array(self.array, self._STRIDES)
 
     @property
     def shape(self):
