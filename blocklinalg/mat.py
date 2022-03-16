@@ -414,9 +414,8 @@ def add(A, B):
     """
     labels = tuple([A.labels[0], B.labels[1]])
     mats = [
-        [A[mm, nn] + B[mm, nn] 
-        for nn in range(A.shape[0])] 
-        for mm in range(A.shape[1])]
+        [A[mm, nn] + B[mm, nn] for nn in range(A.shape[1])] 
+        for mm in range(A.shape[0])]
     return BlockMat(mats, labels)
 
 def sub(A, B):
