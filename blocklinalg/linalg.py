@@ -30,7 +30,7 @@ def mult_mat_mat(bmata, bmatb):
     ## ii/jj denote the current row/col indices
     NROW, NCOL = bmata.shape[0], bmatb.shape[1]
     
-    assert bmata.shape[1] == bmatb.shape[0]
+    assert bmata.bshape[1] == bmatb.bshape[0]
     NREDUCE = bmata.shape[1]
 
     mats = []
