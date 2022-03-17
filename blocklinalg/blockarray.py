@@ -171,10 +171,10 @@ class BlockArray:
         multi_idx = convert_general_multi_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
 
         # Find the returned BlockArray's shape and labels
-        ret_shape = tuple([len(axis_idxs) for axis_idxs in multi_idx if isinstance(axis_idxs, (list, tuple))])
+        ret_shape = tuple([len(axis_idx) for axis_idx in multi_idx if isinstance(axis_idx, (list, tuple))])
         ret_labels = tuple([
-            tuple([axis_labels[ii] for ii in axis_idxs])
-            for axis_labels, axis_idxs in zip(self.labels, multi_idx) if isinstance(axis_idxs, (list, tuple))
+            tuple([axis_labels[ii] for ii in axis_idx])
+            for axis_labels, axis_idx in zip(self.labels, multi_idx) if isinstance(axis_idx, (list, tuple))
         ])
 
         # enclose single ints in a list so it works with itertools
@@ -230,7 +230,7 @@ def to_flat_idx(multi_idx: MultiStandardIndex, strides: Strides) -> StandardInde
 
 def expand_multi_idx(multi_idx: MultiGeneralIndex, shape: Shape) -> MultiGeneralIndex:
     """
-    Expands missing axis indices or ellipses in a general multi-index
+    Expands missing axis indices and/or ellipses in a general multi-index
 
     This ensures the number of axis indices in a general multi index
     matches the total number of axes.
@@ -254,6 +254,7 @@ def expand_multi_idx(multi_idx: MultiGeneralIndex, shape: Shape) -> MultiGeneral
     else:
         num_missing_axis_idx = len(shape) - len(multi_idx)
         axis_expand = len(multi_idx)
+
     new_multi_idx = (
         multi_idx[:axis_expand]
         + tuple(num_missing_axis_idx*[slice(None)])
