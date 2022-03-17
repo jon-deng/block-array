@@ -6,26 +6,27 @@ arbitrary objects and where axis index has a label
 from typing import TypeVar, Tuple, Union, Mapping, Optional
 from itertools import product, chain
 
-import numpy as np
 import math
-import functools as ft
 
 T = TypeVar("T")
 NestedArray = Tuple['NestedArray', ...]
-Array = Tuple[T, ...]
+FlatArray = Tuple[T, ...]
 Shape = Tuple[int, ...]
 Strides = Tuple[int, ...]
 Labels = Tuple[str, ...]
 AxisBlockLabels = Tuple[Tuple[str, ...], ...]
 
-Index = int
-Indices = Tuple[int, ...]
+IntIndex = int
+IntIndices = Tuple[int, ...]
 EllipsisType = type(...)
 
-GeneralIndex = Union[slice, Index, str, Indices, EllipsisType]
-StandardIndex = Union[Index, Indices]
+GeneralIndex = Union[slice, IntIndex, str, IntIndices, EllipsisType]
+StandardIndex = Union[IntIndex, IntIndices]
 
-def block_array(array, labels):
+MultiStandardIndex = Tuple[StandardIndex, ...]
+MultiGeneralIndex = Tuple[GeneralIndex, ...]
+
+def block_array(array: FlatArray, labels: Labels):
     """
     Return a BlockArray from nested lists/tuples
 
@@ -40,7 +41,7 @@ def block_array(array, labels):
     flat_array, shape = flatten_array(array)
     return BlockArray(flat_array, shape, labels)
 
-def flatten_array(array):
+def flatten_array(array: NestedArray):
     """
     Flattens and return the shape of a nested array
     """
@@ -67,7 +68,7 @@ def flatten_array(array):
 
     return flat_array, tuple(shape)
 
-def nest_array(array: Array, strides: Strides):
+def nest_array(array: FlatArray, strides: Strides):
     """
     Convert a flat array into a nested array from given strides
 
@@ -102,7 +103,7 @@ class BlockArray:
     shape : tuple of ints, length N
     """
 
-    def __init__(self, array: Array, shape: Shape, labels: Optional[AxisBlockLabels]=None):
+    def __init__(self, array: FlatArray, shape: Shape, labels: Optional[AxisBlockLabels]=None):
         if labels is None:
             labels = tuple([tuple([str(ii) for ii in range(axis_size)]) for axis_size in shape])
         # Convert any lists to tuples in labels
@@ -212,7 +213,7 @@ class BlockArray:
             yield self[ii]
 
 
-def to_flat_idx(multi_idx: StandardIndex, strides: Strides) -> Union[Index, Indices]:
+def to_flat_idx(multi_idx: MultiStandardIndex, strides: Strides) -> StandardIndex:
     """
     Return a flat index given a multi-index and strides for each dimension
 
@@ -227,7 +228,7 @@ def to_flat_idx(multi_idx: StandardIndex, strides: Strides) -> Union[Index, Indi
     """
     return sum([idx*stride for idx, stride in zip(multi_idx, strides)])
 
-def expand_multi_idx(multi_idx: GeneralIndex, shape: Shape) -> GeneralIndex:
+def expand_multi_idx(multi_idx: MultiGeneralIndex, shape: Shape) -> MultiGeneralIndex:
     """
     Expands missing axis indices or ellipses in a general multi-index
 
@@ -261,9 +262,9 @@ def expand_multi_idx(multi_idx: GeneralIndex, shape: Shape) -> GeneralIndex:
     return new_multi_idx
 
 def convert_general_multi_idx(
-    multi_idx: Tuple[GeneralIndex, ...], 
+    multi_idx: MultiGeneralIndex, 
     shape: Shape, 
-    multi_label_to_idx: Tuple[Mapping[str, int], ...]) -> StandardIndex:
+    multi_label_to_idx: Tuple[Mapping[str, int], ...]) -> MultiStandardIndex:
     """
     Return a standard multi-index from a general multi-index
 
@@ -289,7 +290,7 @@ def convert_general_multi_idx(
         for index, axis_size, axis_label_to_idx in zip(multi_idx, shape, multi_label_to_idx)]
     return tuple(out_multi_idx)
 
-def convert_general_idx(idx: GeneralIndex, size, label_to_idx) -> Union[Indices, Index]:
+def convert_general_idx(idx: GeneralIndex, size, label_to_idx) -> StandardIndex:
     """
     Return a standard index corresponding to any of the general index approaches
 
@@ -319,7 +320,7 @@ def convert_general_idx(idx: GeneralIndex, size, label_to_idx) -> Union[Indices,
 
 # The below functions convert general 1D slice indices to standard 1D slice indices, 
 # tuples of positive integers
-def convert_slice(idx: slice, size: int) -> Indices:
+def convert_slice(idx: slice, size: int) -> IntIndices:
     """
     Return the sequence of indexes corresponding to a slice
     """
