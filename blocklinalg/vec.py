@@ -43,8 +43,6 @@ def concatenate_vec(args, labels=None):
     if labels is None:
         labels = ftls.reduce(lambda a, b: a+b, [bvec.labels[0] for bvec in args])
 
-    for bvec in args:
-        print(bvec.array)
     vecs = ftls.reduce(lambda a, b: a+b, [bvec.array for bvec in args])
 
     return BlockVec(vecs, labels)
