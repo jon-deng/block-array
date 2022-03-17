@@ -116,9 +116,9 @@ class BlockArray:
         assert len(array) == math.prod(shape)
 
         # Assign basic data
-        self._array = array
-        self._shape = shape
-        self._labels = labels
+        self._array = tuple(array)
+        self._shape = tuple(shape)
+        self._labels = tuple(labels)
 
         # Compute convenience constants
         self._STRIDES = tuple([

@@ -4,6 +4,7 @@ block vectors
 """
 
 from typing import TypeVar
+import functools as ftls
 
 import numpy as np
 from petsc4py import PETSc
@@ -31,7 +32,7 @@ def split_bvec(bvec, block_sizes):
         _bvec = _bvec[bsize:]
     return tuple(split_bvecs)
 
-def concatenate_vec(args):
+def concatenate_vec(args, labels=None):
     """
     Concatenate a series of BlockVecs into a single BlockVec
 
@@ -39,13 +40,14 @@ def concatenate_vec(args):
     ----------
     args : List of BlockVec
     """
-    vecs = []
-    keys = []
-    for bvec in args:
-        vecs += bvec.array
-        keys += bvec.keys
+    if labels is None:
+        labels = ftls.reduce(lambda a, b: a+b, [bvec.labels[0] for bvec in args])
 
-    return BlockVec(vecs, (keys,))
+    for bvec in args:
+        print(bvec.array)
+    vecs = ftls.reduce(lambda a, b: a+b, [bvec.array for bvec in args])
+
+    return BlockVec(vecs, labels)
 
 def validate_blockvec_size(*args):
     """
