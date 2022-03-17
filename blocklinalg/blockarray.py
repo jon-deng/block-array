@@ -331,7 +331,7 @@ def convert_slice(idx: slice, size: int) -> IntIndices:
         step = 1
     else:
         step = idx.step
-    return range(start, stop, step)
+    return list(range(start, stop, step))
 
 # The below functions convert general single indexes to a standard single index (a positive integer)
 def convert_label_idx(idx: str, label_to_idx: Mapping[str, int], size: int) -> int:
