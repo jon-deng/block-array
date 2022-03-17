@@ -459,7 +459,7 @@ def norm(A):
     return frobenius_norm
 
 ## More utilities
-def concatenate_mat(bmats):
+def concatenate_mat(bmats, labels=None):
     """
     Form a block matrix by joining other block matrices
 
@@ -478,10 +478,11 @@ def concatenate_mat(bmats):
             for bcol in range(NUM_BCOL):
                 mats_row.extend(bmats[brow][bcol][row, :])
             mats.append(mats_row)
-
-    row_labels = [key for ii in range(NUM_BROW) for key in bmats[ii][0].labels[0]]
-    col_labels = [key for jj in range(NUM_BCOL) for key in bmats[0][jj].labels[1]]
-    labels = (tuple(row_labels), tuple(col_labels))
+    
+    if labels is None:
+        row_labels = [key for ii in range(NUM_BROW) for key in bmats[ii][0].labels[0]]
+        col_labels = [key for jj in range(NUM_BCOL) for key in bmats[0][jj].labels[1]]
+        labels = (tuple(row_labels), tuple(col_labels))
     return BlockMat(mats, labels)
 
 def convert_bmat_to_petsc(bmat):
