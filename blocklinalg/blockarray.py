@@ -287,7 +287,7 @@ def convert_general_multi_idx(
 
     multi_idx = expand_multi_idx(multi_idx, shape)
     out_multi_idx = [
-        convert_general_idx(index, axis_size, axis_label_to_idx) 
+        convert_general_idx(index, axis_size, axis_label_to_idx)
         for index, axis_size, axis_label_to_idx in zip(multi_idx, shape, multi_label_to_idx)]
     return tuple(out_multi_idx)
 
@@ -308,7 +308,7 @@ def convert_general_idx(idx: GeneralIndex, size, label_to_idx) -> StandardIndex:
 
     if isinstance(idx, slice):
         return convert_slice(idx, size)
-    elif isinstance(idx, list):
+    elif isinstance(idx, (list, tuple)):
         return [
             convert_label_idx(ii, label_to_idx, size) if isinstance(ii, str) else ii
             for ii in idx]
@@ -331,7 +331,7 @@ def convert_slice(idx: slice, size: int) -> IntIndices:
         step = 1
     else:
         step = idx.step
-    return tuple(range(start, stop, step))
+    return range(start, stop, step)
 
 # The below functions convert general single indexes to a standard single index (a positive integer)
 def convert_label_idx(idx: str, label_to_idx: Mapping[str, int], size: int) -> int:
