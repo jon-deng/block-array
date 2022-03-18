@@ -127,7 +127,7 @@ def validate_general_idx(idx, size):
                 raise IndexError(f"slice start index {start} out of range for axis of size {size}")
         
         if stop is not None:
-            if not valid_index(start, lb-1, ub+1):
+            if not valid_index(stop, lb-1, ub+1):
                 # The stop index is noninclusive so goes +1 off the valid index bound
                 raise IndexError(f"slice stop index {stop} out of range for axis of size {size}")
     elif isinstance(idx, int):
