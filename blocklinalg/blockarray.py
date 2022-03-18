@@ -111,6 +111,37 @@ def validate_labels(labels, shape):
         # Check that axis labels are unique
         if len(set(axis_labels)) != len(axis_labels):
             raise ValueError(f"duplicate labels found for axis {dim} with labels {axis_labels}")
+
+def validate_general_idx(idx, size):
+    """Validate a general index"""
+    lb = -size
+    ub = size-1
+    def valid_index(idx, lb, ub):
+        """Whether an integer index is valid"""
+        return (idx<=ub and idx>=lb)
+
+    if isinstance(idx, slice):
+        start, stop = idx.start, idx.stop
+        if start is not None:
+            if not valid_index(start, lb, ub):
+                raise IndexError(f"slice start index {start} out of range for axis of size {size}")
+        
+        if stop is not None:
+            if not valid_index(start, lb-1, ub+1):
+                # The stop index is noninclusive so goes +1 off the valid index bound
+                raise IndexError(f"slice stop index {stop} out of range for axis of size {size}")
+    elif isinstance(idx, int):
+        if not valid_index(idx, lb, ub):
+            raise IndexError(f"index {idx} out of range for axis of size {size}")
+    elif isinstance(idx, (list, tuple)):
+        valid_idxs = [valid_index(ii, lb, ub) for ii in idx if isinstance(ii, int)]
+        if not all(valid_idxs):
+            raise IndexError(f"index out of range in {idx} for axis of size {size}")
+
+def validate_multi_general_idx(multi_idx, shape):
+    """Validate a multi general index"""
+    for idx, size in zip(multi_idx, shape):
+        validate_general_idx(idx, size)
     
 
 class BlockArray:
@@ -186,6 +217,9 @@ class BlockArray:
         return self.size
 
     def __getitem__(self, multi_idx):
+        multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
+        validate_multi_general_idx(tuple(multi_idx), self.shape)
+
         multi_idx = convert_general_multi_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
 
         # Find the returned BlockArray's shape and labels
