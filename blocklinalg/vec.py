@@ -25,11 +25,11 @@ def split_bvec(bvec, block_sizes):
     """
     Splits a block vector into multiple block vectors
     """
-    split_bvecs = []
-    _bvec = bvec
-    for bsize in block_sizes:
-        split_bvecs.append(_bvec[:bsize])
-        _bvec = _bvec[bsize:]
+    block_cumul_sizes = [0] + np.cumsum(block_sizes).tolist()
+    split_bvecs = [
+        bvec[ii:jj] 
+        for ii, jj in zip(block_cumul_sizes[:-1], block_cumul_sizes[1:])
+        ]
     return tuple(split_bvecs)
 
 def concatenate_vec(args, labels=None):
@@ -293,10 +293,19 @@ class BlockVec(BlockTensor):
 
     def to_petsc_seq(self, comm=None):
         total_size = np.sum(self.bsize)
-        vec = PETSc.Vec.createSeq(total_size, comm=comm)
-        vec.setArray(self.to_ndarray)
-        vec.assemblyBegin()
-        vec.assemblyEnd()
+        vec = PETSc.Vec().createSeq(total_size, comm=comm)
+        vec.setUp()
+        vec.setArray(self.to_ndarray())
+        vec.assemble()
+        return vec
+
+    def to_petsc(self, comm=None):
+        total_size = np.sum(self.bsize)
+        vec = PETSc.Vec().create(comm=comm)
+        vec.setSizes(total_size)
+        vec.setUp()
+        vec.setArray(self.to_ndarray())
+        vec.assemble()
         return vec
 
     ## common operator overloading
