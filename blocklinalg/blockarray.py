@@ -93,6 +93,26 @@ def nest_array(array: FlatArray, strides: Strides):
             ]
         return ret_array
 
+def validate_shape(array, shape):
+    """Validates the array shape"""
+    if len(array) != math.prod(shape):
+        raise ValueError(f"shape {shape} is incompatible with array of length {len(array)}")
+
+def validate_labels(labels, shape):
+    """Validates the array labels"""
+    if len(labels) != len(shape):
+        raise ValueError(f"{len(labels)} axis labels is incompatible for array with {len(shape)} dimensions")
+
+    for dim, (axis_labels, axis_size) in enumerate(zip(labels, shape)):
+        # Check that there is one label for each index along an axis
+        if len(axis_labels) != axis_size:
+            raise ValueError(f"{len(axis_labels)} axis labels is incompatible for axis {dim} with size {axis_size}")
+
+        # Check that axis labels are unique
+        if len(set(axis_labels)) != len(axis_labels):
+            raise ValueError(f"duplicate labels found for axis {dim} with labels {axis_labels}")
+    
+
 class BlockArray:
     """
     An N-dimensional array
@@ -110,10 +130,8 @@ class BlockArray:
         labels = tuple([tuple(dim_labels) for dim_labels in labels])
 
         # Validate the array shape and labels
-        assert len(labels) == len(shape)
-        for ii, axis_size in enumerate(shape):
-            assert len(labels[ii]) == axis_size
-        assert len(array) == math.prod(shape)
+        validate_labels(labels, shape)
+        validate_shape(array, shape)
 
         # Assign basic data
         self._array = tuple(array)
