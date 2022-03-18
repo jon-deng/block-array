@@ -218,6 +218,7 @@ class BlockArray:
 
     def __getitem__(self, multi_idx):
         multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
+        multi_idx = expand_multi_idx(multi_idx, self.shape)
         validate_multi_general_idx(tuple(multi_idx), self.shape)
 
         multi_idx = convert_general_multi_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
@@ -335,9 +336,6 @@ def convert_general_multi_idx(
         A tuple of mappings, where each mapping contains the map from label to index
         for the given axis
     """
-    multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
-
-    multi_idx = expand_multi_idx(multi_idx, shape)
     out_multi_idx = [
         convert_general_idx(index, axis_size, axis_label_to_idx)
         for index, axis_size, axis_label_to_idx in zip(multi_idx, shape, multi_label_to_idx)]
