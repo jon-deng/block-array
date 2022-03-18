@@ -96,6 +96,10 @@ def dot(a, b):
         ret += sum(vec[:])
     return ret
 
+def norm(a):
+    """Return the 2-norm of a vector"""
+    return dot(a, a)**0.5
+    
 @handle_scalars
 def add(a, b):
     """
@@ -276,7 +280,7 @@ class BlockVec(BlockTensor):
 
     def set_vec(self, vec):
         """
-        Sets all values based on a vector
+        Sets all values based on a monolithic vector
         """
         # Check sizes are compatible
         assert vec.size == np.sum(self.bshape[0])
