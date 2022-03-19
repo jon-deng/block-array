@@ -4,7 +4,7 @@ arbitrary objects and where axis index has a label
 """
 
 from typing import TypeVar, Tuple, Union, Mapping, Optional
-from itertools import product, chain
+from itertools import product, chain, accumulate
 
 import math
 
@@ -181,9 +181,10 @@ class BlockArray:
         self._labels = tuple(labels)
 
         # Compute convenience constants
-        self._STRIDES = tuple([
-            math.prod(self.shape[ii+1:], start=1) 
-            for ii in range(len(self.shape))])
+        _strides = [
+            stride for stride 
+            in accumulate(shape[-1:0:-1], lambda a, b: a*b, initial=1)]
+        self._STRIDES = tuple(_strides[::-1])
         self._MULTI_LABEL_TO_IDX = tuple([
             {label: ii for label, ii in zip(axis_labels, idxs)} 
             for axis_labels, idxs in zip(self.labels, [range(axis_size) for axis_size in self.shape])])
@@ -229,10 +230,13 @@ class BlockArray:
         multi_idx = convert_multi_general_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
 
         # Find the returned BlockArray's shape and labels
-        ret_shape = tuple([len(axis_idx) for axis_idx in multi_idx if isinstance(axis_idx, (list, tuple))])
+        ret_shape = tuple([
+            len(axis_idx) for axis_idx in multi_idx 
+            if isinstance(axis_idx, (list, tuple))])
         ret_labels = tuple([
             tuple([axis_labels[ii] for ii in axis_idx])
-            for axis_labels, axis_idx in zip(self.labels, multi_idx) if isinstance(axis_idx, (list, tuple))
+            for axis_labels, axis_idx in zip(self.labels, multi_idx) 
+            if isinstance(axis_idx, (list, tuple))
         ])
 
         # enclose single ints in a list so it works with itertools
@@ -431,7 +435,7 @@ def convert_neg_idx(idx: int, size: int) -> IntIndex:
     if idx >= 0:
         return idx
     else:
-        return size-idx
+        return size+idx
 
 def convert_start_idx(idx: Union[int, None], size: int) -> IntIndex:
     """
@@ -464,24 +468,3 @@ def convert_stop_idx(idx: Union[int, None], size: int) -> IntIndex:
         return size
     else:
         return convert_neg_idx(idx, size)
-
-if __name__ == '__main__':
-    l, m, n = 2, 3, 4
-    SHAPE = (l, m, n)
-    LABELS = (('a', 'b'), ('a', 'b', 'c'), ('a', 'b', 'c', 'd'))
-    SIZE = math.prod(SHAPE)  
-
-    import string   
-    ARRAY = string.ascii_lowercase[:SIZE]
-
-    test = BlockArray(ARRAY, SHAPE, LABELS)
-
-    print(f"test has shape {test.shape} and vals {test.array}")
-    print(f"test[:, :, 0] has shape {test[:, :, 0].shape} and vals {test[:, :, 0].array}")
-    print(f"test[:, :, 1:2] has shape {test[:, :, 1:2].shape} and vals {test[:, :, 1:2].array}")
-    print(f"test[:, :, 0:1] has shape {test[:, :, 0:1].shape} and vals {test[:, :, 0:1].array}")
-    print(f"test[:, :, :] has shape {test[:, :, :].shape} and vals {test[:, :, :].array}")
-    print(f"test[:] has shape {test[:].shape} and vals {test[:].array}")
-
-    print(flatten_array([[1, 2, 3], [4, 5, 6]]))
-    
