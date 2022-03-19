@@ -26,6 +26,9 @@ StandardIndex = Union[IntIndex, IntIndices]
 MultiStandardIndex = Tuple[StandardIndex, ...]
 MultiGeneralIndex = Tuple[GeneralIndex, ...]
 
+LabelToIntIndex = Mapping[str, IntIndex]
+MultiLabelToIntIndex = Tuple[LabelToIntIndex, ...]
+
 def block_array(array: FlatArray, labels: Labels):
     """
     Return a BlockArray from nested lists/tuples
@@ -138,7 +141,7 @@ def validate_general_idx(idx, size):
         if not all(valid_idxs):
             raise IndexError(f"index out of range in {idx} for axis of size {size}")
 
-def validate_multi_general_idx(multi_idx, shape):
+def validate_multi_general_idx(multi_idx: MultiGeneralIndex, shape: Shape):
     """Validate a multi general index"""
     for idx, size in zip(multi_idx, shape):
         validate_general_idx(idx, size)
@@ -150,8 +153,16 @@ class BlockArray:
 
     Parameters
     ----------
-    array : tuple of objects, length N
-    shape : tuple of ints, length N
+    array
+        A list of items in the array. This is a flat list which is interpreted
+        with the supplied shape according to 'C' ordering.
+    shape
+        A tuple of axis sizes (n, m, ...), where axis 0 has size n, axis 1 has
+        size m, etc.
+    labels
+        A tuple of labels corresponding each index along an axis. `labels[0]`
+        should contain the labels for indices along axis 0, `labels[1]` the 
+        indices along axis 1, etc.
     """
 
     def __init__(self, array: FlatArray, shape: Shape, labels: Optional[AxisBlockLabels]=None):
@@ -179,38 +190,32 @@ class BlockArray:
 
     @property
     def array(self):
-        """
-        Return raw array
-        """
+        """Return the flat array representation"""
         return self._array
 
     @property
     def array_nested(self):
+        """Return a nested array representation"""
         return nest_array(self.array, self._STRIDES)
 
     @property
     def shape(self):
-        """
-        Return array shape
-        """
+        """Return the array shape"""
         return self._shape
 
     @property
     def ndim(self):
+        """Return the number of dimensions (number of axes)"""
         return len(self.shape)
 
     @property
     def labels(self):
-        """
-        Return array axis block labels
-        """
+        """Return the array labels"""
         return self._labels
 
     @property 
     def size(self):
-        """
-        Return array size
-        """
+        """Return the array size"""
         return math.prod(self.shape)
 
     def __len__(self):
@@ -221,7 +226,7 @@ class BlockArray:
         multi_idx = expand_multi_idx(multi_idx, self.shape)
         validate_multi_general_idx(tuple(multi_idx), self.shape)
 
-        multi_idx = convert_general_multi_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
+        multi_idx = convert_multi_general_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
 
         # Find the returned BlockArray's shape and labels
         ret_shape = tuple([len(axis_idx) for axis_idx in multi_idx if isinstance(axis_idx, (list, tuple))])
@@ -244,7 +249,7 @@ class BlockArray:
 
     ## Copy methods
     def copy(self):
-        """Return a copy"""
+        """Return a copy of the array"""
         ret_labels = self.labels
         ret_shape = self.shape
         ret_array = [elem.copy() for elem in self.array]
@@ -266,7 +271,8 @@ class BlockArray:
             yield self[ii]
 
 
-def to_flat_idx(multi_idx: MultiStandardIndex, strides: Strides) -> StandardIndex:
+def to_flat_idx(
+    multi_idx: MultiStandardIndex, strides: Strides) -> StandardIndex:
     """
     Return a flat index given a multi-index and strides for each dimension
 
@@ -281,7 +287,8 @@ def to_flat_idx(multi_idx: MultiStandardIndex, strides: Strides) -> StandardInde
     """
     return sum([idx*stride for idx, stride in zip(multi_idx, strides)])
 
-def expand_multi_idx(multi_idx: MultiGeneralIndex, shape: Shape) -> MultiGeneralIndex:
+def expand_multi_idx(
+    multi_idx: MultiGeneralIndex, shape: Shape) -> MultiGeneralIndex:
     """
     Expands missing axis indices and/or ellipses in a general multi-index
 
@@ -315,10 +322,12 @@ def expand_multi_idx(multi_idx: MultiGeneralIndex, shape: Shape) -> MultiGeneral
         )
     return new_multi_idx
 
-def convert_general_multi_idx(
+# This function handles conversion of any of the general index/indices
+# to a standard index/indices
+def convert_multi_general_idx(
     multi_idx: MultiGeneralIndex, 
     shape: Shape, 
-    multi_label_to_idx: Tuple[Mapping[str, int], ...]) -> MultiStandardIndex:
+    multi_label_to_idx: MultiLabelToIntIndex) -> MultiStandardIndex:
     """
     Return a standard multi-index from a general multi-index
 
@@ -341,7 +350,10 @@ def convert_general_multi_idx(
         for index, axis_size, axis_label_to_idx in zip(multi_idx, shape, multi_label_to_idx)]
     return tuple(out_multi_idx)
 
-def convert_general_idx(idx: GeneralIndex, size, label_to_idx) -> StandardIndex:
+def convert_general_idx(
+    idx: GeneralIndex, 
+    size: int, 
+    label_to_idx: LabelToIntIndex) -> StandardIndex:
     """
     Return a standard index corresponding to any of the general index approaches
 
@@ -369,8 +381,8 @@ def convert_general_idx(idx: GeneralIndex, size, label_to_idx) -> StandardIndex:
     else:
         raise TypeError(f"Unknown index {idx} of type {type(idx)}.")
 
-# The below functions convert general 1D slice indices to standard 1D slice indices, 
-# tuples of positive integers
+# These functions convert general indices (GeneralIndex) to standard indices
+# (StandardIndex)
 def convert_slice(idx: slice, size: int) -> IntIndices:
     """
     Return the sequence of indexes corresponding to a slice
@@ -383,8 +395,9 @@ def convert_slice(idx: slice, size: int) -> IntIndices:
         step = idx.step
     return list(range(start, stop, step))
 
-# The below functions convert general single indexes to a standard single index (a positive integer)
-def convert_label_idx(idx: str, label_to_idx: Mapping[str, int], size: int) -> int:
+# These functions convert a general single index (GeneralIndex) 
+# to a standard single index (StandardIndex, specifically IntIndex)
+def convert_label_idx(idx: str, label_to_idx: Mapping[str, int], size: int) -> IntIndex:
     """
     Return an integer index corresponding to a label
 
@@ -401,7 +414,7 @@ def convert_label_idx(idx: str, label_to_idx: Mapping[str, int], size: int) -> i
     assert ret_index >= 0 and ret_index < size
     return ret_index
 
-def convert_neg_idx(idx: int, size: int) -> int:
+def convert_neg_idx(idx: int, size: int) -> IntIndex:
     """
     Return the index representing the equivalent negative index
 
@@ -420,7 +433,7 @@ def convert_neg_idx(idx: int, size: int) -> int:
     else:
         return size-idx
 
-def convert_start_idx(idx: Union[int, None], size: int) -> int:
+def convert_start_idx(idx: Union[int, None], size: int) -> IntIndex:
     """
     Return an int representing the starting index from a slice object
 
@@ -436,7 +449,7 @@ def convert_start_idx(idx: Union[int, None], size: int) -> int:
     else:
         return convert_neg_idx(idx, size)
 
-def convert_stop_idx(idx: Union[int, None], size: int) -> int:
+def convert_stop_idx(idx: Union[int, None], size: int) -> IntIndex:
     """
     Return an int representing the end index from a slice object
 
