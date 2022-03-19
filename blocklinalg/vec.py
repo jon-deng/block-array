@@ -64,7 +64,7 @@ def handle_scalars(bvec_op):
         # Find all input BlockVec arguments and check if they have compatible sizes
         bvecs = [arg for arg in args if isinstance(arg, BlockVec)]
         if not validate_blockvec_size(*bvecs):
-            raise ValueError(f"Could not perform operation on BlockVecs with sizes", [vec.size for vec in bvecs])
+            raise ValueError(f"Could not perform operation on BlockVecs with shapes", [vec.bshape[0] for vec in bvecs])
 
         size = bvecs[0].size
         keys = bvecs[0].keys
