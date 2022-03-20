@@ -7,7 +7,7 @@ import operator
 from collections import OrderedDict
 
 import numpy as np
-from blocklinalg.tensor import BlockTensor
+from blocktensor.tensor import BlockTensor
 from petsc4py import PETSc
 
 from . import genericops as gops

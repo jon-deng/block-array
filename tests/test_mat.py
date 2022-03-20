@@ -1,8 +1,8 @@
 import numpy as np
 import petsc4py.PETSc as PETSc
 
-from blocklinalg import mat as bmat
-from blocklinalg import linalg as bla
+from blocktensor import mat as bmat
+from blocktensor import linalg as bla
 
 COMM = PETSc.COMM_WORLD
 A = PETSc.Mat().create(COMM)
