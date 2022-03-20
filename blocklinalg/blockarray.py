@@ -1,6 +1,7 @@
 """
-A BlockArray is a multidimensional array of a fixed shape (similar to numpy arrays) containing
-arbitrary objects and where axis index has a label
+A BlockArray is a multidimensional array of a fixed shape containing
+arbitrary objects and with labelled indices along each axis. These can be 
+indexed in a similar way to `numpy.ndarray`.
 """
 
 from typing import TypeVar, Tuple, Union, Mapping, Optional
