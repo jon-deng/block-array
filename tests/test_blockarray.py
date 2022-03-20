@@ -5,7 +5,7 @@ Test the functionality of the blockarray.py module
 from itertools import accumulate, product
 import string  
 
-from blocklinalg.blockarray import BlockArray, flatten_array, nest_array
+from blocktensor.blockarray import BlockArray, flatten_array, nest_array
 
 import math
 
