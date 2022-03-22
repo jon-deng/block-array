@@ -106,6 +106,13 @@ def mult_mat_mat(mata, matb, out=None):
         matc.assemble()
         return mata.matMult(matb)
 
+def norm_vec(vec):
+    if isinstance(vec, PETSc.Vec):
+        return vec.norm()
+    elif isinstance(vec, dfn.PETScVector):
+        return vec.norm('l2')
+    else:
+        return np.linalg.norm(vec)
 
 def norm_mat(mat):
     if isinstance(mat, PETSc.Mat):

@@ -86,11 +86,12 @@ def nest_array(array: FlatArray, strides: Strides):
     size = len(array)
     for stride in strides:
         assert math.remainder(size, stride) == 0
+    assert strides[-1] == 1 # the last axis stride should be 1 for c-order
 
-    stride = strides[0]
-    if stride == 1:
+    if len(strides) == 1:
         return array 
     else:
+        stride = strides[0]
         ret_array = [
             nest_array(array[ii*stride:(ii+1)*stride], strides[1:])
             for ii in range(size//stride)
