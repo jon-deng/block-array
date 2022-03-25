@@ -9,30 +9,6 @@ from . import genericops as gops
 
 # T = TypeVar('T')
 
-def to_ndarray(block_tensor: BlockTensor):
-    """
-    Convert a BlockTensor object to a ndarray object
-    """
-    # .bsize (block size) is the resulting shape of the monolithic array
-    ret_array = np.zeros(block_tensor.bsize)
-
-    # cumulative block shape gives lower/upper block index bounds for assigning
-    # individual blocks into the ndarray 
-    cum_bshape = [
-        [nn for nn in accumulate(axis_shape, initial=0)] 
-        for axis_shape in block_tensor.bshape]
-
-    # loop through each block and assign its elements to the appropriate
-    # part of the monolithic ndarray
-    for block_idx in product(*[range(axis_size) for axis_size in block_tensor.shape]):
-        lbs = [cum_bshape[ii] for ii in block_idx]
-        ubs = [cum_bshape[ii+1] for ii in block_idx]
-
-        idx = tuple([slice(lb, ub) for lb, ub in zip(lbs, ubs)])
-        ret_array[idx] = block_tensor[block_idx]
-
-    return ret_array
-
 class BlockTensor:
     """
     Represents a block vector with blocks indexed by keys
@@ -159,3 +135,28 @@ class BlockTensor:
     def __iter__(self):
         for ii in range(self.shape[0]):
             yield self[ii]
+
+def to_ndarray(block_tensor: BlockTensor):
+    """
+    Convert a BlockTensor object to a ndarray object
+    """
+    # .bsize (block size) is the resulting shape of the monolithic array
+    ret_array = np.zeros(block_tensor.bsize)
+
+    # cumulative block shape gives lower/upper block index bounds for assigning
+    # individual blocks into the ndarray 
+    cum_bshape = [
+        [nn for nn in accumulate(axis_shape, initial=0)] 
+        for axis_shape in block_tensor.bshape]
+
+    # loop through each block and assign its elements to the appropriate
+    # part of the monolithic ndarray
+    for block_idx in product(*[range(axis_size) for axis_size in block_tensor.shape]):
+        lbs = [cum_bshape[ii] for ii in block_idx]
+        ubs = [cum_bshape[ii+1] for ii in block_idx]
+
+        idx = tuple([slice(lb, ub) for lb, ub in zip(lbs, ubs)])
+        ret_array[idx] = block_tensor[block_idx]
+
+    return ret_array
+    
