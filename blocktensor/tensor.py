@@ -1,13 +1,15 @@
 """
 This module contains the block tensor definition which provides some basic operations
 """
-from typing import TypeVar, Generic, Optional, Union
+from typing import TypeVar, Generic, Optional, Union, Callable
 from itertools import accumulate
+import functools
 
 from . import blockarray as barr
 from . import genericops as gops
+# from . import blockmath as bmath
 
-# T = TypeVar('T')
+T = TypeVar('T')
 
 class BlockTensor:
     """
@@ -135,6 +137,97 @@ class BlockTensor:
     def __iter__(self):
         for ii in range(self.shape[0]):
             yield self[ii]
+
+    ## common operator overloading
+    def __eq__(self, other):
+        eq = False
+        if isinstance(other, BlockVec):
+            err = self - other
+            if dot(err, err) == 0:
+                eq = True
+        else:
+            raise TypeError(f"Cannot compare {type(other)} to {type(self)}")
+
+        return eq
+
+    def __add__(self, other):
+        return add(self, other)
+
+    def __sub__(self, other):
+        return sub(self, other)
+
+    def __mul__(self, other):
+        return mul(self, other)
+
+    def __truediv__(self, other):
+        return div(self, other)
+
+    def __neg__(self):
+        return neg(self)
+
+    def __pos__(self):
+        return pos(self)
+
+    def __radd__(self, other):
+        return add(other, self)
+
+    def __rsub__(self, other):
+        return sub(other, self)
+
+    def __rmul__(self, other):
+        return mul(other, self)
+
+    def __rtruediv__(self, other):
+        return div(other, self)
+
+def validate_elementwise_binary_op(a, b):
+    """
+    Validates if BlockTensor inputs are applicable
+    """
+    assert a.bshape == b.bshape
+
+def _elementwise_binary_op(op: Callable[T, T], a: BlockTensor, b: BlockTensor):
+    """
+    Compute elementwise binary operation on BlockTensors
+
+    Parameters
+    ----------
+    op: function
+        A function with signature func(a, b) -> c, where a, b, c are vector of 
+        the same shape
+    a, b: BlockTensor
+    """
+    validate_elementwise_binary_op(a, b)
+    array = tuple([op(ai, bi) for ai, bi in zip(a.array, b.array)])
+    barray = barr.BlockArray(array, a.shape)
+    return type(a)(barray, a.labels)
+
+add = functools.partial(_elementwise_binary_op, lambda a, b: a+b)
+
+sub = functools.partial(_elementwise_binary_op, lambda a, b: a-b)
+
+mul = functools.partial(_elementwise_binary_op, lambda a, b: a*b)
+
+div = functools.partial(_elementwise_binary_op, lambda a, b: a/b)
+
+power = functools.partial(_elementwise_binary_op, lambda a, b: a**b)
+
+
+def _elementwise_unary_op(op: Callable, a: BlockTensor):
+    """
+    Compute elementwise unary operation on a BlockTensor
+
+    Parameters
+    ----------
+    a: BlockTensor
+    """
+    array = tuple([op(ai) for ai in a.array])
+    return type(a)(array, a.labels)
+
+neg = functools.partial(_elementwise_unary_op, lambda a: -a)
+
+pos = functools.partial(_elementwise_unary_op, lambda a: +a)
+
 
 def to_ndarray(block_tensor: BlockTensor):
     """
