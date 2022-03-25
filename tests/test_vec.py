@@ -4,6 +4,7 @@ import petsc4py.PETSc as PETSc
 from blocktensor import mat as bmat
 from blocktensor import linalg as bla
 from blocktensor import vec as bvec
+from blocktensor import tensor as btensor
 
 # pylint: disable=unused-import
 # pylint: disable=missing-function-docstring
@@ -49,7 +50,7 @@ def test_mul():
     _test_binary_op(lambda x, y: x*y, VEC1, VEC2)
 
 def test_power():
-    _test_binary_op(bvec.power, VEC1, VEC2, element_op=lambda x, y: x**y)
+    _test_binary_op(btensor.power, VEC1, VEC2, element_op=lambda x, y: x**y)
 
 def test_scalar_mul():
     alpha = 5.0

@@ -56,34 +56,6 @@ def validate_blockvec_size(*args):
 
     return all(valid_bsizes)
 
-def handle_scalars(bvec_op):
-    """
-    Decorator to handle scalar inputs to BlockVec functions
-    """
-    def wrapped_bvec_op(*args):
-        # Find all input BlockVec arguments and check if they have compatible sizes
-        bvecs = [arg for arg in args if isinstance(arg, BlockVec)]
-        if not validate_blockvec_size(*bvecs):
-            raise ValueError(f"Could not perform operation on BlockVecs with shapes", [vec.bshape[0] for vec in bvecs])
-
-        size = bvecs[0].size
-        keys = bvecs[0].keys
-
-        # Convert floats to scalar BlockVecs in a new argument list
-        new_args = []
-        for arg in args:
-            if isinstance(arg, (float, int)):
-                _vecs = tuple([arg]*size)
-                new_args.append(BlockVec(_vecs, keys))
-            elif isinstance(arg, np.ndarray) and arg.shape == ():
-                _vecs = tuple([float(arg)]*size)
-                new_args.append(BlockVec(_vecs, keys))
-            else:
-                new_args.append(arg)
-
-        return bvec_op(*new_args)
-    return wrapped_bvec_op
-
 def dot(a, b):
     """
     Return the dot product of a and b
@@ -100,86 +72,6 @@ def norm(a):
     """Return the 2-norm of a vector"""
     return dot(a, a)**0.5
     
-@handle_scalars
-def add(a, b):
-    """
-    Add block vectors a and b
-
-    Parameters
-    ----------
-    a, b: BlockVec or float
-    """
-    vecs = tuple([ai+bi for ai, bi in zip(a.vecs, b.vecs)])
-    return BlockVec(vecs, a.labels)
-
-@handle_scalars
-def sub(a, b):
-    """
-    Subtract block vectors a and b
-
-    Parameters
-    ----------
-    a, b: BlockVec or float
-    """
-    vecs = tuple([ai-bi for ai, bi in zip(a, b)])
-    return BlockVec(vecs, a.labels)
-
-@handle_scalars
-def mul(a, b):
-    """
-    Elementwise multiplication of block vectors a and b
-
-    Parameters
-    ----------
-    a, b: BlockVec or float
-    """
-    vecs = tuple([ai*bi for ai, bi in zip(a.vecs, b.vecs)])
-    return BlockVec(vecs, a.labels)
-
-@handle_scalars
-def div(a, b):
-    """
-    Elementwise division of block vectors a and b
-
-    Parameters
-    ----------
-    a, b: BlockVec or float
-    """
-    vecs = tuple([ai/bi for ai, bi in zip(a, b)])
-    return BlockVec(vecs, a.labels)
-
-@handle_scalars
-def power(a, b):
-    """
-    Elementwise power of block vector a to b
-
-    Parameters
-    ----------
-    a, b: BlockVec or float
-    """
-    vecs = tuple([ai**bi for ai, bi in zip(a, b)])
-    return BlockVec(vecs, a.labels)
-
-@handle_scalars
-def neg(a):
-    """
-    Negate block vector a
-
-    Parameters
-    ----------
-    a: BlockVec
-    """
-    vecs = tuple([-ai for ai in a])
-    return BlockVec(vecs, a.labels)
-
-@handle_scalars
-def pos(a):
-    """
-    Positifiy block vector a
-    """
-    vecs = tuple([+ai for ai in a])
-    return BlockVec(vecs, a.labels)
-
 def convert_bvec_to_petsc(bvec):
     """
     Converts a block matrix from one submatrix type to the PETSc submatrix type
@@ -323,36 +215,6 @@ class BlockVec(BlockTensor):
             raise TypeError(f"Cannot compare {type(other)} to {type(self)}")
 
         return eq
-
-    def __add__(self, other):
-        return add(self, other)
-
-    def __sub__(self, other):
-        return sub(self, other)
-
-    def __mul__(self, other):
-        return mul(self, other)
-
-    def __truediv__(self, other):
-        return div(self, other)
-
-    def __neg__(self):
-        return neg(self)
-
-    def __pos__(self):
-        return pos(self)
-
-    def __radd__(self, other):
-        return add(other, self)
-
-    def __rsub__(self, other):
-        return sub(other, self)
-
-    def __rmul__(self, other):
-        return mul(other, self)
-
-    def __rtruediv__(self, other):
-        return div(other, self)
 
     ## 
     def norm(self):

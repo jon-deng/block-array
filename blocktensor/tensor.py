@@ -157,10 +157,16 @@ class BlockTensor:
         return sub(self, other)
 
     def __mul__(self, other):
-        return mul(self, other)
+        if isinstance(other, (float, int)):
+            return scalar_mul(other, self)
+        else:
+            return mul(self, other)
 
     def __truediv__(self, other):
-        return div(self, other)
+        if isinstance(other, (float, int)):
+            return scalar_div(other, self)
+        else:
+            return div(self, other)
 
     def __neg__(self):
         return neg(self)
@@ -175,10 +181,16 @@ class BlockTensor:
         return sub(other, self)
 
     def __rmul__(self, other):
-        return mul(other, self)
+        if isinstance(other, (float, int)):
+            return scalar_mul(other, self)
+        else:
+            return mul(other, self)
 
     def __rtruediv__(self, other):
-        return div(other, self)
+        if isinstance(other, (float, int)):
+            return scalar_div(other, self)
+        else:
+            return div(other, self)
 
 def validate_elementwise_binary_op(a, b):
     """
@@ -199,8 +211,8 @@ def _elementwise_binary_op(op: Callable[T, T], a: BlockTensor, b: BlockTensor):
     """
     validate_elementwise_binary_op(a, b)
     array = tuple([op(ai, bi) for ai, bi in zip(a.array, b.array)])
-    barray = barr.BlockArray(array, a.shape)
-    return type(a)(barray, a.labels)
+    barray = barr.BlockArray(array, a.shape, a.labels)
+    return type(a)(barray)
 
 add = functools.partial(_elementwise_binary_op, lambda a, b: a+b)
 
@@ -228,6 +240,11 @@ neg = functools.partial(_elementwise_unary_op, lambda a: -a)
 
 pos = functools.partial(_elementwise_unary_op, lambda a: +a)
 
+def scalar_mul(alpha, a):
+    return _elementwise_unary_op(lambda subvec: alpha*subvec, a)
+
+def scalar_div(alpha, a):
+    return _elementwise_unary_op(lambda subvec: subvec/alpha, a)
 
 def to_ndarray(block_tensor: BlockTensor):
     """
