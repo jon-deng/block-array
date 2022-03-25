@@ -15,7 +15,7 @@ from petsc4py import PETSc
 from .vec import *
 from .mat import *
 
-from . import genericops as gops
+from . import subops as gops
 
 def mult_mat_vec(bmat, bvec):
     vecs = []

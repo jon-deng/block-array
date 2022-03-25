@@ -10,7 +10,7 @@ import numpy as np
 from blocktensor.tensor import BlockTensor
 from petsc4py import PETSc
 
-from . import genericops as gops
+from . import subops as gops
 from .blockarray import BlockArray
 from .tensor import BlockTensor
 

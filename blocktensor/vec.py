@@ -9,7 +9,7 @@ import functools as ftls
 import numpy as np
 from petsc4py import PETSc
 
-from . import genericops as gops
+from . import subops as gops
 from . import blockarray as barr
 from .tensor import BlockTensor
 from .mat import BlockMat

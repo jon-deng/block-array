@@ -6,7 +6,7 @@ from itertools import accumulate
 import functools
 
 from . import blockarray as barr
-from . import genericops as gops
+from . import subops as gops
 # from . import blockmath as bmath
 
 T = TypeVar('T')
