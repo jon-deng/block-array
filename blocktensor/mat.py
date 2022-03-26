@@ -507,8 +507,8 @@ class BlockMat(BlockTensor):
         labels=None):
         super().__init__(array, shape, labels)
 
-        if len(self.shape) != 2:
-            raise ValueError(f"BlockMat must have dimension 2, not {len(shape)}")
+        if len(self.shape) > 2:
+            raise ValueError(f"BlockMat must have dimension <= 2, not {len(self.shape)}")
 
     def to_petsc(self, comm=None):
         return form_block_matrix(self.array_nested)

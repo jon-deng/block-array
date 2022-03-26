@@ -100,20 +100,10 @@ class BlockVec(BlockTensor):
     Represents a block vector with blocks indexed by labels
     """
     def __init__(self, barray, shape=None, labels=None):
-        # Support the special case of supplying labels in single tuple
-        # ('a', 'b', 'c', ...) rather than a nested form, if needed
-        if not labels is None:
-            flat_labels = all([not isinstance(label, (tuple, list)) for label in labels])
-        else:
-            flat_labels = False
-        
-        if flat_labels:
-            super().__init__(barray, shape, (labels,))
-        else:
-            super().__init__(barray, shape, labels)
+        super().__init__(barray, shape, labels)
 
-        if len(self.shape) != 1:
-            raise ValueError(f"BlockVec must have dimension 1, not {len(shape)}")
+        if len(self.shape) > 1:
+            raise ValueError(f"BlockVec must have dimension 1, not {len(self.shape)}")
 
     ## Add vecs property for special case/backwards compatibilty
     @property

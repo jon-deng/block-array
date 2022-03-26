@@ -81,7 +81,7 @@ def test_ident_mat():
     print(bmat.ident_mat(5)[:, :])
 
 def test_concatenate_mat():
-    cbmat = bmat.concatenate_mat([[BMAT1], [BMAT2]])
+    cbmat = bmat.concatenate_mat([[BMAT1], [BMAT2]], labels=[['a', 'b', 'c', 'd'], ['a', 'b']])
     print(cbmat.shape)
     print(BMAT1.shape)
 
