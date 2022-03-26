@@ -253,8 +253,8 @@ def _elementwise_unary_op(op: Callable, a: BlockTensor):
     ----------
     a: BlockTensor
     """
-    array = tuple([op(ai) for ai in a.array])
-    return type(a)(array, a.labels)
+    array = barr.BlockArray([op(ai) for ai in a.array], a.shape, a.labels)
+    return type(a)(array)
 
 neg = functools.partial(_elementwise_unary_op, lambda a: -a)
 
