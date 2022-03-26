@@ -17,18 +17,38 @@ class BlockTensor:
 
     Parameters
     ----------
-    subtensors : tuple(PETsc.Vec or dolfin.cpp.la.PETScVector or np.ndarray)
-    keys : tuple(str)
+    array :
+        The subtensor elements
+    shape :
+        The shape of block tensor. For example, (2, 3) is a matrix block with
+        2 row blocks by 3 columns blocks. A shape must be provided if `array` is
+        a flat array.
+    labels :
+        Labels for each block along each axis
     """
     def __init__(
         self, 
-        barray: Union[barr.BlockArray, barr.NestedArray],
+        array: Union[barr.BlockArray, barr.NestedArray, barr.FlatArray],
+        shape: Optional[barr.Shape] = None,
         labels: Optional[barr.AxisBlockLabels] = None):
 
-        if isinstance(barray, barr.BlockArray):
-            self._barray = barray
+        if isinstance(array, barr.BlockArray):
+            self._barray = array
         else:
-            self._barray = barr.block_array(barray, labels)
+            flat_array, _shape = barr.flatten_array(array)
+            if shape is None:
+                # If a shape is not provided, assume `array` is a nested 
+                # array representation
+                shape = _shape
+            elif len(_shape) > 1:
+                # If a shape is provided for a nested array, check that nested 
+                # array shape and provided shape are compatible
+                if shape != _shape:
+                    raise ValueError(
+                        "Nested array shape {_shape} and provided shape {shape}"
+                        "are not compatible")
+
+            self._barray = barr.BlockArray(flat_array, shape, labels)
 
     @property
     def array(self):

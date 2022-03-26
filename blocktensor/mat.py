@@ -500,40 +500,15 @@ def convert_bmat_to_petsc(bmat):
 class BlockMat(BlockTensor):
     """
     Represents a block matrix with blocks indexed by keys
-
-    Parameters
-    ----------
-    mats : tuple(tuple(PETsc.Mat))
-    row keys, col_keys : tuple(str)
     """
+    def __init__(self, 
+        array,
+        shape=None,
+        labels=None):
+        super().__init__(array, shape, labels)
 
-    # @property
-    # def mats(self):
-    #     return self.barray.nested_array
-
-    def __add__(self, other):
-        return add(self, other)
-
-    def __sub__(self, other):
-        return sub(self, other)
-
-    def __mul__(self, other):
-        return scalar_mul(other, self)
-
-    def __neg__(self):
-        return scalar_mul(-1, self)
-
-    def __pos__(self):
-        return scalar_mul(1, self)
-
-    def __radd__(self, other):
-        return add(other, self)
-
-    def __rsub__(self, other):
-        return sub(other, self)
-
-    def __rmul__(self, other):
-        return scalar_mul(other, self)
+        if len(self.shape) != 2:
+            raise ValueError(f"BlockMat must have dimension 2, not {len(shape)}")
 
     def to_petsc(self, comm=None):
         return form_block_matrix(self.array_nested)

@@ -53,6 +53,9 @@ def test_div():
 def test_power():
     _test_elementwise_binary_op(lambda x, y: x**y, A, B, btensor.power)
 
+# def test_to_ndarray():
+
+
 
 if __name__ == '__main__':
     test_add()
