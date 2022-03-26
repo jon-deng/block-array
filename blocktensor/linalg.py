@@ -24,7 +24,7 @@ def mult_mat_vec(bmat, bvec):
             lambda a, b: a+b, 
             [gops.mult_mat_vec(submat, subvec) for submat, subvec in zip(submat_row, bvec.vecs)])
         vecs.append(vec)
-    return BlockVec(vecs, bmat.labels[0])
+    return BlockVec(vecs, labels=bmat.labels[0:1])
 
 def mult_mat_mat(bmata, bmatb):
     ## ii/jj denote the current row/col indices
@@ -45,4 +45,4 @@ def mult_mat_mat(bmata, bmatb):
         mats.append(mat_row)
 
     labels = tuple([bmata.labels[0], bmatb.labels[1]])
-    return BlockMat(mats, labels)
+    return BlockMat(mats, labels=labels)

@@ -45,7 +45,7 @@ def concatenate_vec(args, labels=None):
 
     vecs = ftls.reduce(lambda a, b: a+b, [bvec.array for bvec in args])
 
-    return BlockVec(vecs, labels)
+    return BlockVec(vecs, labels=[labels])
 
 def validate_blockvec_size(*args):
     """
@@ -81,7 +81,7 @@ def convert_bvec_to_petsc(bvec):
     bmat: BlockMat
     """
     vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.vecs]
-    return BlockVec(vecs, bvec.keys)
+    return BlockVec(vecs, labels=bvec.labels)
 
 def convert_bvec_to_petsc_rowbmat(bvec):
     mats = tuple([

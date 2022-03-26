@@ -416,7 +416,7 @@ def add(A, B):
     mats = [
         [A[mm, nn] + B[mm, nn] for nn in range(A.shape[1])] 
         for mm in range(A.shape[0])]
-    return BlockMat(mats, labels)
+    return BlockMat(mats, labels=labels)
 
 def sub(A, B):
     """
@@ -442,7 +442,7 @@ def scalar_mul(a, B):
         for nn in range(B.shape[1])] 
         for mm in range(B.shape[0])]
     labels = B.labels
-    return BlockMat(mats, labels)
+    return BlockMat(mats, labels=labels)
 
 def norm(A):
     """
@@ -483,7 +483,7 @@ def concatenate_mat(bmats, labels=None):
         row_labels = [key for ii in range(NUM_BROW) for key in bmats[ii][0].labels[0]]
         col_labels = [key for jj in range(NUM_BCOL) for key in bmats[0][jj].labels[1]]
         labels = (tuple(row_labels), tuple(col_labels))
-    return BlockMat(mats, labels)
+    return BlockMat(mats, labels=labels)
 
 def convert_bmat_to_petsc(bmat):
     """
