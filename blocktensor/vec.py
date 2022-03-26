@@ -41,11 +41,11 @@ def concatenate_vec(args, labels=None):
     args : List of BlockVec
     """
     if labels is None:
-        labels = ftls.reduce(lambda a, b: a+b, [bvec.labels[0] for bvec in args])
+        labels = [ftls.reduce(lambda a, b: a+b, [bvec.labels[0] for bvec in args])]
 
     vecs = ftls.reduce(lambda a, b: a+b, [bvec.array for bvec in args])
 
-    return BlockVec(vecs, labels=[labels])
+    return BlockVec(vecs, labels=labels)
 
 def validate_blockvec_size(*args):
     """
