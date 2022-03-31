@@ -1,5 +1,5 @@
 """
-This module contains the block matirx definition and various operations on 
+This module contains the block matirx definition and various operations on
 block matrices
 """
 
@@ -340,7 +340,7 @@ def reorder_mat_cols(mat, cols_in, cols_out, n_out, finalize=True):
 
     m_in, n_in = mat.getSize()
     i_in, j_in, v_in = mat.getValuesCSR()
-    
+
     # assert n_out >= n_in
 
     i_out = [0]
@@ -389,19 +389,22 @@ def zero_mat(n, m, comm=None):
     mat.assemble()
     return mat
 
-def ident_mat(n, comm=None):
-    diag = PETSc.Vec().create(comm=comm)
-    diag.setSizes(n)
-    diag.setUp()
-    diag.array[:] = 1
-    diag.assemble()
+def diag_mat(n, diag=1.0, comm=None):
+    diag_vec = PETSc.Vec().create(comm=comm)
+    diag_vec.setSizes(n)
+    diag_vec.setUp()
+    diag_vec.array[:] = diag
+    diag_vec.assemble()
 
     mat = PETSc.Mat().create(comm=comm)
     mat.setSizes([n, n])
     mat.setUp()
-    mat.setDiagonal(diag)
+    mat.setDiagonal(diag_vec)
     mat.assemble()
     return mat
+
+def ident_mat(n, comm=None):
+    return diag_mat(n, diag=1.0, comm=comm)
 
 ## Basic BlockMat operations
 def add(A, B):
@@ -414,7 +417,7 @@ def add(A, B):
     """
     labels = tuple([A.labels[0], B.labels[1]])
     mats = [
-        [A[mm, nn] + B[mm, nn] for nn in range(A.shape[1])] 
+        [A[mm, nn] + B[mm, nn] for nn in range(A.shape[1])]
         for mm in range(A.shape[0])]
     return BlockMat(mats, labels=labels)
 
@@ -434,12 +437,12 @@ def scalar_mul(a, B):
 
     Parameters
     ----------
-    a: float 
+    a: float
     B: BlockMat
     """
     mats = [
-        [a*B[mm, nn] 
-        for nn in range(B.shape[1])] 
+        [a*B[mm, nn]
+        for nn in range(B.shape[1])]
         for mm in range(B.shape[0])]
     labels = B.labels
     return BlockMat(mats, labels=labels)
@@ -478,7 +481,7 @@ def concatenate_mat(bmats, labels=None):
             for bcol in range(NUM_BCOL):
                 mats_row.extend(bmats[brow][bcol][row, :])
             mats.append(mats_row)
-    
+
     if labels is None:
         row_labels = [key for ii in range(NUM_BROW) for key in bmats[ii][0].labels[0]]
         col_labels = [key for jj in range(NUM_BCOL) for key in bmats[0][jj].labels[1]]
@@ -501,7 +504,7 @@ class BlockMat(BlockTensor):
     """
     Represents a block matrix with blocks indexed by keys
     """
-    def __init__(self, 
+    def __init__(self,
         array,
         shape=None,
         labels=None):
