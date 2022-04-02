@@ -14,6 +14,14 @@ def create_resizable_block_vector_group(
     if dataset_kwargs is None:
         dataset_kwargs = {}
 
+    # Set group attributes to store the block vector:
+    # shape, labels and dimension
+    tensor_shape = [len(axis_sizes) for axis_sizes in blockshape]
+    f.attrs.create('blocktensor_shape', tensor_shape)
+    f.attrs.create('blocktensor_dim', len(tensor_shape))
+    for naxis in range(len(blockshape)):
+        f.attrs.create(f'blocktensor_axis{naxis}_labels', blocklabels[naxis])
+
     for subvec_label, subvec_size in zip(blocklabels[0], blockshape[0]):
         f.create_dataset(
             subvec_label, (0, subvec_size), maxshape=(None, subvec_size),
@@ -34,18 +42,21 @@ def append_block_vector_to_group(f: h5py.Group, vec: bvec.BlockVec):
         f[subvec_label].resize(axis0_size, axis=0)
         f[subvec_label][-1, :] = subvec
 
-def read_block_vector_from_group(f: h5py.Group, blocklabels, nvec=0):
+def read_block_vector_from_group(f: h5py.Group, nvec=0):
     """
     Reads block vector data from a resizable dataset
 
     Parameters
     ----------
     f: h5py.Group
-    blocklabels:
-        A list of the labels in the block vector (from the .labels attribute of
-        BlockVec)
     nvec: int
         The index of the block vector
     """
-    subvecs = [f[block_label][nvec, :] for block_label in blocklabels[0]]
-    return bvec.BlockVec(subvecs, (len(subvecs),), blocklabels)
+    shape = tuple(f.attrs['blocktensor_shape'])
+    ndim = f.attrs['blocktensor_dim']
+    labels = [
+        tuple(f.attrs[f'blocktensor_axis{naxis}_labels'])
+        for naxis in range(ndim)]
+
+    subvecs = [f[block_label][nvec, :] for block_label in labels[0]]
+    return bvec.BlockVec(subvecs, shape, labels)

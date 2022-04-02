@@ -62,7 +62,7 @@ def test_read_block_vector_from_group(blockvectors):
         for blockvector in blockvectors:
             append_block_vector_to_group(f, blockvector)
 
-            blockvector_h5 = read_block_vector_from_group(f, blockvector.labels, -1)
+            blockvector_h5 = read_block_vector_from_group(f, -1)
             blockvector_ref = blockvector
 
             assert (blockvector_h5-blockvector_ref).norm() == 0
