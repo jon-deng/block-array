@@ -22,7 +22,7 @@ def mult_mat_vec(bmat, bvec):
     for submat_row in bmat:
         vec = reduce(
             lambda a, b: a+b, 
-            [gops.mult_mat_vec(submat, subvec) for submat, subvec in zip(submat_row, bvec.vecs)])
+            [gops.mult_mat_vec(submat, subvec) for submat, subvec in zip(submat_row, bvec)])
         vecs.append(vec)
     return BlockVec(vecs, labels=bmat.labels[0:1])
 

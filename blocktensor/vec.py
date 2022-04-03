@@ -103,7 +103,7 @@ class BlockVec(BlockTensor):
         super().__init__(barray, shape, labels)
 
         if len(self.shape) > 1:
-            raise ValueError(f"BlockVec must have dimension 1, not {len(self.shape)}")
+            raise ValueError(f"BlockVec must have dimension == 1, not {len(self.shape)}")
 
     ## Add vecs property for special case/backwards compatibilty
     @property
