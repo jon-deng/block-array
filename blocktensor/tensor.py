@@ -218,7 +218,8 @@ class BlockTensor:
 
     ## Iterable interface over the first non-reduced axis
     def __iter__(self):
-        return self.array.__iter__()
+        for ii in range(self.rshape[0]):
+            yield self[ii]
 
     ## common operator overloading
     def __eq__(self, other):
