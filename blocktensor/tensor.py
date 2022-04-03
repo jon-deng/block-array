@@ -91,6 +91,13 @@ class BlockTensor:
         return self.barray.shape
 
     @property
+    def rshape(self):
+        """
+        Return the reduced shape (number of blocks in each axis)
+        """
+        return self.barray.rshape
+
+    @property
     def ndim(self):
         return self.barray.ndim
 
@@ -116,6 +123,22 @@ class BlockTensor:
                 axis_sizes.append(axis_size)
             ret_bshape.append(tuple(axis_sizes))
         return tuple(ret_bshape)
+
+    @property
+    def rbshape(self):
+        """
+        Return the reduced block shape (number of blocks in each axis)
+        """
+        ret_rbshape = [axis_sizes for axis_sizes in self.bshape if axis_sizes != ()]
+        return ret_rbshape
+
+    @property
+    def rbsize(self):
+        """
+        Return the reduced block size (number of blocks in each axis)
+        """
+        ret_rbsize = [axis_size for axis_size in self.bsize if axis_size != 0]
+        return ret_rbsize
 
     ## Copy methods
     def copy(self):
@@ -153,10 +176,9 @@ class BlockTensor:
     def items(self):
         return zip(self.labels[0], self)
 
-    ## Iterable interface over the first axis
+    ## Iterable interface over the first non-reduced axis
     def __iter__(self):
-        for ii in range(self.shape[0]):
-            yield self[ii]
+        return self.array.__iter__()
 
     ## common operator overloading
     def __eq__(self, other):
