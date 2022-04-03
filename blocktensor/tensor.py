@@ -5,11 +5,44 @@ from typing import TypeVar, Generic, Optional, Union, Callable
 from itertools import accumulate
 import functools
 
+from . import vec as bvec
 from . import blockarray as barr
 from . import subops as gops
 # from . import blockmath as bmath
 
 T = TypeVar('T')
+
+def validate_subtensor_shapes(array: barr.BlockArray, bshape):
+    """
+    Validate subtensors in a BlockTensor have a valid shape
+
+    array :
+        The block array containing the subtensors
+    shape :
+        The target block shape of the BlockTensor
+    """
+    # Subtensors are valid along an axis at a certain block if:
+    # all subtensors in the remaining dimensions have the same shape along that
+    # axis (i.e. shape[axis_idx] is the same for all subtensors in the remaining
+    # dimensions)
+    ndim = len(bshape)
+    if ndim > 1:
+        # no need to check compatibility for 1 dimensional tensors
+        for idx_ax, bsizes in enumerate(bshape):
+            for idx_block, bsize in enumerate(bsizes):
+                # index all subtensors with the associated (asc) `idx_block`,
+                # i.e. all subtensors along the remaining axes
+                ascblock_idx = (
+                    (slice(None),)*idx_ax
+                    + (idx_block,)
+                    + (slice(None),)*(ndim-idx_ax-1))
+                ascblock_subtensors = array[ascblock_idx].array
+                ascblock_sizes = [
+                    gops.shape(subtensor)[idx_ax] for subtensor in ascblock_subtensors]
+
+                # compute the block sizes of all the remaining dimensions
+                valid_bsizes = [bsize == _bsize for _bsize in ascblock_sizes]
+                assert all(valid_bsizes)
 
 class BlockTensor:
     """
@@ -27,7 +60,7 @@ class BlockTensor:
         Labels for each block along each axis
     """
     def __init__(
-        self, 
+        self,
         array: Union[barr.BlockArray, barr.NestedArray, barr.FlatArray],
         shape: Optional[barr.Shape] = None,
         labels: Optional[barr.AxisBlockLabels] = None):
@@ -37,11 +70,11 @@ class BlockTensor:
         else:
             flat_array, _shape = barr.flatten_array(array)
             if shape is None:
-                # If a shape is not provided, assume `array` is a nested 
+                # If a shape is not provided, assume `array` is a nested
                 # array representation
                 shape = _shape
             elif len(_shape) > 1:
-                # If a shape is provided for a nested array, check that nested 
+                # If a shape is provided for a nested array, check that nested
                 # array shape and provided shape are compatible
                 if shape != _shape:
                     raise ValueError(
@@ -49,6 +82,8 @@ class BlockTensor:
                         "are not compatible")
 
             self._barray = barr.BlockArray(flat_array, shape, labels)
+
+        validate_subtensor_shapes(self._barray, self.rbshape)
 
     @property
     def array(self):
@@ -107,7 +142,7 @@ class BlockTensor:
         Return the block size (total size of each block for each axis)
         """
         return tuple([sum(axis_sizes) for axis_sizes in self.bshape])
-        
+
     @property
     def bshape(self):
         """
@@ -115,11 +150,16 @@ class BlockTensor:
         """
         ret_bshape = []
         num_axes = len(self.shape)
-        for nax, num_blocks in enumerate(self.shape):
+        for idx_ax, num_blocks in enumerate(self.shape):
             axis_sizes = []
-            for nblock in range(num_blocks):
-                index = tuple((nax)*[0] + [nblock] + (num_axes-nax-1)*[0])
-                axis_size = gops.shape(self.barray[index])[nax]
+            for idx_block in range(num_blocks):
+                idx = tuple((idx_ax)*[0] + [idx_block] + (num_axes-idx_ax-1)*[0])
+                # remove indices along reduced dimensions
+                ridx = tuple([
+                    idx_ax for nax, idx_ax in enumerate(idx)
+                    if self.barray.shape[nax] != -1])
+
+                axis_size = gops.shape(self.barray[ridx])[idx_ax]
                 axis_sizes.append(axis_size)
             ret_bshape.append(tuple(axis_sizes))
         return tuple(ret_bshape)
@@ -247,7 +287,7 @@ def _elementwise_binary_op(op: Callable[T, T], a: BlockTensor, b: BlockTensor):
     Parameters
     ----------
     op: function
-        A function with signature func(a, b) -> c, where a, b, c are vector of 
+        A function with signature func(a, b) -> c, where a, b, c are vector of
         the same shape
     a, b: BlockTensor
     """
@@ -296,9 +336,9 @@ def to_ndarray(block_tensor: BlockTensor):
     ret_array = np.zeros(block_tensor.bsize)
 
     # cumulative block shape gives lower/upper block index bounds for assigning
-    # individual blocks into the ndarray 
+    # individual blocks into the ndarray
     cum_bshape = [
-        [nn for nn in accumulate(axis_shape, initial=0)] 
+        [nn for nn in accumulate(axis_shape, initial=0)]
         for axis_shape in block_tensor.bshape]
 
     # loop through each block and assign its elements to the appropriate
@@ -311,4 +351,3 @@ def to_ndarray(block_tensor: BlockTensor):
         ret_array[idx] = block_tensor[block_idx]
 
     return ret_array
-    

@@ -33,7 +33,7 @@ def _test_elementwise_binary_op(sub_op, a, b, block_op=None):
     c_array_reference = tuple([sub_op(ai, bi) for ai, bi in zip(a.array, b.array)])
 
     correct_subarrays = [
-        np.all(sub_res == sub_ref) 
+        np.all(sub_res == sub_ref)
         for sub_res, sub_ref in zip(c_array_result, c_array_reference)]
 
     assert all(correct_subarrays)
@@ -53,6 +53,12 @@ def test_div():
 def test_power():
     _test_elementwise_binary_op(lambda x, y: x**y, A, B, btensor.power)
 
+def test_bshape():
+    print(f"A.bshape = {A.bshape}")
+    print(f"A[:, :].bshape = {A[:, :].bshape}")
+    print(f"A[:, 0].bshape = {A[:, 0].bshape}")
+    print(f"A[0, :].bshape = {A[0, :].bshape}")
+
 # def test_to_ndarray():
 
 
@@ -62,4 +68,5 @@ if __name__ == '__main__':
     test_sub()
     test_mul()
     test_div()
+    test_bshape()
     # test_power()

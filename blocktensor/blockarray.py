@@ -1,6 +1,6 @@
 """
 A BlockArray is a multidimensional array of a fixed shape containing
-arbitrary objects and with labelled indices along each axis. These can be 
+arbitrary objects and with labelled indices along each axis. These can be
 indexed in a similar way to `numpy.ndarray`.
 """
 
@@ -36,7 +36,7 @@ def block_array(array: FlatArray, labels: Labels):
 
     Parameters
     ----------
-    array : nested tuple/lists 
+    array : nested tuple/lists
         Nested list representation of an nd array
     labels : AxisBlockLabels
         list of labels for each axis index. The number of labels along each axis
@@ -89,7 +89,7 @@ def nest_array(array: FlatArray, strides: Strides):
     assert strides[-1] == 1 # the last axis stride should be 1 for c-order
 
     if len(strides) == 1:
-        return array 
+        return array
     else:
         stride = strides[0]
         ret_array = [
@@ -100,7 +100,7 @@ def nest_array(array: FlatArray, strides: Strides):
 
 def validate_shape(array, shape):
     """Validates the array shape"""
-    # use `abs()` as hacky way to account for reduced dimensions represented 
+    # use `abs()` as hacky way to account for reduced dimensions represented
     # by -1
     if len(array) != abs(math.prod(shape)):
         raise ValueError(f"shape {shape} is incompatible with array of length {len(array)}")
@@ -136,7 +136,7 @@ def validate_general_idx(idx, size):
         if start is not None:
             if not valid_index(start, lb, ub):
                 raise IndexError(f"slice start index {start} out of range for axis of size {size}")
-        
+
         if stop is not None:
             if not valid_index(stop, lb-1, ub+1):
                 # The stop index is noninclusive so goes +1 off the valid index bound
@@ -153,7 +153,7 @@ def validate_multi_general_idx(multi_idx: MultiGeneralIndex, shape: Shape):
     """Validate a multi general index"""
     for idx, size in zip(multi_idx, shape):
         validate_general_idx(idx, size)
-    
+
 
 class BlockArray:
     """
@@ -169,7 +169,7 @@ class BlockArray:
         size m, etc.
     labels
         A tuple of labels corresponding each index along an axis. `labels[0]`
-        should contain the labels for indices along axis 0, `labels[1]` the 
+        should contain the labels for indices along axis 0, `labels[1]` the
         indices along axis 1, etc.
     """
 
@@ -190,11 +190,11 @@ class BlockArray:
 
         # Compute convenience constants
         _strides = [
-            stride for stride 
+            stride for stride
             in accumulate(self.rshape[-1:0:-1], lambda a, b: a*b, initial=1)]
         self._STRIDES = tuple(_strides[::-1])
         self._MULTI_LABEL_TO_IDX = tuple([
-            {label: ii for label, ii in zip(axis_labels, idxs)} 
+            {label: ii for label, ii in zip(axis_labels, idxs)}
             for axis_labels, idxs in zip(self.rlabels, [range(axis_size) for axis_size in self.rshape])])
 
     @property
@@ -228,7 +228,7 @@ class BlockArray:
         Return the reduced array shape
         """
         ret_rshape = [axis_size for axis_size in self.shape if axis_size != -1]
-        return ret_rshape
+        return tuple(ret_rshape)
 
     @property
     def rlabels(self):
@@ -238,7 +238,7 @@ class BlockArray:
         ret_rlabels = [axis_labels for axis_labels in self.labels if axis_labels != ()]
         return ret_rlabels
 
-    @property 
+    @property
     def size(self):
         """Return the array size"""
         return math.prod(self.rshape)
@@ -254,17 +254,17 @@ class BlockArray:
         multi_idx = convert_multi_general_idx(multi_idx, self.rshape, self._MULTI_LABEL_TO_IDX)
 
         # Find the returned BlockArray's shape and labels
-        # -1 represents a reduced dimension, 
+        # -1 represents a reduced dimension,
         ret_shape = tuple([
             len(axis_idx) if isinstance(axis_idx, (list, tuple)) else -1
-            for axis_idx in multi_idx 
+            for axis_idx in multi_idx
             ])
         ret_labels = tuple([
             (
-                tuple([axis_labels[ii] for ii in axis_idx]) 
+                tuple([axis_labels[ii] for ii in axis_idx])
                 if isinstance(axis_idx, (list, tuple))
                 else ())
-            for axis_labels, axis_idx in zip(self.labels, multi_idx) 
+            for axis_labels, axis_idx in zip(self.labels, multi_idx)
         ])
 
         # enclose single ints in a list so it works with itertools
@@ -357,14 +357,14 @@ def expand_multi_idx(
 # This function handles conversion of any of the general index/indices
 # to a standard index/indices
 def convert_multi_general_idx(
-    multi_idx: MultiGeneralIndex, 
-    shape: Shape, 
+    multi_idx: MultiGeneralIndex,
+    shape: Shape,
     multi_label_to_idx: MultiLabelToIntIndex) -> MultiStandardIndex:
     """
     Return a standard multi-index from a general multi-index
 
     The standard multi-index has the type Tuple[Union[Int, Tuple[int, ...]], ...].
-    In other words it's a tuple with each element being either a single int, or an 
+    In other words it's a tuple with each element being either a single int, or an
     iterable of ints, representing the indexes being selected from the given axis.
 
     Parameters
@@ -383,8 +383,8 @@ def convert_multi_general_idx(
     return tuple(out_multi_idx)
 
 def convert_general_idx(
-    idx: GeneralIndex, 
-    size: int, 
+    idx: GeneralIndex,
+    size: int,
     label_to_idx: LabelToIntIndex) -> StandardIndex:
     """
     Return a standard index corresponding to any of the general index approaches
@@ -427,7 +427,7 @@ def convert_slice(idx: slice, size: int) -> IntIndices:
         step = idx.step
     return list(range(start, stop, step))
 
-# These functions convert a general single index (GeneralIndex) 
+# These functions convert a general single index (GeneralIndex)
 # to a standard single index (StandardIndex, specifically IntIndex)
 def convert_label_idx(idx: str, label_to_idx: Mapping[str, int], size: int) -> IntIndex:
     """
