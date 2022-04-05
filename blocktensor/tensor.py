@@ -57,7 +57,7 @@ def validate_subtensor_shapes(array: barr.LabelledArray, bshape):
                     (slice(None),)*idx_ax
                     + (idx_block,)
                     + (slice(None),)*(ndim-idx_ax-1))
-                ascblock_subtensors = array[ascblock_idx].array_flat
+                ascblock_subtensors = array[ascblock_idx].flat
                 ascblock_sizes = [
                     gops.shape(subtensor)[idx_ax] for subtensor in ascblock_subtensors]
 
@@ -113,14 +113,14 @@ class BlockTensor:
         """
         Return the flat tuple storing all subtensors
         """
-        return self._larray.array_flat
+        return self._larray.flat
 
     @property
     def subtensors_nested(self):
         """
         Return the nested tuple storing all subtensors
         """
-        return self._larray.array_nested
+        return self._larray.nested
 
     @property
     def larray(self):
