@@ -5,7 +5,7 @@ Test the functionality of the array.py module
 from itertools import accumulate, product
 import string
 
-from blocktensor.array import LabelledArray, flatten_array, nest_array
+from blocktensor.labelledarray import LabelledArray, flatten_array, nest_array
 
 import math
 

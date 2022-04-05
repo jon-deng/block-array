@@ -11,7 +11,7 @@ from blocktensor.tensor import BlockTensor
 from petsc4py import PETSc
 
 from . import subops as gops
-from .array import LabelledArray
+from .labelledarray import LabelledArray
 from .tensor import BlockTensor
 
 # pylint: disable=no-member

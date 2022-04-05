@@ -6,7 +6,7 @@ from itertools import accumulate
 import functools
 
 from . import vec as bvec
-from . import array as barr
+from . import labelledarray as barr
 from . import subops as gops
 # from . import blockmath as bmath
 
