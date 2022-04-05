@@ -87,7 +87,7 @@ class BlockTensor:
         labels: Optional[barr.AxisBlockLabels] = None):
 
         if isinstance(array, barr.LabelledArray):
-            self._barray = array
+            self._larray = array
         else:
             flat_array, _shape = barr.flatten_array(array)
             if shape is None:
@@ -102,62 +102,62 @@ class BlockTensor:
                         "Nested array shape {_shape} and provided shape {shape}"
                         "are not compatible")
 
-            self._barray = barr.LabelledArray(flat_array, shape, labels)
+            self._larray = barr.LabelledArray(flat_array, shape, labels)
 
-        self._bshape = _block_shape(self._barray)
+        self._bshape = _block_shape(self._larray)
 
-        validate_subtensor_shapes(self._barray, self.red_bshape)
+        validate_subtensor_shapes(self._larray, self.red_bshape)
 
     @property
     def subtensors_flat(self):
         """
         Return the flat tuple storing all subtensors
         """
-        return self._barray.array_flat
+        return self._larray.array_flat
 
     @property
     def subtensors_nested(self):
         """
         Return the nested tuple storing all subtensors
         """
-        return self._barray.array_nested
+        return self._larray.array_nested
 
     @property
-    def barray(self):
+    def larray(self):
         """
-        Return the block array
+        Return the underlying labelled array
         """
-        return self._barray
+        return self._larray
 
     @property
     def labels(self):
         """Return the axis labels"""
-        return self.barray.labels
+        return self.larray.labels
 
     @property
     def size(self):
         """
         Return the size (total number of blocks)
         """
-        return self.barray.size
+        return self.larray.size
 
     @property
     def shape(self):
         """
         Return the shape (number of blocks in each axis)
         """
-        return self.barray.shape
+        return self.larray.shape
 
     @property
     def rshape(self):
         """
         Return the reduced shape (number of blocks in each axis)
         """
-        return self.barray.rshape
+        return self.larray.rshape
 
     @property
     def ndim(self):
-        return self.barray.ndim
+        return self.larray.ndim
 
     @property
     def mshape(self):
@@ -193,7 +193,7 @@ class BlockTensor:
     def copy(self):
         """Return a copy"""
         labels = self.labels
-        return self.__class__(self.barray.copy(), labels)
+        return self.__class__(self.larray.copy(), labels)
 
     def __copy__(self):
         return self.copy()
@@ -207,7 +207,7 @@ class BlockTensor:
         key : str, int, slice
             A block label
         """
-        ret = self.barray[key]
+        ret = self.larray[key]
         if isinstance(ret, barr.LabelledArray):
             return self.__class__(ret)
         else:
@@ -217,10 +217,10 @@ class BlockTensor:
     @property
     def keys(self):
         """Return the first axis' labels"""
-        return self.barray.labels[0]
+        return self.larray.labels[0]
 
     def __contains__(self, key):
-        return key in self.barray
+        return key in self.larray
 
     def items(self):
         return zip(self.labels[0], self)
