@@ -10,7 +10,7 @@ import numpy as np
 from petsc4py import PETSc
 
 from . import subops as gops
-from . import blockarray as barr
+from . import array as barr
 from .tensor import BlockTensor
 from .mat import BlockMat
 

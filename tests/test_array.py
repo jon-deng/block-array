@@ -1,27 +1,27 @@
 """
-Test the functionality of the blockarray.py module 
+Test the functionality of the array.py module
 """
 
 from itertools import accumulate, product
-import string  
+import string
 
-from blocktensor.blockarray import BlockArray, flatten_array, nest_array
+from blocktensor.array import LabelledArray, flatten_array, nest_array
 
 import math
 
 l, m, n = 2, 3, 4
 SHAPE = (l, m, n)
 LABELS = (('a', 'b'), ('a', 'b', 'c'), ('a', 'b', 'c', 'd'))
-SIZE = math.prod(SHAPE)  
+SIZE = math.prod(SHAPE)
 
 CSTRIDES = [
-    stride for stride 
+    stride for stride
     in accumulate(SHAPE[-1:0:-1], lambda a, b: a*b, initial=1)]
 CSTRIDES = tuple(CSTRIDES)[::-1]
 
 ARRAY = string.ascii_lowercase[:SIZE]
 
-array = BlockArray(ARRAY, SHAPE, LABELS)
+array = LabelledArray(ARRAY, SHAPE, LABELS)
 
 def _flat(midx, strides):
     return sum([idx*stride for idx, stride in zip(midx, strides)])

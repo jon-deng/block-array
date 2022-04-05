@@ -6,7 +6,7 @@ from itertools import accumulate
 import functools
 
 from . import vec as bvec
-from . import blockarray as barr
+from . import array as barr
 from . import subops as gops
 # from . import blockmath as bmath
 
@@ -33,7 +33,7 @@ def _block_shape(array):
         ret_bshape.append(tuple(axis_sizes))
     return tuple(ret_bshape)
 
-def validate_subtensor_shapes(array: barr.BlockArray, bshape):
+def validate_subtensor_shapes(array: barr.LabelledArray, bshape):
     """
     Validate subtensors in a BlockTensor have a valid shape
 
@@ -82,11 +82,11 @@ class BlockTensor:
     """
     def __init__(
         self,
-        array: Union[barr.BlockArray, barr.NestedArray, barr.FlatArray],
+        array: Union[barr.LabelledArray, barr.NestedArray, barr.FlatArray],
         shape: Optional[barr.Shape] = None,
         labels: Optional[barr.AxisBlockLabels] = None):
 
-        if isinstance(array, barr.BlockArray):
+        if isinstance(array, barr.LabelledArray):
             self._barray = array
         else:
             flat_array, _shape = barr.flatten_array(array)
@@ -102,7 +102,7 @@ class BlockTensor:
                         "Nested array shape {_shape} and provided shape {shape}"
                         "are not compatible")
 
-            self._barray = barr.BlockArray(flat_array, shape, labels)
+            self._barray = barr.LabelledArray(flat_array, shape, labels)
 
         self._bshape = _block_shape(self._barray)
 
@@ -208,7 +208,7 @@ class BlockTensor:
             A block label
         """
         ret = self.barray[key]
-        if isinstance(ret, barr.BlockArray):
+        if isinstance(ret, barr.LabelledArray):
             return self.__class__(ret)
         else:
             return ret
@@ -303,7 +303,7 @@ def _elementwise_binary_op(op: Callable[T, T], a: BlockTensor, b: BlockTensor):
     """
     validate_elementwise_binary_op(a, b)
     array = tuple([op(ai, bi) for ai, bi in zip(a.array, b.array)])
-    barray = barr.BlockArray(array, a.shape, a.labels)
+    barray = barr.LabelledArray(array, a.shape, a.labels)
     return type(a)(barray)
 
 add = functools.partial(_elementwise_binary_op, lambda a, b: a+b)
@@ -325,7 +325,7 @@ def _elementwise_unary_op(op: Callable, a: BlockTensor):
     ----------
     a: BlockTensor
     """
-    array = barr.BlockArray([op(ai) for ai in a.array], a.shape, a.labels)
+    array = barr.LabelledArray([op(ai) for ai in a.array], a.shape, a.labels)
     return type(a)(array)
 
 neg = functools.partial(_elementwise_unary_op, lambda a: -a)

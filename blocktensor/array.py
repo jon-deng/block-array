@@ -1,5 +1,5 @@
 """
-A BlockArray is a multidimensional array of a fixed shape containing
+A LabelledArray is a multidimensional array of a fixed shape containing
 arbitrary objects and with labelled indices along each axis. These can be
 indexed in a similar way to `numpy.ndarray`.
 """
@@ -43,7 +43,7 @@ def block_array(array: FlatArray, labels: Labels):
         should match the size of that axis
     """
     flat_array, shape = flatten_array(array)
-    return BlockArray(flat_array, shape, labels)
+    return LabelledArray(flat_array, shape, labels)
 
 def flatten_array(array: NestedArray):
     """
@@ -155,9 +155,9 @@ def validate_multi_general_idx(multi_idx: MultiGeneralIndex, shape: Shape):
         validate_general_idx(idx, size)
 
 
-class BlockArray:
+class LabelledArray:
     """
-    An N-dimensional array
+    An N-dimensional array with labelled indices
 
     Parameters
     ----------
@@ -277,7 +277,7 @@ class BlockArray:
             assert len(ret_array) == 1
             return ret_array[0]
         else:
-            return BlockArray(ret_array, ret_shape, ret_labels)
+            return LabelledArray(ret_array, ret_shape, ret_labels)
 
     ## Copy methods
     def copy(self):
