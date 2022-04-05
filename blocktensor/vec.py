@@ -43,7 +43,7 @@ def concatenate_vec(args, labels=None):
     if labels is None:
         labels = [ftls.reduce(lambda a, b: a+b, [bvec.labels[0] for bvec in args])]
 
-    vecs = ftls.reduce(lambda a, b: a+b, [bvec.array for bvec in args])
+    vecs = ftls.reduce(lambda a, b: a+b, [bvec.subtensors_flat for bvec in args])
 
     return BlockVec(vecs, labels=labels)
 
@@ -80,18 +80,18 @@ def convert_bvec_to_petsc(bvec):
     ----------
     bmat: BlockMat
     """
-    vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.vecs]
+    vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.subtensors_flat]
     return BlockVec(vecs, labels=bvec.labels)
 
 def convert_bvec_to_petsc_rowbmat(bvec):
     mats = tuple([
-        tuple([gops.convert_vec_to_rowmat(vec) for vec in bvec.array])
+        tuple([gops.convert_vec_to_rowmat(vec) for vec in bvec.subtensors_flat])
         ])
     return BlockMat(mats)
 
 def convert_bvec_to_petsc_colbmat(bvec):
     mats = tuple([
-        tuple([gops.convert_vec_to_colmat(vec)]) for vec in bvec.array
+        tuple([gops.convert_vec_to_colmat(vec)]) for vec in bvec.subtensors_flat
         ])
     return BlockMat(mats)
 

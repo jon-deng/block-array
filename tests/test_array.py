@@ -50,10 +50,10 @@ def test_array_index():
     assert array[...].array_flat == array.array_flat
 
     assert array[0:1, 0:1, 0:1].shape == (1, 1, 1)
-    # assert array[0:1, 0:1, 0:1].array ==
+    # assert array[0:1, 0:1, 0:1].array_flat ==
 
     assert array[0:1, 0:1, 0:3].shape == (1, 1, 3)
-    # assert array[0:1, 0:1, 0:3].array ==
+    # assert array[0:1, 0:1, 0:3].array_flat ==
 
 
     axis_idxs = (0, slice(0, 1), slice(0, 1))
