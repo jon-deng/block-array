@@ -12,6 +12,27 @@ from . import subops as gops
 
 T = TypeVar('T')
 
+def _block_shape(array):
+    """
+    Return the block shape of an array of subtensors
+    """
+
+    ret_bshape = []
+    num_axes = len(array.shape)
+    for idx_ax, num_blocks in enumerate(array.shape):
+        axis_sizes = []
+        for idx_block in range(num_blocks):
+            idx = tuple((idx_ax)*[0] + [idx_block] + (num_axes-idx_ax-1)*[0])
+            # remove indices along reduced dimensions
+            ridx = tuple([
+                idx_ax for nax, idx_ax in enumerate(idx)
+                if array.shape[nax] != -1])
+
+            block_axis_size = gops.shape(array[ridx])[idx_ax]
+            axis_sizes.append(block_axis_size)
+        ret_bshape.append(tuple(axis_sizes))
+    return tuple(ret_bshape)
+
 def validate_subtensor_shapes(array: barr.BlockArray, bshape):
     """
     Validate subtensors in a BlockTensor have a valid shape
@@ -83,6 +104,8 @@ class BlockTensor:
 
             self._barray = barr.BlockArray(flat_array, shape, labels)
 
+        self._bshape = _block_shape(self._barray)
+
         validate_subtensor_shapes(self._barray, self.red_bshape)
 
     @property
@@ -148,21 +171,7 @@ class BlockTensor:
         """
         Return the block shape (shape of each block as a tuple)
         """
-        ret_bshape = []
-        num_axes = len(self.shape)
-        for idx_ax, num_blocks in enumerate(self.shape):
-            axis_sizes = []
-            for idx_block in range(num_blocks):
-                idx = tuple((idx_ax)*[0] + [idx_block] + (num_axes-idx_ax-1)*[0])
-                # remove indices along reduced dimensions
-                ridx = tuple([
-                    idx_ax for nax, idx_ax in enumerate(idx)
-                    if self.barray.shape[nax] != -1])
-
-                axis_size = gops.shape(self.barray[ridx])[idx_ax]
-                axis_sizes.append(axis_size)
-            ret_bshape.append(tuple(axis_sizes))
-        return tuple(ret_bshape)
+        return self._bshape
 
     @property
     def red_bshape(self):
