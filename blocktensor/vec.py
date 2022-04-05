@@ -1,5 +1,5 @@
 """
-This module contains the block vector definition and various operations on 
+This module contains the block vector definition and various operations on
 block vectors
 """
 
@@ -27,7 +27,7 @@ def split_bvec(bvec, block_sizes):
     """
     block_cumul_sizes = [0] + np.cumsum(block_sizes).tolist()
     split_bvecs = [
-        bvec[ii:jj] 
+        bvec[ii:jj]
         for ii, jj in zip(block_cumul_sizes[:-1], block_cumul_sizes[1:])
         ]
     return tuple(split_bvecs)
@@ -63,7 +63,7 @@ def dot(a, b):
     c = a*b
     ret = 0
     for vec in c:
-        # using the [:] indexing notation makes sum interpret the different data types as np arrays 
+        # using the [:] indexing notation makes sum interpret the different data types as np arrays
         # which can improve performance a lot
         ret += sum(vec[:])
     return ret
@@ -71,7 +71,7 @@ def dot(a, b):
 def norm(a):
     """Return the 2-norm of a vector"""
     return dot(a, a)**0.5
-    
+
 def convert_bvec_to_petsc(bvec):
     """
     Converts a block matrix from one submatrix type to the PETSc submatrix type
@@ -109,7 +109,7 @@ class BlockVec(BlockTensor):
     @property
     def vecs(self):
         return self.array
-    
+
     ## Basic string representation functions
     def __repr__(self):
         return self.__str__()
@@ -134,7 +134,7 @@ class BlockVec(BlockTensor):
         Return an object allowing indexing of the block vector as a monolithic vector
         """
         return MonotoBlock(self)
-    
+
     def __setitem__(self, key, value):
         """
         Return the vector corresponding to the labelled block
@@ -181,7 +181,7 @@ class BlockVec(BlockTensor):
         return np.concatenate(ndarray_vecs, axis=0)
 
     def to_petsc_seq(self, comm=None):
-        total_size = np.sum(self.bsize)
+        total_size = np.sum(self.mshape)
         vec = PETSc.Vec().createSeq(total_size, comm=comm)
         vec.setUp()
         vec.setArray(self.to_ndarray())
@@ -189,7 +189,7 @@ class BlockVec(BlockTensor):
         return vec
 
     def to_petsc(self, comm=None):
-        total_size = np.sum(self.bsize)
+        total_size = np.sum(self.mshape)
         vec = PETSc.Vec().create(comm=comm)
         vec.setSizes(total_size)
         vec.setUp()
@@ -209,7 +209,7 @@ class BlockVec(BlockTensor):
 
         return eq
 
-    ## 
+    ##
     def norm(self):
         return dot(self, self)**0.5
 
@@ -226,7 +226,7 @@ class MonotoBlock:
 
         # Get the monolithic ending indices of each block
         # nblock = np.concatenate(np.cumsum(self.bvec.size))
-        
+
         # istart = np.where()
         # istop = 0, 0
         raise NotImplementedError("do this later I guess")

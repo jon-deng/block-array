@@ -24,7 +24,7 @@ for nrow in range(A.getSize()[0]):
     cols = np.array([0, 1], dtype=np.int32)
     vals = np.array([1.2, 2.4])
     A.setValues(rows, cols, vals)
-    
+
 A.assemble()
 # A.assemblyBegin()
 # A.assemblyEnd()
@@ -65,7 +65,7 @@ print(BMAT3.to_petsc()[:, :])
 def test_mat_size_shape():
     print(BMAT1.size)
     print(BMAT1.shape)
-    print(BMAT1.bsize)
+    print(BMAT1.mshape)
     print(BMAT1.bshape)
 
 def test_add():

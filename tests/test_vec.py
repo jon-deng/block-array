@@ -24,11 +24,11 @@ VEC3 = bvec.BlockVec((a, b, c))
 def test_size_shape():
     print(VEC1.size)
     print(VEC1.shape)
-    print(VEC1.bsize)
+    print(VEC1.mshape)
     print(VEC1.bshape)
     assert VEC1.size == 3
     assert VEC1.shape == (3,)
-    assert VEC1.bsize == (2+3+4, )
+    assert VEC1.mshape == (2+3+4, )
     assert VEC1.bshape == ((2, 3, 4),)
 
 def _test_binary_op(op, vec_a, vec_b, element_op=None):

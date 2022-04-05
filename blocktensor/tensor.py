@@ -83,7 +83,7 @@ class BlockTensor:
 
             self._barray = barr.BlockArray(flat_array, shape, labels)
 
-        validate_subtensor_shapes(self._barray, self.rbshape)
+        validate_subtensor_shapes(self._barray, self.red_bshape)
 
     @property
     def array(self):
@@ -137,9 +137,9 @@ class BlockTensor:
         return self.barray.ndim
 
     @property
-    def bsize(self):
+    def mshape(self):
         """
-        Return the block size (total size of each block for each axis)
+        Return the shape of the equivalent monolithic tensor
         """
         return tuple([sum(axis_sizes) for axis_sizes in self.bshape])
 
@@ -165,7 +165,7 @@ class BlockTensor:
         return tuple(ret_bshape)
 
     @property
-    def rbshape(self):
+    def red_bshape(self):
         """
         Return the reduced block shape (number of blocks in each axis)
         """
@@ -173,11 +173,11 @@ class BlockTensor:
         return ret_rbshape
 
     @property
-    def rbsize(self):
+    def red_mshape(self):
         """
         Return the reduced block size (number of blocks in each axis)
         """
-        ret_rbsize = [axis_size for axis_size in self.bsize if axis_size != 0]
+        ret_rbsize = [axis_size for axis_size in self.mshape if axis_size != 0]
         return ret_rbsize
 
     ## Copy methods
@@ -334,7 +334,7 @@ def to_ndarray(block_tensor: BlockTensor):
     Convert a BlockTensor object to a ndarray object
     """
     # .bsize (block size) is the resulting shape of the monolithic array
-    ret_array = np.zeros(block_tensor.bsize)
+    ret_array = np.zeros(block_tensor.mshape)
 
     # cumulative block shape gives lower/upper block index bounds for assigning
     # individual blocks into the ndarray
