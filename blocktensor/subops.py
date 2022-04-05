@@ -1,5 +1,5 @@
 """
-This module contains generic functions for operating on vector/matrix objects 
+This module contains generic functions for operating on vector/matrix objects
 from PETSc, numpy, and FEniCS.
 
 This is needed for BlockVector and BlockMatrix to work with different
@@ -33,7 +33,7 @@ def set_vec(veca, vecb):
     if isinstance(veca, NDARRAY_TYPES) and veca.shape == ():
         veca[()] = vecb
     elif isinstance(veca, PETSc.Vec):
-        veca.array[:] = vecb
+        veca.subtensors_flat[:] = vecb
     else:
         veca[:] = vecb
 
@@ -91,7 +91,7 @@ def mult_mat_mat(mata, matb, out=None):
     ----------
     mata, matb : dolfin.PETScMatrix, PETSc.Mat, np.ndarray
     """
-    
+
     if isinstance(mata, NDARRAY_TYPES) and isinstance(matb, NDARRAY_TYPES):
         return mata@matb
     else:
@@ -265,4 +265,3 @@ def convert_vec_to_colmat(vec, comm=None):
         vec = np.array(vec.array)
 
     return convert_mat_to_petsc(vec.reshape(vec.size, 1))
-    

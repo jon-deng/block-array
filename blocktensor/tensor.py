@@ -57,7 +57,7 @@ def validate_subtensor_shapes(array: barr.LabelledArray, bshape):
                     (slice(None),)*idx_ax
                     + (idx_block,)
                     + (slice(None),)*(ndim-idx_ax-1))
-                ascblock_subtensors = array[ascblock_idx].array
+                ascblock_subtensors = array[ascblock_idx].array_flat
                 ascblock_sizes = [
                     gops.shape(subtensor)[idx_ax] for subtensor in ascblock_subtensors]
 
@@ -109,14 +109,14 @@ class BlockTensor:
         validate_subtensor_shapes(self._barray, self.red_bshape)
 
     @property
-    def array(self):
+    def subtensors_flat(self):
         """
         Return the flat tuple storing all subtensors
         """
-        return self._barray.array
+        return self._barray.array_flat
 
     @property
-    def array_nested(self):
+    def subtensors_nested(self):
         """
         Return the nested tuple storing all subtensors
         """
@@ -302,7 +302,7 @@ def _elementwise_binary_op(op: Callable[T, T], a: BlockTensor, b: BlockTensor):
     a, b: BlockTensor
     """
     validate_elementwise_binary_op(a, b)
-    array = tuple([op(ai, bi) for ai, bi in zip(a.array, b.array)])
+    array = tuple([op(ai, bi) for ai, bi in zip(a.subtensors_flat, b.subtensors_flat)])
     barray = barr.LabelledArray(array, a.shape, a.labels)
     return type(a)(barray)
 
@@ -325,7 +325,7 @@ def _elementwise_unary_op(op: Callable, a: BlockTensor):
     ----------
     a: BlockTensor
     """
-    array = barr.LabelledArray([op(ai) for ai in a.array], a.shape, a.labels)
+    array = barr.LabelledArray([op(ai) for ai in a.subtensors_flat], a.shape, a.labels)
     return type(a)(array)
 
 neg = functools.partial(_elementwise_unary_op, lambda a: -a)

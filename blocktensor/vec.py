@@ -108,7 +108,7 @@ class BlockVec(BlockTensor):
     ## Add vecs property for special case/backwards compatibilty
     @property
     def vecs(self):
-        return self.array
+        return self.subtensors_flat
 
     ## Basic string representation functions
     def __repr__(self):
@@ -148,10 +148,10 @@ class BlockVec(BlockTensor):
         _array = self[key]
         if isinstance(_array, BlockTensor):
             if isinstance(value, BlockTensor):
-                for subvec, subvec_value in zip(_array.array, value):
+                for subvec, subvec_value in zip(_array.array_flat, value):
                     gops.set_vec(subvec, subvec_value)
             else:
-                for subvec in _array.array:
+                for subvec in _array.array_flat:
                     gops.set_vec(subvec, value)
         else:
             gops.set_vec(_array, value)

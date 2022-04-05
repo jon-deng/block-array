@@ -198,14 +198,14 @@ class LabelledArray:
             for axis_labels, idxs in zip(self.rlabels, [range(axis_size) for axis_size in self.rshape])])
 
     @property
-    def array(self):
+    def array_flat(self):
         """Return the flat array representation"""
         return self._array
 
     @property
     def array_nested(self):
         """Return a nested array representation"""
-        return nest_array(self.array, self._STRIDES)
+        return nest_array(self.array_flat, self._STRIDES)
 
     @property
     def shape(self):
@@ -271,7 +271,7 @@ class LabelledArray:
         multi_idx = [(idx,) if isinstance(idx, int) else idx for idx in multi_idx]
         ret_flat_idxs = [to_flat_idx(idx, self._STRIDES) for idx in product(*multi_idx)]
 
-        ret_array = tuple([self.array[flat_idx] for flat_idx in ret_flat_idxs])
+        ret_array = tuple([self.array_flat[flat_idx] for flat_idx in ret_flat_idxs])
 
         if ret_shape == (-1,) * len(ret_shape):
             assert len(ret_array) == 1
@@ -284,7 +284,7 @@ class LabelledArray:
         """Return a copy of the array"""
         ret_labels = self.labels
         ret_shape = self.shape
-        ret_array = [elem.copy() for elem in self.array]
+        ret_array = [elem.copy() for elem in self.array_flat]
         return self.__class__(ret_array, ret_shape, ret_labels)
 
     def __copy__(self):

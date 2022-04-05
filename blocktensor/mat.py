@@ -514,7 +514,7 @@ class BlockMat(BlockTensor):
             raise ValueError(f"BlockMat must have dimension == 2, not {len(self.shape)}")
 
     def to_petsc(self, comm=None):
-        return form_block_matrix(self.array_nested)
+        return form_block_matrix(self.subtensors_nested)
 
     def norm(self):
         return norm(self)
