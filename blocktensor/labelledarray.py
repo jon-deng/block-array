@@ -157,17 +157,17 @@ def validate_multi_general_idx(multi_idx: MultiGeneralIndex, shape: Shape):
 
 class LabelledArray:
     """
-    An N-dimensional array with labelled indices
+    An n-dimensional array with labelled indices
 
     Parameters
     ----------
-    array
+    array :
         A list of items in the array. This is a flat list which is interpreted
         with the supplied shape according to 'C' ordering.
-    shape
+    shape :
         A tuple of axis sizes (n, m, ...), where axis 0 has size n, axis 1 has
         size m, etc.
-    labels
+    labels :
         A tuple of labels corresponding each index along an axis. `labels[0]`
         should contain the labels for indices along axis 0, `labels[1]` the
         indices along axis 1, etc.
