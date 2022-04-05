@@ -108,6 +108,13 @@ class BlockTensor:
 
         validate_subtensor_shapes(self._larray, self.red_bshape)
 
+    ## String representation functions
+    def __repr__(self):
+        return f"{self.__class__}({repr(self.subtensors_flat)}, {self.shape}, {self.labels})"
+
+    def __str__(self):
+        return f"{self.__class__}(bshape={self.bshape} labels={self.labels})"
+
     @property
     def subtensors_flat(self):
         """
