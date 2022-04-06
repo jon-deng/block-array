@@ -406,14 +406,14 @@ def diag_mat(n, diag=1.0, comm=None):
 def ident_mat(n, comm=None):
     return diag_mat(n, diag=1.0, comm=comm)
 
-## Basic BlockMat operations
+## Basic BlockMatrix operations
 def add(A, B):
     """
     Add two block matrices, A + B
 
     Parameters
     ----------
-    A, B: BlockMat
+    A, B: BlockMatrix
     """
     labels = tuple([A.labels[0], B.labels[1]])
     mats = [
@@ -427,7 +427,7 @@ def sub(A, B):
 
     Parameters
     ----------
-    A, B: BlockMat
+    A, B: BlockMatrix
     """
     return add(A, -B)
 
@@ -438,7 +438,7 @@ def scalar_mul(a, B):
     Parameters
     ----------
     a: float
-    B: BlockMat
+    B: BlockMatrix
     """
     mats = [
         [a*B[mm, nn]
@@ -453,7 +453,7 @@ def norm(A):
 
     Parameters
     ----------
-    A : BlockMat
+    A : BlockMatrix
     """
     frobenius_norm = np.sum([
         gops.norm_mat(A[mm, nn])**2
@@ -468,7 +468,7 @@ def concatenate_mat(bmats, labels=None):
 
     Parameters
     ----------
-    bmats : tuple(tupe(BlockMat))
+    bmats : tuple(tupe(BlockMatrix))
     """
     # check the array is 2D by checking that the number of columns in each row
     # are equal, pairwise
@@ -494,7 +494,7 @@ def convert_bmat_to_petsc(bmat):
 
     Parameters
     ----------
-    bmat: BlockMat
+    bmat: BlockMatrix
     """
     mats = [gops.convert_mat_to_petsc(mat) for mat in bmat.subtensors_flat]
     barray = LabelledArray(mats, bmat.shape, bmat.labels)
@@ -511,7 +511,7 @@ class BlockMatrix(BlockTensor):
         super().__init__(array, shape, labels)
 
         if len(self.shape) != 2:
-            raise ValueError(f"BlockMat must have dimension == 2, not {len(self.shape)}")
+            raise ValueError(f"BlockMatrix must have dimension == 2, not {len(self.shape)}")
 
     def to_petsc(self, comm=None):
         return form_block_matrix(self.subtensors_nested)

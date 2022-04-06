@@ -224,7 +224,7 @@ class BlockTensor:
 
     def __getitem__(self, key):
         """
-        Return the vector or BlockVec corresponding to the index
+        Return the vector or BlockVector corresponding to the index
 
         Parameters
         ----------

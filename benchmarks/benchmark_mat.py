@@ -57,7 +57,7 @@ MATS = \
      [C, D]]
 
 def benchmark_create_bmat():
-    """Create a BlockMat"""
+    """Create a BlockMatrix"""
     bmat.BlockMatrix(MATS, labels=(('a', 'b'), ('a', 'b')))
     return None
 

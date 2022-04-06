@@ -11,7 +11,7 @@ import jax
 import dolfin as dfn
 from petsc4py import PETSc
 
-# from .vec import BlockVec, general_vec_set, generic_vec_size
+# from .vec import BlockVector, general_vec_set, generic_vec_size
 from .vec import *
 from .mat import *
 

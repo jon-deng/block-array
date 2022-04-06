@@ -20,7 +20,7 @@ from .mat import BlockMatrix
 # Type variable for a 'sub'vector
 T = TypeVar('T')
 
-# BlockVec methods
+# BlockVector methods
 def split_bvec(bvec, block_sizes):
     """
     Splits a block vector into multiple block vectors
@@ -34,11 +34,11 @@ def split_bvec(bvec, block_sizes):
 
 def concatenate_vec(args, labels=None):
     """
-    Concatenate a series of BlockVecs into a single BlockVec
+    Concatenate a series of BlockVecs into a single BlockVector
 
     Parameters
     ----------
-    args : List of BlockVec
+    args : List of BlockVector
     """
     if labels is None:
         labels = [ftls.reduce(lambda a, b: a+b, [bvec.labels[0] for bvec in args])]
@@ -78,7 +78,7 @@ def convert_bvec_to_petsc(bvec):
 
     Parameters
     ----------
-    bmat: BlockMat
+    bmat: BlockMatrix
     """
     vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.subtensors_flat]
     return BlockVector(vecs, labels=bvec.labels)
@@ -103,7 +103,7 @@ class BlockVector(BlockTensor):
         super().__init__(barray, shape, labels)
 
         if len(self.shape) > 1:
-            raise ValueError(f"BlockVec must have dimension == 1, not {len(self.shape)}")
+            raise ValueError(f"BlockVector must have dimension == 1, not {len(self.shape)}")
 
     ## Add vecs property for special case/backwards compatibilty
     @property
@@ -143,7 +143,7 @@ class BlockVector(BlockTensor):
         ----------
         key : str, int, slice
             A block label
-        value : array_like or BlockVec
+        value : array_like or BlockVector
         """
         _array = self[key]
         if isinstance(_array, BlockTensor):
