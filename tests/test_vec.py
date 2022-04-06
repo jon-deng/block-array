@@ -12,14 +12,14 @@ from blocktensor import tensor as btensor
 a = np.arange(2)
 b = np.arange(3)
 c = np.arange(4)
-VEC1 = bvec.BlockVec((a, b, c), labels=(('a', 'b', 'c'),))
+VEC1 = bvec.BlockVector((a, b, c), labels=(('a', 'b', 'c'),))
 
 a = np.arange(2)+1
 b = np.arange(3)+1
 c = np.arange(4)+1
-VEC2 = bvec.BlockVec((a, b, c), labels=(('a', 'b', 'c'),))
+VEC2 = bvec.BlockVector((a, b, c), labels=(('a', 'b', 'c'),))
 
-VEC3 = bvec.BlockVec((a, b, c))
+VEC3 = bvec.BlockVector((a, b, c))
 
 def test_size_shape():
     print(VEC1.size)

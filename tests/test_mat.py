@@ -55,8 +55,8 @@ MATS = \
     [[A, B],
      [C, D]]
 
-BMAT1 = bmat.BlockMat(MATS, labels=(('a', 'b'), ('a', 'b')))
-BMAT2 = bmat.BlockMat(MATS, labels=(('a', 'b'), ('a', 'b')))
+BMAT1 = bmat.BlockMatrix(MATS, labels=(('a', 'b'), ('a', 'b')))
+BMAT2 = bmat.BlockMatrix(MATS, labels=(('a', 'b'), ('a', 'b')))
 BMAT3 = BMAT1+BMAT2
 
 print(BMAT1.to_petsc()[:, :])

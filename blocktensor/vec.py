@@ -12,7 +12,7 @@ from petsc4py import PETSc
 from . import subops as gops
 from . import labelledarray as barr
 from .tensor import BlockTensor
-from .mat import BlockMat
+from .mat import BlockMatrix
 
 ## pylint: disable=no-member
 
@@ -45,7 +45,7 @@ def concatenate_vec(args, labels=None):
 
     vecs = ftls.reduce(lambda a, b: a+b, [bvec.subtensors_flat for bvec in args])
 
-    return BlockVec(vecs, labels=labels)
+    return BlockVector(vecs, labels=labels)
 
 def validate_blockvec_size(*args):
     """
@@ -81,21 +81,21 @@ def convert_bvec_to_petsc(bvec):
     bmat: BlockMat
     """
     vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.subtensors_flat]
-    return BlockVec(vecs, labels=bvec.labels)
+    return BlockVector(vecs, labels=bvec.labels)
 
 def convert_bvec_to_petsc_rowbmat(bvec):
     mats = tuple([
         tuple([gops.convert_vec_to_rowmat(vec) for vec in bvec.subtensors_flat])
         ])
-    return BlockMat(mats)
+    return BlockMatrix(mats)
 
 def convert_bvec_to_petsc_colbmat(bvec):
     mats = tuple([
         tuple([gops.convert_vec_to_colmat(vec)]) for vec in bvec.subtensors_flat
         ])
-    return BlockMat(mats)
+    return BlockMatrix(mats)
 
-class BlockVec(BlockTensor):
+class BlockVector(BlockTensor):
     """
     Represents a block vector with blocks indexed by labels
     """
@@ -200,7 +200,7 @@ class BlockVec(BlockTensor):
     ## common operator overloading
     def __eq__(self, other):
         eq = False
-        if isinstance(other, BlockVec):
+        if isinstance(other, BlockVector):
             err = self - other
             if dot(err, err) == 0:
                 eq = True
