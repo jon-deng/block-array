@@ -26,7 +26,7 @@ for nrow in range(A.getSize()[0]):
     cols = np.array([0, 1], dtype=np.int32)
     vals = np.array([1.2, 2.4])
     A.setValues(rows, cols, vals)
-    
+
 A.assemble()
 # A.assemblyBegin()
 # A.assemblyEnd()
@@ -58,7 +58,7 @@ MATS = \
 
 def benchmark_create_bmat():
     """Create a BlockMat"""
-    bmat.BlockMat(MATS, labels=(('a', 'b'), ('a', 'b')))
+    bmat.BlockMatrix(MATS, labels=(('a', 'b'), ('a', 'b')))
     return None
 
 if __name__ == '__main__':

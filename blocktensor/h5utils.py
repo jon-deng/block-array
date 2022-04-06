@@ -27,7 +27,7 @@ def create_resizable_block_vector_group(
             subvec_label, (0, subvec_size), maxshape=(None, subvec_size),
             **dataset_kwargs)
 
-def append_block_vector_to_group(f: h5py.Group, vec: bvec.BlockVec):
+def append_block_vector_to_group(f: h5py.Group, vec: bvec.BlockVector):
     """
     Append block vector data to a resizable dataset
     """
@@ -59,4 +59,5 @@ def read_block_vector_from_group(f: h5py.Group, nvec=0):
         for naxis in range(ndim)]
 
     subvecs = [f[block_label][nvec, :] for block_label in labels[0]]
-    return bvec.BlockVec(subvecs, shape, labels)
+    return bvec.BlockVector(subvecs, shape, labels)
+

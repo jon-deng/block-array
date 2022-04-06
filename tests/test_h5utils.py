@@ -21,7 +21,7 @@ def setup_block_vecs():
     bvecs = []
     for offset in range(5):
         subvecs = [np.arange(size) for size in subvec_sizes]
-        bvecs.append(bvec.BlockVec(subvecs, (len(subvec_sizes),), labels))
+        bvecs.append(bvec.BlockVector(subvecs, (len(subvec_sizes),), labels))
 
     return bvecs
 

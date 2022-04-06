@@ -24,7 +24,7 @@ A11 = np.array(
     [[9]]
 )
 
-A = bmat.BlockMat(
+A = bmat.BlockMatrix(
     [[A00, A01],
      [A10, A11]],
     labels=(('a', 'b'), ('a', 'b')))
@@ -33,7 +33,7 @@ B = A.copy()
 
 x0 = np.array([1, 2])
 x1 = np.array([3])
-x = bvec.BlockVec([x0, x1], labels=(('a', 'b'),))
+x = bvec.BlockVector([x0, x1], labels=(('a', 'b'),))
 
 ## Basic math operation on matrices
 C = A+B

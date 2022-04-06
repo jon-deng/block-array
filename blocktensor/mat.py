@@ -419,7 +419,7 @@ def add(A, B):
     mats = [
         [A[mm, nn] + B[mm, nn] for nn in range(A.shape[1])]
         for mm in range(A.shape[0])]
-    return BlockMat(mats, labels=labels)
+    return BlockMatrix(mats, labels=labels)
 
 def sub(A, B):
     """
@@ -445,7 +445,7 @@ def scalar_mul(a, B):
         for nn in range(B.shape[1])]
         for mm in range(B.shape[0])]
     labels = B.labels
-    return BlockMat(mats, labels=labels)
+    return BlockMatrix(mats, labels=labels)
 
 def norm(A):
     """
@@ -486,7 +486,7 @@ def concatenate_mat(bmats, labels=None):
         row_labels = [key for ii in range(NUM_BROW) for key in bmats[ii][0].labels[0]]
         col_labels = [key for jj in range(NUM_BCOL) for key in bmats[0][jj].labels[1]]
         labels = (tuple(row_labels), tuple(col_labels))
-    return BlockMat(mats, labels=labels)
+    return BlockMatrix(mats, labels=labels)
 
 def convert_bmat_to_petsc(bmat):
     """
@@ -498,9 +498,9 @@ def convert_bmat_to_petsc(bmat):
     """
     mats = [gops.convert_mat_to_petsc(mat) for mat in bmat.subtensors_flat]
     barray = LabelledArray(mats, bmat.shape, bmat.labels)
-    return BlockMat(barray)
+    return BlockMatrix(barray)
 
-class BlockMat(BlockTensor):
+class BlockMatrix(BlockTensor):
     """
     Represents a block matrix with blocks indexed by keys
     """
