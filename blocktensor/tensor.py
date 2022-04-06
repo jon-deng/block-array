@@ -102,7 +102,7 @@ class BlockTensor:
         self,
         array: Union[barr.LabelledArray, barr.NestedArray, barr.FlatArray],
         shape: Optional[barr.Shape] = None,
-        labels: Optional[barr.AxisBlockLabels] = None):
+        labels: Optional[barr.MultiLabels] = None):
 
         if isinstance(array, barr.LabelledArray):
             self._larray = array

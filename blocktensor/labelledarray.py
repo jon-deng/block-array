@@ -4,31 +4,33 @@ arbitrary objects and with labelled indices along each axis. These can be
 indexed in a similar way to `numpy.ndarray`.
 """
 
-from typing import TypeVar, Tuple, Union, Mapping, Optional
+from typing import Optional, Union, Mapping
 from itertools import product, chain, accumulate
 
 import math
 
-T = TypeVar("T")
-NestedArray = Union['NestedArray', Tuple[T, ...]]
-FlatArray = Tuple[T, ...]
-Shape = Tuple[int, ...]
-Strides = Tuple[int, ...]
-Labels = Tuple[str, ...]
-AxisBlockLabels = Tuple[Tuple[str, ...], ...]
+from .types import (
+    NestedArray,
+    FlatArray,
+    Shape,
+    Strides,
+    Labels,
+    MultiLabels,
 
-IntIndex = int
-IntIndices = Tuple[int, ...]
-EllipsisType = type(...)
+    IntIndex,
+    IntIndices,
+    # EllipsisType,
 
-GeneralIndex = Union[slice, IntIndex, str, IntIndices, EllipsisType]
-StandardIndex = Union[IntIndex, IntIndices]
+    GenIndex,
+    StdIndex,
 
-MultiStandardIndex = Tuple[StandardIndex, ...]
-MultiGeneralIndex = Tuple[GeneralIndex, ...]
+    MultiStdIndex,
+    MultiGenIndex,
 
-LabelToIntIndex = Mapping[str, IntIndex]
-MultiLabelToIntIndex = Tuple[LabelToIntIndex, ...]
+    LabelToIntIndex,
+    MultiLabelToIntIndex
+)
+
 
 def block_array(array: FlatArray, labels: Labels):
     """
@@ -149,7 +151,7 @@ def validate_general_idx(idx, size):
         if not all(valid_idxs):
             raise IndexError(f"index out of range in {idx} for axis of size {size}")
 
-def validate_multi_general_idx(multi_idx: MultiGeneralIndex, shape: Shape):
+def validate_multi_general_idx(multi_idx: MultiGenIndex, shape: Shape):
     """Validate a multi general index"""
     for idx, size in zip(multi_idx, shape):
         validate_general_idx(idx, size)
@@ -173,7 +175,7 @@ class LabelledArray:
         indices along axis 1, etc.
     """
 
-    def __init__(self, array: FlatArray, shape: Shape, labels: Optional[AxisBlockLabels]=None):
+    def __init__(self, array: FlatArray, shape: Shape, labels: Optional[MultiLabels]=None):
         if labels is None:
             labels = tuple([tuple([str(ii) for ii in range(axis_size)]) for axis_size in shape])
         # Convert any lists to tuples in labels
@@ -304,7 +306,7 @@ class LabelledArray:
 
 
 def to_flat_idx(
-    multi_idx: MultiStandardIndex, strides: Strides) -> StandardIndex:
+    multi_idx: MultiStdIndex, strides: Strides) -> StdIndex:
     """
     Return a flat index given a multi-index and strides for each dimension
 
@@ -320,7 +322,7 @@ def to_flat_idx(
     return sum([idx*stride for idx, stride in zip(multi_idx, strides)])
 
 def expand_multi_idx(
-    multi_idx: MultiGeneralIndex, shape: Shape) -> MultiGeneralIndex:
+    multi_idx: MultiGenIndex, shape: Shape) -> MultiGenIndex:
     """
     Expands missing axis indices and/or ellipses in a general multi-index
 
@@ -357,9 +359,9 @@ def expand_multi_idx(
 # This function handles conversion of any of the general index/indices
 # to a standard index/indices
 def convert_multi_general_idx(
-    multi_idx: MultiGeneralIndex,
+    multi_idx: MultiGenIndex,
     shape: Shape,
-    multi_label_to_idx: MultiLabelToIntIndex) -> MultiStandardIndex:
+    multi_label_to_idx: MultiLabelToIntIndex) -> MultiStdIndex:
     """
     Return a standard multi-index from a general multi-index
 
@@ -383,9 +385,9 @@ def convert_multi_general_idx(
     return tuple(out_multi_idx)
 
 def convert_general_idx(
-    idx: GeneralIndex,
+    idx: GenIndex,
     size: int,
-    label_to_idx: LabelToIntIndex) -> StandardIndex:
+    label_to_idx: LabelToIntIndex) -> StdIndex:
     """
     Return a standard index corresponding to any of the general index approaches
 
