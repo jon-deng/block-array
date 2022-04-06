@@ -11,6 +11,7 @@ FlatArray = Tuple[T, ...]
 
 Shape = Tuple[int, ...]
 Strides = Tuple[int, ...]
+BlockShape = Tuple[Tuple[int, ...], ...]
 
 Labels = Tuple[str, ...]
 MultiLabels = Tuple[Labels, ...]

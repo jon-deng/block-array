@@ -8,7 +8,7 @@ import functools
 from . import vec as bvec
 from . import labelledarray as barr
 from . import subops as gops
-# from . import blockmath as bmath
+from .types import (BlockShape)
 
 T = TypeVar('T')
 
@@ -148,7 +148,7 @@ class BlockTensor:
         return self._larray.nested
 
     @property
-    def larray(self):
+    def larray(self) -> barr.LabelledArray:
         """
         Return the underlying labelled array
         """
@@ -185,21 +185,21 @@ class BlockTensor:
         return self.larray.ndim
 
     @property
-    def mshape(self):
+    def mshape(self) -> Shape:
         """
         Return the shape of the equivalent monolithic tensor
         """
         return tuple([sum(axis_sizes) for axis_sizes in self.bshape])
 
     @property
-    def bshape(self):
+    def bshape(self) -> BlockShape:
         """
         Return the block shape (shape of each block as a tuple)
         """
         return self._bshape
 
     @property
-    def red_bshape(self):
+    def red_bshape(self) -> BlockShape:
         """
         Return the reduced block shape (number of blocks in each axis)
         """
@@ -207,7 +207,7 @@ class BlockTensor:
         return ret_rbshape
 
     @property
-    def red_mshape(self):
+    def red_mshape(self) -> Shape:
         """
         Return the reduced block size (number of blocks in each axis)
         """
