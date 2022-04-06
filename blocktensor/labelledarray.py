@@ -10,7 +10,7 @@ from itertools import product, chain, accumulate
 import math
 
 T = TypeVar("T")
-NestedArray = Tuple['NestedArray', ...]
+NestedArray = Union['NestedArray', Tuple[T, ...]]
 FlatArray = Tuple[T, ...]
 Shape = Tuple[int, ...]
 Strides = Tuple[int, ...]
