@@ -249,10 +249,10 @@ class LabelledArray:
 
     def __getitem__(self, multi_idx):
         multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
-        multi_idx = expand_multi_idx(multi_idx, self.rshape)
+        multi_idx = expand_multidx(multi_idx, self.rshape)
         validate_multi_general_idx(tuple(multi_idx), self.rshape)
 
-        multi_idx = conv_gen_to_std_multi_idx(multi_idx, self.rshape, self._MULTI_LABEL_TO_IDX)
+        multi_idx = conv_gen_to_std_multidx(multi_idx, self.rshape, self._MULTI_LABEL_TO_IDX)
 
         # Find the returned BlockArray's shape and labels
         # -1 represents a reduced dimension,
@@ -303,11 +303,11 @@ class LabelledArray:
         for ii in range(self.rshape[0]):
             yield self[ii]
 
-# Naming convention below:
-# use prefix `multi_` to denote a multi index
-# use `gidx` and `sidx` to denote general and standard indexes
+# For the below, the naming convention where applicable is:
+# dnote multi-indexes by `multidx`
+# use `gen_` and `std_` to denote general and standard indexes
 def multi_to_flat_idx(
-    multi_sidx: MultiStdIndex, strides: Strides) -> StdIndex:
+    multidx: MultiStdIndex, strides: Strides) -> StdIndex:
     """
     Return a flat index given a multi index and strides for each dimension
 
@@ -318,10 +318,10 @@ def multi_to_flat_idx(
     strides: tuple(int)
         The integer offset for each axis according to c-ordering
     """
-    return sum([idx*stride for idx, stride in zip(multi_sidx, strides)])
+    return sum([idx*stride for idx, stride in zip(multidx, strides)])
 
-def expand_multi_idx(
-    multi_gidx: MultiGenIndex, shape: Shape) -> MultiGenIndex:
+def expand_multidx(
+    multidx: MultiGenIndex, shape: Shape) -> MultiGenIndex:
     """
     Expands missing axis indices and/or ellipses in a general multi-index
 
@@ -336,29 +336,29 @@ def expand_multi_idx(
         The shape of the array being indexed
     """
     # Check that there are fewer dimensions indexed than number of dimensions
-    assert len(multi_gidx) <= len(shape)
+    assert len(multidx) <= len(shape)
 
-    num_ellipse = multi_gidx.count(...)
+    num_ellipse = multidx.count(...)
     assert num_ellipse <= 1
 
     if num_ellipse == 1:
-        num_ax_expand = len(shape) - len(multi_gidx) + 1
-        axis_expand = multi_gidx.index(...)
+        num_ax_expand = len(shape) - len(multidx) + 1
+        axis_expand = multidx.index(...)
     else:
-        num_ax_expand = len(shape) - len(multi_gidx)
-        axis_expand = len(multi_gidx)
+        num_ax_expand = len(shape) - len(multidx)
+        axis_expand = len(multidx)
 
     new_multi_gidx = (
-        multi_gidx[:axis_expand]
+        multidx[:axis_expand]
         + tuple(num_ax_expand*[slice(None)])
-        + multi_gidx[axis_expand+num_ellipse:]
+        + multidx[axis_expand+num_ellipse:]
         )
     return new_multi_gidx
 
 # This function handles conversion of any of the general index/indices
 # to a standard index/indices
-def conv_gen_to_std_multi_idx(
-    multi_idx: MultiGenIndex,
+def conv_gen_to_std_multidx(
+    multidx: MultiGenIndex,
     shape: Shape,
     multi_label_to_idx: MultiLabelToIntIndex) -> MultiStdIndex:
     """
@@ -378,10 +378,10 @@ def conv_gen_to_std_multi_idx(
         A tuple of mappings, where each mapping contains the map from label to index
         for the given axis
     """
-    out_multi_idx = [
+    multi_sidx = [
         conv_gen_to_std_idx(index, axis_size, axis_label_to_idx)
-        for index, axis_size, axis_label_to_idx in zip(multi_idx, shape, multi_label_to_idx)]
-    return tuple(out_multi_idx)
+        for index, axis_size, axis_label_to_idx in zip(multidx, shape, multi_label_to_idx)]
+    return tuple(multi_sidx)
 
 def conv_gen_to_std_idx(
     idx: GenIndex,
@@ -430,7 +430,7 @@ def conv_slice_to_std_idx(idx: slice, size: int) -> IntIndices:
 
 # These functions convert a general single index (GeneralIndex)
 # to a standard single index (StandardIndex, specifically IntIndex)
-def conv_label_to_std_idx(idx: str, label_to_idx: Mapping[str, int], size: int) -> IntIndex:
+def conv_label_to_std_idx(idx: str, label_to_idx: LabelToIntIndex, size: int) -> IntIndex:
     """
     Return an integer index corresponding to a label
 
