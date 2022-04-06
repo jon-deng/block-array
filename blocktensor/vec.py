@@ -111,13 +111,6 @@ class BlockVector(BlockTensor):
         return self.subtensors_flat
 
     ## Basic string representation functions
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        desc = ", ".join([f"{key}:{gops.size_vec(vec)}" for key, vec in self.items()])
-        return f"({desc})"
-
     def print_summary(self):
         summary_strings = [
             f"{key}: ({np.min(vec[:])}/{np.max(vec[:])}/{np.mean(vec[:])})"
