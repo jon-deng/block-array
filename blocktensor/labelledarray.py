@@ -262,7 +262,7 @@ class LabelledArray:
     def __len__(self):
         return self.size
 
-    def __getitem__(self, multi_idx) -> Union[T, LabelledArray]:
+    def __getitem__(self, multi_idx) -> Union[T, 'LabelledArray']:
         multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
         multi_idx = expand_multidx(multi_idx, self.rshape)
         validate_multi_general_idx(tuple(multi_idx), self.rshape)
@@ -314,7 +314,7 @@ class LabelledArray:
         return zip(self.labels[0], self)
 
     ## Iterable interface over the first axis
-    def __iter__(self) -> Union[List[LabelledArray], List[T]]:
+    def __iter__(self) -> Union[List['LabelledArray'], List[T]]:
         for ii in range(self.rshape[0]):
             yield self[ii]
 

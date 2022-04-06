@@ -7,7 +7,7 @@ import functools
 
 from . import labelledarray as barr
 from . import subops as gops
-from .types import (BlockShape)
+from .types import (BlockShape, Shape)
 
 T = TypeVar('T')
 
@@ -257,7 +257,7 @@ class BlockTensor:
     ## common operator overloading
     def __eq__(self, other):
         eq = False
-        if isinstance(other, BlockVec):
+        if isinstance(other, BlockVector):
             err = self - other
             if dot(err, err) == 0:
                 eq = True
