@@ -4,17 +4,17 @@ arbitrary objects and with labelled indices along each axis. These can be
 indexed in a similar way to `numpy.ndarray`.
 """
 
-from typing import Optional, Union, Mapping
+from typing import Optional, Union, List
 from itertools import product, chain, accumulate
 
 import math
 
 from .types import (
+    T,
     NestedArray,
     FlatArray,
     Shape,
     Strides,
-    Labels,
     MultiLabels,
 
     IntIndex,
@@ -158,7 +158,7 @@ def validate_multi_general_idx(multi_idx: MultiGenIndex, shape: Shape):
 
 class LabelledArray:
     """
-    An n-dimensional array with labelled indices
+    An N-dimensional array with labelled indices
 
     Parameters
     ----------
@@ -172,6 +172,21 @@ class LabelledArray:
         A tuple of labels corresponding each index along an axis. `labels[0]`
         should contain the labels for indices along axis 0, `labels[1]` the
         indices along axis 1, etc.
+
+    Attributes
+    ----------
+    array :
+        A flat tuple containing the array elements
+    shape :
+        The N-d layout of the elements. For example, a shape `(2, 3)` represents
+        and array of 2 elements in dimension 0 by 3 elements in dimension 1.
+    labels :
+        A nested tuple containing labels for each axis at each index
+    strides :
+        The increment in the flat index represented by a unit increment in each
+        axis index in C-order
+    multi_label_to_idx :
+        A mapping of labels to indices for each axis
     """
 
     def __init__(self, array: FlatArray, shape: Shape, labels: Optional[MultiLabels]=None):
@@ -199,32 +214,32 @@ class LabelledArray:
             for axis_labels, idxs in zip(self.rlabels, [range(axis_size) for axis_size in self.rshape])])
 
     @property
-    def flat(self):
+    def flat(self) -> FlatArray:
         """Return the flat array representation"""
         return self._array
 
     @property
-    def nested(self):
+    def nested(self) -> NestedArray:
         """Return a nested array representation"""
         return nest_array(self.flat, self._STRIDES)
 
     @property
-    def shape(self):
+    def shape(self) -> Shape:
         """Return the array shape"""
         return self._shape
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         """Return the number of dimensions (number of axes)"""
         return len(self.shape)
 
     @property
-    def labels(self):
+    def labels(self) -> MultiLabels:
         """Return the array labels"""
         return self._labels
 
     @property
-    def rshape(self):
+    def rshape(self) -> Shape:
         """
         Return the reduced array shape
         """
@@ -232,7 +247,7 @@ class LabelledArray:
         return tuple(ret_rshape)
 
     @property
-    def rlabels(self):
+    def rlabels(self) -> MultiLabels:
         """
         Return the reduced labels
         """
@@ -240,14 +255,14 @@ class LabelledArray:
         return ret_rlabels
 
     @property
-    def size(self):
+    def size(self) -> int:
         """Return the array size"""
         return math.prod(self.rshape)
 
     def __len__(self):
         return self.size
 
-    def __getitem__(self, multi_idx):
+    def __getitem__(self, multi_idx) -> Union[T, LabelledArray]:
         multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
         multi_idx = expand_multidx(multi_idx, self.rshape)
         validate_multi_general_idx(tuple(multi_idx), self.rshape)
@@ -299,7 +314,7 @@ class LabelledArray:
         return zip(self.labels[0], self)
 
     ## Iterable interface over the first axis
-    def __iter__(self):
+    def __iter__(self) -> Union[List[LabelledArray], List[T]]:
         for ii in range(self.rshape[0]):
             yield self[ii]
 

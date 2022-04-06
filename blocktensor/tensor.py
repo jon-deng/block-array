@@ -1,11 +1,10 @@
 """
 This module contains the block tensor definition which provides some basic operations
 """
-from typing import TypeVar, Generic, Optional, Union, Callable
+from typing import TypeVar, Optional, Union, Callable
 from itertools import accumulate
 import functools
 
-from . import vec as bvec
 from . import labelledarray as barr
 from . import subops as gops
 from .types import (BlockShape)
