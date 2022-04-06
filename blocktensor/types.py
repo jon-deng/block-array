@@ -17,7 +17,7 @@ MultiLabels = Tuple[Labels, ...]
 
 ## Indexing types
 IntIndex = int
-IntIndices = Tuple[int, ...]
+IntIndices = Tuple[IntIndex, ...]
 EllipsisType = type(...)
 
 # General and Standard index

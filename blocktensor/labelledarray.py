@@ -19,7 +19,6 @@ from .types import (
 
     IntIndex,
     IntIndices,
-    # EllipsisType,
 
     GenIndex,
     StdIndex,
@@ -32,7 +31,7 @@ from .types import (
 )
 
 
-def block_array(array: FlatArray, labels: Labels):
+def block_array(array: NestedArray, labels: MultiLabels):
     """
     Return a BlockArray from nested lists/tuples
 
@@ -253,7 +252,7 @@ class LabelledArray:
         multi_idx = expand_multi_idx(multi_idx, self.rshape)
         validate_multi_general_idx(tuple(multi_idx), self.rshape)
 
-        multi_idx = convert_multi_general_idx(multi_idx, self.rshape, self._MULTI_LABEL_TO_IDX)
+        multi_idx = conv_gen_to_std_multi_idx(multi_idx, self.rshape, self._MULTI_LABEL_TO_IDX)
 
         # Find the returned BlockArray's shape and labels
         # -1 represents a reduced dimension,
@@ -271,7 +270,7 @@ class LabelledArray:
 
         # enclose single ints in a list so it works with itertools
         multi_idx = [(idx,) if isinstance(idx, int) else idx for idx in multi_idx]
-        ret_flat_idxs = [to_flat_idx(idx, self._STRIDES) for idx in product(*multi_idx)]
+        ret_flat_idxs = [multi_to_flat_idx(idx, self._STRIDES) for idx in product(*multi_idx)]
 
         ret_array = tuple([self.flat[flat_idx] for flat_idx in ret_flat_idxs])
 
@@ -304,25 +303,25 @@ class LabelledArray:
         for ii in range(self.rshape[0]):
             yield self[ii]
 
-
-def to_flat_idx(
-    multi_idx: MultiStdIndex, strides: Strides) -> StdIndex:
+# Naming convention below:
+# use prefix `multi_` to denote a multi index
+# use `gidx` and `sidx` to denote general and standard indexes
+def multi_to_flat_idx(
+    multi_sidx: MultiStdIndex, strides: Strides) -> StdIndex:
     """
-    Return a flat index given a multi-index and strides for each dimension
+    Return a flat index given a multi index and strides for each dimension
 
     Parameters
     ----------
-    multi_idx: tuple(GeneralIndex)
-        A tuple of general indices used to index individual axes
+    multi_sidx:
+        A multi-index with integer index for each axis specifying a single element
     strides: tuple(int)
         The integer offset for each axis according to c-ordering
-    shape: tuple(int)
-        The shape of the array being indexed
     """
-    return sum([idx*stride for idx, stride in zip(multi_idx, strides)])
+    return sum([idx*stride for idx, stride in zip(multi_sidx, strides)])
 
 def expand_multi_idx(
-    multi_idx: MultiGenIndex, shape: Shape) -> MultiGenIndex:
+    multi_gidx: MultiGenIndex, shape: Shape) -> MultiGenIndex:
     """
     Expands missing axis indices and/or ellipses in a general multi-index
 
@@ -337,28 +336,28 @@ def expand_multi_idx(
         The shape of the array being indexed
     """
     # Check that there are fewer dimensions indexed than number of dimensions
-    assert len(multi_idx) <= len(shape)
+    assert len(multi_gidx) <= len(shape)
 
-    num_ellipse = multi_idx.count(...)
+    num_ellipse = multi_gidx.count(...)
     assert num_ellipse <= 1
 
     if num_ellipse == 1:
-        num_missing_axis_idx = len(shape) - len(multi_idx) + 1
-        axis_expand = multi_idx.index(...)
+        num_ax_expand = len(shape) - len(multi_gidx) + 1
+        axis_expand = multi_gidx.index(...)
     else:
-        num_missing_axis_idx = len(shape) - len(multi_idx)
-        axis_expand = len(multi_idx)
+        num_ax_expand = len(shape) - len(multi_gidx)
+        axis_expand = len(multi_gidx)
 
-    new_multi_idx = (
-        multi_idx[:axis_expand]
-        + tuple(num_missing_axis_idx*[slice(None)])
-        + multi_idx[axis_expand+num_ellipse:]
+    new_multi_gidx = (
+        multi_gidx[:axis_expand]
+        + tuple(num_ax_expand*[slice(None)])
+        + multi_gidx[axis_expand+num_ellipse:]
         )
-    return new_multi_idx
+    return new_multi_gidx
 
 # This function handles conversion of any of the general index/indices
 # to a standard index/indices
-def convert_multi_general_idx(
+def conv_gen_to_std_multi_idx(
     multi_idx: MultiGenIndex,
     shape: Shape,
     multi_label_to_idx: MultiLabelToIntIndex) -> MultiStdIndex:
@@ -380,11 +379,11 @@ def convert_multi_general_idx(
         for the given axis
     """
     out_multi_idx = [
-        convert_general_idx(index, axis_size, axis_label_to_idx)
+        conv_gen_to_std_idx(index, axis_size, axis_label_to_idx)
         for index, axis_size, axis_label_to_idx in zip(multi_idx, shape, multi_label_to_idx)]
     return tuple(out_multi_idx)
 
-def convert_general_idx(
+def conv_gen_to_std_idx(
     idx: GenIndex,
     size: int,
     label_to_idx: LabelToIntIndex) -> StdIndex:
@@ -403,26 +402,26 @@ def convert_general_idx(
     assert len(label_to_idx) == size
 
     if isinstance(idx, slice):
-        return convert_slice(idx, size)
+        return conv_slice_to_std_idx(idx, size)
     elif isinstance(idx, (list, tuple)):
         return [
-            convert_label_idx(ii, label_to_idx, size) if isinstance(ii, str) else ii
+            conv_label_to_std_idx(ii, label_to_idx, size) if isinstance(ii, str) else ii
             for ii in idx]
     elif isinstance(idx, str):
-        return convert_label_idx(idx, label_to_idx, size)
+        return conv_label_to_std_idx(idx, label_to_idx, size)
     elif isinstance(idx, int):
-        return convert_neg_idx(idx, size)
+        return conv_neg_to_std_idx(idx, size)
     else:
         raise TypeError(f"Unknown index {idx} of type {type(idx)}.")
 
 # These functions convert general indices (GeneralIndex) to standard indices
 # (StandardIndex)
-def convert_slice(idx: slice, size: int) -> IntIndices:
+def conv_slice_to_std_idx(idx: slice, size: int) -> IntIndices:
     """
     Return the sequence of indexes corresponding to a slice
     """
-    start = convert_start_idx(idx.start, size)
-    stop = convert_stop_idx(idx.stop, size)
+    start = conv_slice_start_to_idx(idx.start, size)
+    stop = conv_slice_stop_to_idx(idx.stop, size)
     if idx.step is None:
         step = 1
     else:
@@ -431,7 +430,7 @@ def convert_slice(idx: slice, size: int) -> IntIndices:
 
 # These functions convert a general single index (GeneralIndex)
 # to a standard single index (StandardIndex, specifically IntIndex)
-def convert_label_idx(idx: str, label_to_idx: Mapping[str, int], size: int) -> IntIndex:
+def conv_label_to_std_idx(idx: str, label_to_idx: Mapping[str, int], size: int) -> IntIndex:
     """
     Return an integer index corresponding to a label
 
@@ -448,7 +447,7 @@ def convert_label_idx(idx: str, label_to_idx: Mapping[str, int], size: int) -> I
     assert ret_index >= 0 and ret_index < size
     return ret_index
 
-def convert_neg_idx(idx: int, size: int) -> IntIndex:
+def conv_neg_to_std_idx(idx: int, size: int) -> IntIndex:
     """
     Return the index representing the equivalent negative index
 
@@ -467,7 +466,7 @@ def convert_neg_idx(idx: int, size: int) -> IntIndex:
     else:
         return size+idx
 
-def convert_start_idx(idx: Union[int, None], size: int) -> IntIndex:
+def conv_slice_start_to_idx(idx: Union[int, None], size: int) -> IntIndex:
     """
     Return an int representing the starting index from a slice object
 
@@ -481,9 +480,9 @@ def convert_start_idx(idx: Union[int, None], size: int) -> IntIndex:
     if idx is None:
         return 0
     else:
-        return convert_neg_idx(idx, size)
+        return conv_neg_to_std_idx(idx, size)
 
-def convert_stop_idx(idx: Union[int, None], size: int) -> IntIndex:
+def conv_slice_stop_to_idx(idx: Union[int, None], size: int) -> IntIndex:
     """
     Return an int representing the end index from a slice object
 
@@ -497,4 +496,4 @@ def convert_stop_idx(idx: Union[int, None], size: int) -> IntIndex:
     if idx is None:
         return size
     else:
-        return convert_neg_idx(idx, size)
+        return conv_neg_to_std_idx(idx, size)
