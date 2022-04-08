@@ -4,6 +4,7 @@ This module contains the block tensor definition which provides some basic opera
 from typing import TypeVar, Optional, Union, Callable
 from itertools import accumulate
 import functools
+import numpy as np
 
 from . import labelledarray as barr
 from . import subops as gops
@@ -308,6 +309,24 @@ class BlockTensor:
         else:
             return div(other, self)
 
+    ## Numpy ufunc interface
+    def __array_ufunc__(ufunc, method, *inputs, **kwargs):
+        for btensor in inputs:
+            if not isinstance(btensor, BlockTensor):
+                raise TypeError(
+                    f"ufunc {ufunc} cannot be called with inputs" +
+                    ", ".join([f"{type(input)}" for input in inputs])
+                    )
+
+        subtensors_in = [btensor.subtensors_flat for btensor in inputs]
+        subtensors_out = [
+            ufunc(*subtensor_inputs) for subtensor_inputs in subtensors_in
+            ]
+        ret_shape = inputs[0].shape
+        ret_labels = inputs[0].labels
+
+        return BlockTensor(subtensors_out, ret_shape, ret_labels)
+
 def validate_elementwise_binary_op(a, b):
     """
     Validates if BlockTensor inputs are applicable
@@ -385,3 +404,9 @@ def to_ndarray(block_tensor: BlockTensor):
         ret_array[idx] = block_tensor[block_idx]
 
     return ret_array
+
+
+## Ufunc interface
+elementwise_ufuncs = {
+    np.add
+}
