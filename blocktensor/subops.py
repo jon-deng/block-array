@@ -33,7 +33,7 @@ def set_vec(veca, vecb):
     if isinstance(veca, NDARRAY_TYPES) and veca.shape == ():
         veca[()] = vecb
     elif isinstance(veca, PETSc.Vec):
-        veca.subtensors_flat[:] = vecb
+        veca.array[:] = vecb
     else:
         veca[:] = vecb
 
