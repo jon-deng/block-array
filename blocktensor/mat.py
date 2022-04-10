@@ -1,10 +1,7 @@
 """
-This module contains the block matirx definition and various operations on
+This module contains the block matrix definition and various operations on
 block matrices
 """
-
-import operator
-from collections import OrderedDict
 
 import numpy as np
 from blocktensor.tensor import BlockTensor
@@ -407,46 +404,6 @@ def ident_mat(n, comm=None):
     return diag_mat(n, diag=1.0, comm=comm)
 
 ## Basic BlockMatrix operations
-def add(A, B):
-    """
-    Add two block matrices, A + B
-
-    Parameters
-    ----------
-    A, B: BlockMatrix
-    """
-    labels = tuple([A.labels[0], B.labels[1]])
-    mats = [
-        [A[mm, nn] + B[mm, nn] for nn in range(A.shape[1])]
-        for mm in range(A.shape[0])]
-    return BlockMatrix(mats, labels=labels)
-
-def sub(A, B):
-    """
-    Subtract two block matrices, A - B
-
-    Parameters
-    ----------
-    A, B: BlockMatrix
-    """
-    return add(A, -B)
-
-def scalar_mul(a, B):
-    """
-    Scalar multiplication of B by a
-
-    Parameters
-    ----------
-    a: float
-    B: BlockMatrix
-    """
-    mats = [
-        [a*B[mm, nn]
-        for nn in range(B.shape[1])]
-        for mm in range(B.shape[0])]
-    labels = B.labels
-    return BlockMatrix(mats, labels=labels)
-
 def norm(A):
     """
     Return the Frobenius norm of A

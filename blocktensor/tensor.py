@@ -4,8 +4,9 @@ This module contains the block tensor definition which provides some basic opera
 from typing import TypeVar, Optional, Union, Callable
 from itertools import accumulate
 import functools
+import operator
 
-from . import labelledarray as barr
+from . import labelledarray as larray
 from . import subops as gops
 from .types import (BlockShape, Shape)
 
@@ -32,7 +33,7 @@ def _block_shape(array):
         ret_bshape.append(tuple(axis_sizes))
     return tuple(ret_bshape)
 
-def validate_subtensor_shapes(array: barr.LabelledArray, bshape):
+def validate_subtensor_shapes(array: larray.LabelledArray, bshape):
     """
     Validate subtensors in a BlockTensor have a valid shape
 
@@ -92,21 +93,21 @@ class BlockTensor:
 
     Attributes
     ----------
-    larray : barr.LabelledArray
+    larray : larray.LabelledArray
         The `LabelledArray` instance used to store the subtensors in a block format
     bshape :
         A nested tuple representing the sizes of each block along each axis.
     """
     def __init__(
         self,
-        array: Union[barr.LabelledArray, barr.NestedArray, barr.FlatArray],
-        shape: Optional[barr.Shape] = None,
-        labels: Optional[barr.MultiLabels] = None):
+        array: Union[larray.LabelledArray, larray.NestedArray, larray.FlatArray],
+        shape: Optional[larray.Shape] = None,
+        labels: Optional[larray.MultiLabels] = None):
 
-        if isinstance(array, barr.LabelledArray):
+        if isinstance(array, larray.LabelledArray):
             self._larray = array
         else:
-            flat_array, _shape = barr.flatten_array(array)
+            flat_array, _shape = larray.flatten_array(array)
             if shape is None:
                 # If a shape is not provided, assume `array` is a nested
                 # array representation
@@ -119,7 +120,7 @@ class BlockTensor:
                         "Nested array shape {_shape} and provided shape {shape}"
                         "are not compatible")
 
-            self._larray = barr.LabelledArray(flat_array, shape, labels)
+            self._larray = larray.LabelledArray(flat_array, shape, labels)
 
         self._bshape = _block_shape(self._larray)
 
@@ -147,7 +148,7 @@ class BlockTensor:
         return self._larray.nested
 
     @property
-    def larray(self) -> barr.LabelledArray:
+    def larray(self) -> larray.LabelledArray:
         """
         Return the underlying labelled array
         """
@@ -232,7 +233,7 @@ class BlockTensor:
             A block label
         """
         ret = self.larray[key]
-        if isinstance(ret, barr.LabelledArray):
+        if isinstance(ret, larray.LabelledArray):
             return self.__class__(ret)
         else:
             return ret
@@ -256,15 +257,7 @@ class BlockTensor:
 
     ## common operator overloading
     def __eq__(self, other):
-        eq = False
-        if isinstance(other, BlockVector):
-            err = self - other
-            if dot(err, err) == 0:
-                eq = True
-        else:
-            raise TypeError(f"Cannot compare {type(other)} to {type(self)}")
-
-        return eq
+        raise NotImplementedError()
 
     def __add__(self, other):
         return add(self, other)
@@ -327,18 +320,18 @@ def _elementwise_binary_op(op: Callable[T, T], a: BlockTensor, b: BlockTensor):
     """
     validate_elementwise_binary_op(a, b)
     array = tuple([op(ai, bi) for ai, bi in zip(a.subtensors_flat, b.subtensors_flat)])
-    barray = barr.LabelledArray(array, a.shape, a.labels)
-    return type(a)(barray)
+    larrayay = larray.LabelledArray(array, a.shape, a.labels)
+    return type(a)(larrayay)
 
-add = functools.partial(_elementwise_binary_op, lambda a, b: a+b)
+add = functools.partial(_elementwise_binary_op, operator.add)
 
-sub = functools.partial(_elementwise_binary_op, lambda a, b: a-b)
+sub = functools.partial(_elementwise_binary_op, operator.sub)
 
-mul = functools.partial(_elementwise_binary_op, lambda a, b: a*b)
+mul = functools.partial(_elementwise_binary_op, operator.mul)
 
-div = functools.partial(_elementwise_binary_op, lambda a, b: a/b)
+div = functools.partial(_elementwise_binary_op, operator.truediv)
 
-power = functools.partial(_elementwise_binary_op, lambda a, b: a**b)
+power = functools.partial(_elementwise_binary_op, operator.pow)
 
 
 def _elementwise_unary_op(op: Callable, a: BlockTensor):
@@ -349,12 +342,12 @@ def _elementwise_unary_op(op: Callable, a: BlockTensor):
     ----------
     a: BlockTensor
     """
-    array = barr.LabelledArray([op(ai) for ai in a.subtensors_flat], a.shape, a.labels)
+    array = larray.LabelledArray([op(ai) for ai in a.subtensors_flat], a.shape, a.labels)
     return type(a)(array)
 
-neg = functools.partial(_elementwise_unary_op, lambda a: -a)
+neg = functools.partial(_elementwise_unary_op, operator.neg)
 
-pos = functools.partial(_elementwise_unary_op, lambda a: +a)
+pos = functools.partial(_elementwise_unary_op, operator.pos)
 
 def scalar_mul(alpha, a):
     return _elementwise_unary_op(lambda subvec: alpha*subvec, a)

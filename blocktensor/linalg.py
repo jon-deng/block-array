@@ -2,18 +2,11 @@
 This module contains various linear algebra operations on block matrices/vectors
 """
 
-import operator
-from collections import OrderedDict
 from functools import reduce
 
-import numpy as np
-import jax
-import dolfin as dfn
-from petsc4py import PETSc
-
-# from .vec import BlockVector, general_vec_set, generic_vec_size
-from .vec import *
-from .mat import *
+from . import subops as gops
+from .vec import BlockVector
+from .mat import BlockMatrix
 
 from . import subops as gops
 
