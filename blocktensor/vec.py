@@ -12,7 +12,6 @@ from petsc4py import PETSc
 from . import subops as gops
 from .tensor import BlockTensor
 from .mat import BlockMatrix
-from blocktensor.linalg import dot
 
 ## pylint: disable=no-member
 
