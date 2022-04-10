@@ -6,7 +6,7 @@ from itertools import accumulate
 import functools
 import operator
 
-from . import labelledarray as larray
+from . import labelledarray as larr
 from . import subops as gops
 from .types import (BlockShape, Shape)
 
@@ -33,7 +33,7 @@ def _block_shape(array):
         ret_bshape.append(tuple(axis_sizes))
     return tuple(ret_bshape)
 
-def validate_subtensor_shapes(array: larray.LabelledArray, bshape):
+def validate_subtensor_shapes(array: larr.LabelledArray, bshape):
     """
     Validate subtensors in a BlockTensor have a valid shape
 
@@ -93,21 +93,21 @@ class BlockTensor:
 
     Attributes
     ----------
-    larray : larray.LabelledArray
+    larray : larr.LabelledArray
         The `LabelledArray` instance used to store the subtensors in a block format
     bshape :
         A nested tuple representing the sizes of each block along each axis.
     """
     def __init__(
         self,
-        array: Union[larray.LabelledArray, larray.NestedArray, larray.FlatArray],
-        shape: Optional[larray.Shape] = None,
-        labels: Optional[larray.MultiLabels] = None):
+        array: Union[larr.LabelledArray, larr.NestedArray, larr.FlatArray],
+        shape: Optional[larr.Shape] = None,
+        labels: Optional[larr.MultiLabels] = None):
 
-        if isinstance(array, larray.LabelledArray):
+        if isinstance(array, larr.LabelledArray):
             self._larray = array
         else:
-            flat_array, _shape = larray.flatten_array(array)
+            flat_array, _shape = larr.flatten_array(array)
             if shape is None:
                 # If a shape is not provided, assume `array` is a nested
                 # array representation
@@ -120,7 +120,7 @@ class BlockTensor:
                         "Nested array shape {_shape} and provided shape {shape}"
                         "are not compatible")
 
-            self._larray = larray.LabelledArray(flat_array, shape, labels)
+            self._larray = larr.LabelledArray(flat_array, shape, labels)
 
         self._bshape = _block_shape(self._larray)
 
@@ -148,7 +148,7 @@ class BlockTensor:
         return self._larray.nested
 
     @property
-    def larray(self) -> larray.LabelledArray:
+    def larray(self) -> larr.LabelledArray:
         """
         Return the underlying labelled array
         """
@@ -233,7 +233,7 @@ class BlockTensor:
             A block label
         """
         ret = self.larray[key]
-        if isinstance(ret, larray.LabelledArray):
+        if isinstance(ret, larr.LabelledArray):
             return self.__class__(ret)
         else:
             return ret
@@ -320,7 +320,7 @@ def _elementwise_binary_op(op: Callable[T, T], a: BlockTensor, b: BlockTensor):
     """
     validate_elementwise_binary_op(a, b)
     array = tuple([op(ai, bi) for ai, bi in zip(a.subtensors_flat, b.subtensors_flat)])
-    larrayay = larray.LabelledArray(array, a.shape, a.labels)
+    larrayay = larr.LabelledArray(array, a.shape, a.labels)
     return type(a)(larrayay)
 
 add = functools.partial(_elementwise_binary_op, operator.add)
@@ -342,7 +342,7 @@ def _elementwise_unary_op(op: Callable, a: BlockTensor):
     ----------
     a: BlockTensor
     """
-    array = larray.LabelledArray([op(ai) for ai in a.subtensors_flat], a.shape, a.labels)
+    array = larr.LabelledArray([op(ai) for ai in a.subtensors_flat], a.shape, a.labels)
     return type(a)(array)
 
 neg = functools.partial(_elementwise_unary_op, operator.neg)
