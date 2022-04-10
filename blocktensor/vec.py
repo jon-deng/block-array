@@ -12,6 +12,7 @@ from petsc4py import PETSc
 from . import subops as gops
 from .tensor import BlockTensor
 from .mat import BlockMatrix
+from blocktensor.linalg import dot
 
 ## pylint: disable=no-member
 
@@ -55,22 +56,6 @@ def validate_blockvec_size(*args):
 
     return all(valid_bsizes)
 
-def dot(a, b):
-    """
-    Return the dot product of a and b
-    """
-    c = a*b
-    ret = 0
-    for vec in c:
-        # using the [:] indexing notation makes sum interpret the different data types as np arrays
-        # which can improve performance a lot
-        ret += sum(vec[:])
-    return ret
-
-def norm(a):
-    """Return the 2-norm of a vector"""
-    return dot(a, a)**0.5
-
 def convert_bvec_to_petsc(bvec):
     """
     Converts a block matrix from one submatrix type to the PETSc submatrix type
@@ -93,6 +78,22 @@ def convert_bvec_to_petsc_colbmat(bvec):
         tuple([gops.convert_vec_to_colmat(vec)]) for vec in bvec.subtensors_flat
         ])
     return BlockMatrix(mats)
+
+def dot(a, b):
+    """
+    Return the dot product of a and b
+    """
+    c = a*b
+    ret = 0
+    for vec in c:
+        # using the [:] indexing notation makes sum interpret the different data types as np arrays
+        # which can improve performance a lot
+        ret += sum(vec[:])
+    return ret
+
+def norm(a):
+    """Return the 2-norm of a vector"""
+    return dot(a, a)**0.5
 
 class BlockVector(BlockTensor):
     """

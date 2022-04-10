@@ -5,7 +5,7 @@ This module contains various linear algebra operations on block matrices/vectors
 from functools import reduce
 
 from . import subops as gops
-from .vec import BlockVector
+from .vec import (BlockVector, dot, norm)
 from .mat import BlockMatrix
 
 from . import subops as gops
@@ -39,3 +39,4 @@ def mult_mat_mat(bmata, bmatb):
 
     labels = tuple([bmata.labels[0], bmatb.labels[1]])
     return BlockMatrix(mats, labels=labels)
+
