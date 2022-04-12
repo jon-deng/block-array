@@ -307,7 +307,7 @@ def validate_elementwise_binary_op(a, b):
     """
     assert a.bshape == b.bshape
 
-def _elementwise_binary_op(op: Callable[T, T], a: BlockTensor, b: BlockTensor):
+def _elementwise_binary_op(op: Callable[[T, T], T], a: BlockTensor, b: BlockTensor):
     """
     Compute elementwise binary operation on BlockTensors
 
@@ -334,7 +334,7 @@ div = functools.partial(_elementwise_binary_op, operator.truediv)
 power = functools.partial(_elementwise_binary_op, operator.pow)
 
 
-def _elementwise_unary_op(op: Callable, a: BlockTensor):
+def _elementwise_unary_op(op: Callable[[T], T], a: BlockTensor):
     """
     Compute elementwise unary operation on a BlockTensor
 
