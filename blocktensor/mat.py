@@ -477,16 +477,16 @@ class BlockMatrix(BlockTensor):
     def norm(self):
         return norm(self)
 
-    def tranpose(self):
+    def transpose(self):
         """Return the block matrix transpose"""
         ret_labels = self.labels[::-1]
         ret_shape = self.shape[::-1]
 
-        # Loop over the row axis last in `product` so that the row indices 
+        # Loop over the row axis last in `product` so that the row indices
         # change the fastet; this ensures that the flat tensor represent the
         # transpose
         ret_subtensors = [
-            self[multi_idx[::-1]].copy().transpose() 
+            self[multi_idx[::-1]].copy().transpose()
             for multi_idx in itertools.product(
                 *[range(ax_size) for ax_size in self.shape[::-1]]
                 )

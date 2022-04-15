@@ -90,10 +90,10 @@ def test_mult_mat():
     out = bla.mult_mat_mat(BMAT1, BMAT2)
     print(out.shape)
 
-def test_tranpose():
+def test_transpose():
 
     print(BMAT1.shape)
-    D = BMAT1.tranpose()
+    D = BMAT1.transpose()
     print(D.to_petsc()[:, :])
     print(BMAT1.to_petsc()[:, :])
 
@@ -102,4 +102,4 @@ if __name__ == '__main__':
     test_zero_mat()
     test_ident_mat()
     test_concatenate_mat()
-    test_tranpose()
+    test_transpose()
