@@ -62,6 +62,24 @@ def add_mat(mata, matb, out=None):
     return mata+matb
 
 
+def solve_petsc_lu(amat, b, out=None, ksp=None):
+    """
+    Solve Ax=b using PETSc's LU solver
+    """
+    if ksp is None:
+        ksp = PETSc.KSP().create()
+        ksp.setType(ksp.Type.PREONLY)
+        ksp.setOperators(amat)
+        ksp.setUp()
+
+        pc = ksp.getPC()
+        pc.setType(pc.Type.LU)
+
+    if out is None:
+        out = amat.getVecRight()
+    ksp.solve(b, out)
+    return out, ksp
+
 def mult_mat_vec(mat, vec, out=None):
     """
     Return a matrix-vector product
@@ -119,6 +137,7 @@ def norm_mat(mat):
         return mat.norm(norm_type=PETSc.NormType.FROBENIUS)
     else:
         return np.sqrt(np.sum(mat**2))
+
 
 def size(tensor):
     """
