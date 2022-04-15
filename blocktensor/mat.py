@@ -486,7 +486,7 @@ class BlockMatrix(BlockTensor):
         # change the fastet; this ensures that the flat tensor represent the
         # transpose
         ret_subtensors = [
-            self[multi_idx[::-1]].transpose() 
+            self[multi_idx[::-1]].copy().transpose() 
             for multi_idx in itertools.product(
                 *[range(ax_size) for ax_size in self.shape[::-1]]
                 )
