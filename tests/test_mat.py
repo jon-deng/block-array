@@ -94,8 +94,8 @@ def test_tranpose():
 
     print(BMAT1.shape)
     D = BMAT1.tranpose()
-    print(D.to_petsc())
-    print(BMAT1.to_petsc())
+    print(D.to_petsc()[:, :])
+    print(BMAT1.to_petsc()[:, :])
 
 if __name__ == '__main__':
     test_mat_size_shape()
