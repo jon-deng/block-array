@@ -84,13 +84,22 @@ def test_concatenate_mat():
     cbmat = bmat.concatenate_mat([[BMAT1], [BMAT2]], labels=[['a', 'b', 'c', 'd'], ['a', 'b']])
     print(cbmat.shape)
     print(BMAT1.shape)
+    # print(cbmat.to_petsc())
 
 def test_mult_mat():
     out = bla.mult_mat_mat(BMAT1, BMAT2)
     print(out.shape)
+
+def test_tranpose():
+
+    print(BMAT1.shape)
+    D = BMAT1.tranpose()
+    print(D.to_petsc())
+    print(BMAT1.to_petsc())
 
 if __name__ == '__main__':
     test_mat_size_shape()
     test_zero_mat()
     test_ident_mat()
     test_concatenate_mat()
+    test_tranpose()

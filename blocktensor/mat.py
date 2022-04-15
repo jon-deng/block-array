@@ -3,6 +3,7 @@ This module contains the block matrix definition and various operations on
 block matrices
 """
 
+import itertools
 import numpy as np
 from blocktensor.tensor import BlockTensor
 from petsc4py import PETSc
@@ -475,3 +476,20 @@ class BlockMatrix(BlockTensor):
 
     def norm(self):
         return norm(self)
+
+    def tranpose(self):
+        """Return the block matrix transpose"""
+        ret_labels = self.labels[::-1]
+        ret_shape = self.shape[::-1]
+
+        # Loop over the row axis last in `product` so that the row indices 
+        # change the fastet; this ensures that the flat tensor represent the
+        # transpose
+        ret_subtensors = [
+            self[multi_idx[::-1]].transpose() 
+            for multi_idx in itertools.product(
+                *[range(ax_size) for ax_size in self.shape[::-1]]
+                )
+            ]
+
+        return BlockMatrix(ret_subtensors, ret_shape, ret_labels)
