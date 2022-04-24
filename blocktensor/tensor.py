@@ -12,9 +12,12 @@ from .types import (BlockShape, Shape)
 
 T = TypeVar('T')
 
-def _block_shape(array):
+def _block_shape(array: barr.LabelledArray):
     """
     Return the block shape of an array of subtensors
+
+    The block shape is based on the subtensors along the 'boundary'. For an
+    array of subtensors with shape `(2, 3, 4)` ...
     """
 
     ret_bshape = []
