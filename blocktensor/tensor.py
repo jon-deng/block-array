@@ -188,6 +188,14 @@ class BlockTensor:
         return self.larray.ndim
 
     @property
+    def dims(self):
+        return self.larray.dims
+
+    @property
+    def rdims(self):
+        return self.larray.rdims
+
+    @property
     def mshape(self) -> Shape:
         """
         Return the shape of the equivalent monolithic tensor

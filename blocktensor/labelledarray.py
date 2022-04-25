@@ -4,7 +4,7 @@ arbitrary objects and with labelled indices along each axis. These can be
 indexed in a similar way to `numpy.ndarray`.
 """
 
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Tuple
 from itertools import product, chain, accumulate
 
 import math
@@ -232,6 +232,16 @@ class LabelledArray:
     def ndim(self) -> int:
         """Return the number of dimensions (number of axes)"""
         return len(self.shape)
+
+    @property
+    def dims(self) -> Tuple[int, ...]:
+        """Return the axis/dimensions indices"""
+        return tuple(range(self.ndim))
+
+    @property
+    def rdims(self) -> Tuple[int, ...]:
+        """Return the reduced axis/dimensions indices"""
+        return tuple([ii for ii, ax_size in zip(self.dims, self.shape) if ax_size != -1])
 
     @property
     def labels(self) -> MultiLabels:
