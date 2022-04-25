@@ -19,17 +19,28 @@ def parse_ufunc_signature(
     """
     # split into input and output signatures
     sig = sig.replace(' ', '')
-    sig_inputs, sig_output = sig.split('->')
+    sig_inputs, sig_outputs = sig.split('->')
 
-    # further split the inputs signatures into signatures for each input
+    # further split the input/output signatures into signatures for each 
+    # input/output
     sig_inputs = sig_inputs.split('),(') 
     sig_inputs[0] = sig_inputs[0].replace('(', '')
     sig_inputs[-1] = sig_inputs[-1].replace(')', '')
 
-    # Clean extra parentheses from output signature
-    sig_output = sig_output.replace('(', '').replace(')', '')
+    sig_outputs = sig_outputs.split('),(') 
+    sig_outputs[0] = sig_outputs[0].replace('(', '')
+    sig_outputs[-1] = sig_outputs[-1].replace(')', '')
 
     # Change the signatures into tuples of symbols
     sig_inputs = [tuple(sig_input.split(',')) for sig_input in sig_inputs]
-    sig_output = tuple(sig_output.split(','))
-    return sig_inputs, sig_output
+    sig_outputs = [tuple(sig_output.split(',')) for sig_output in sig_outputs]
+    return sig_inputs, sig_outputs
+
+def interpret_ufunc_signature(input_sigs, output_sig):
+    """
+    Interprets a ufunc signature
+
+
+    """
+
+    label_to_type = {label: free}
