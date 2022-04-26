@@ -69,3 +69,48 @@ def interpret_ufunc_signature(sig_inputs, sig_outputs):
                 cnrt_name_to_input[name].append(tuple([ii_input, ii_ax]))
 
     return free_name_to_input, cnrt_name_to_input
+
+def split_shapes_by_signatures(shapes, sig_inputs):
+    """
+    Splits a list of shapes into lists of elementwise dims and core dims
+    """
+    ewise_shapes = [
+        shape[:len(sig)] for shape, sig in zip(shapes, sig_inputs)
+    ]
+    core_shapes = [
+        shape[-len(sig):] for shape, sig in zip(shapes, sig_inputs)
+    ]
+    return ewise_shapes, core_shapes
+
+def calculate_output_shapes(
+    ewise_input_shapes, core_input_shapes, sig_inputs, sig_outputs,
+    free_name_to_input=None
+    ):
+    """
+    Calculate the shape of the output BlockArray
+    """
+    # Check that the element wise dims of all inputs are the same
+    # TODO: support broadcasting?
+    for shapea, shapeb in zip(ewise_input_shapes[:-1], ewise_input_shapes[1:]):
+        assert shapea == shapeb
+
+    if free_name_to_input is None:
+        _, free_name_to_input = interpret_ufunc_signature(sig_inputs, sig_outputs)
+
+    ewise_output_shape = ewise_input_shapes[0]
+    ewise_output_shapes = [ewise_output_shape] * len(sig_outputs)
+
+    core_output_shapes = [
+        tuple([
+            core_input_shapes[free_name_to_input[label][0]][free_name_to_input[label][1]] 
+            for label in sig
+        ]) 
+        for sig in sig_outputs
+    ]
+
+    return ewise_output_shapes, core_output_shapes
+    
+
+    
+
+
