@@ -110,6 +110,36 @@ def calculate_output_shapes(
 
     return ewise_output_shapes, core_output_shapes
     
+def make_gen_input_multi_index(
+    ewise_input_ndims,
+    sig_inputs, sig_output
+    ):
+    """
+    Make a function that generates indices for inputs given an output index
+    """
+    free_name_to_output = {label: ii for ii, label in enumerate(sig_output)}
+
+    def gen_input_multi_index(out_multi_idx):
+        ewise_out_multi_idx = out_multi_idx[:-len(sig_output)]
+        core_out_multi_idx = out_multi_idx[-len(sig_output):]
+
+        ewise_multi_idx = [ewise_out_multi_idx[-n:] for n in ewise_input_ndims]
+        core_multi_idx = [
+            tuple([
+                core_out_multi_idx[free_name_to_output[label]] 
+                if label in free_name_to_output 
+                else slice(None)
+                for label in sig_input
+            ])
+            for sig_input in sig_inputs
+        ]
+
+        input_multi_idx = [
+            ewise+core for ewise, core in zip(ewise_multi_idx, core_multi_idx)
+        ]
+        return input_multi_idx
+
+    return gen_input_multi_index
 
     
 
