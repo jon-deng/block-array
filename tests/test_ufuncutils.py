@@ -1,13 +1,42 @@
+from numpy import ufunc
 from blocktensor import ufuncutils
 
-def test_parse_signature():
-    sig = '(i,j),(j,k)->(i, k)'
+SIGNATURE = '(i,j),(j,k)->(i, k)'
+
+def test_parse_ufunc_signature():
+    sig = SIGNATURE
     input_sigs, output_sig = ufuncutils.parse_ufunc_signature(sig)
 
     print(sig)
     print(input_sigs)
     print(output_sig)
 
+def test_interpret_ufunc_signature():
+    sig_inputs = [('i', 'j'), ('j', 'k')]
+    sig_outputs = [('i', 'k')]
+    print(ufuncutils.interpret_ufunc_signature(sig_inputs, sig_outputs))
+
+def test_split_shapes_by_signatures():
+    shape_inputs = [(2, 3, 2, 4), (2, 3, 4, 2)]
+    sig_inputs = [('i', 'j'), ('j', 'k')]
+
+    print(ufuncutils.split_shapes_by_signatures(shape_inputs, sig_inputs))
+    # shape_outputs = []
+
+def test_calculate_output_shapes():
+    shape_inputs = [(2, 3, 2, 4), (2, 3, 4, 2)]
+    sig_inputs = [('i', 'j'), ('j', 'k')]
+    sig_outputs = [('i', 'k')]
+
+    ewise_input_shapes, core_input_shapes = ufuncutils.split_shapes_by_signatures(shape_inputs, sig_inputs)
+
+    ewise_output_shapes, core_output_shapes = ufuncutils.calculate_output_shapes(ewise_input_shapes, core_input_shapes, sig_inputs, sig_outputs)
+    print(ewise_output_shapes, core_output_shapes)
+
 
 if __name__ == '__main__':
-    test_parse_signature()
+    test_parse_ufunc_signature()
+    test_interpret_ufunc_signature()
+    test_split_shapes_by_signatures()
+    test_calculate_output_shapes()
+    
