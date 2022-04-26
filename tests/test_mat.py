@@ -98,7 +98,7 @@ def test_transpose():
     print(BMAT1.to_petsc()[:, :])
 
 def test_to_mono_petsc_aij():
-    print(bmat.form_block_matrix(BMAT1.subtensors_nested))
+    print(bmat.form_block_matrix(BMAT1))
     # print(bmat.to_mono_petsc_aij(BMAT1))
 
 if __name__ == '__main__':

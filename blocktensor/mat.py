@@ -9,13 +9,13 @@ from blocktensor.tensor import BlockTensor
 from petsc4py import PETSc
 
 from . import subops as gops
-from .labelledarray import LabelledArray
+from .labelledarray import LabelledArray, flatten_array
 from .tensor import BlockTensor
 
 # pylint: disable=no-member
 
 # Utilies for constructing block matrices
-def form_block_matrix(blocks, finalize=True, comm=None):
+def form_block_matrix(bmat, comm=None, finalize=True):
     """
     Form a monolithic block matrix by combining matrices in `blocks`
 
@@ -32,115 +32,30 @@ def form_block_matrix(blocks, finalize=True, comm=None):
     if comm is None:
         comm = PETSc.COMM_SELF
 
-    blocks_shape = get_blocks_shape(blocks)
-    blocks_sizes = get_blocks_sizes(blocks, blocks_shape)
-    block_row_sizes, block_col_sizes = blocks_sizes
+    shape = bmat.shape
+    bshape = bmat.bshape
+    bshape_row, bshape_col = bshape
 
-    blocks_csr = get_blocks_csr(blocks, blocks_shape)
-    i_mono, j_mono, v_mono = get_block_matrix_csr(blocks_csr, blocks_shape, blocks_sizes)
+    blocks_csr = get_blocks_csr(bmat)
+    i_mono, j_mono, v_mono = get_block_matrix_csr(blocks_csr, shape, bshape)
 
     ## Create a monolithic matrix to contain the block matrix
-    block_mat = PETSc.Mat()
-    block_mat.create(comm)
-    block_mat.setSizes([np.sum(block_row_sizes), np.sum(block_col_sizes)])
-
-    block_mat.setUp() # You have to do this if you don't preallocate I think
+    ret_mat = PETSc.Mat().createAIJ(
+        (np.sum(bshape_row), np.sum(bshape_col)), comm=comm
+    )
+    nnz = i_mono[1:] - i_mono[:-1]
+    ret_mat.setUp() # You have to do this if you don't preallocate I think
+    ret_mat.setPreallocationNNZ(nnz)
 
     ## Insert the values into the matrix
-    nnz = i_mono[1:] - i_mono[:-1]
-    block_mat.setPreallocationNNZ(nnz)
-    block_mat.setValuesCSR(i_mono, j_mono, v_mono)
+    ret_mat.setValuesCSR(i_mono, j_mono, v_mono)
 
     if finalize:
-        block_mat.assemble()
+        ret_mat.assemble()
 
-    return block_mat
+    return ret_mat
 
-def get_blocks_shape(blocks):
-    """
-    Return the shape of the block matrix, and the sizes of each block
-
-    The function will also check if the supplied blocks have consistent shapes for a valid block
-    matrix.
-
-    Parameters
-    ----------
-    blocks : [[Petsc.Mat, ...]]
-        A list of lists containing the matrices forming the blocks of the desired block matrix.
-        These are organized as:
-            [[mat00, ..., mat0n],
-             [mat10, ..., mat1n],
-             [  ..., ...,   ...],
-             [matm0, ..., matmn]]
-    """
-    ## Get the block sizes
-    # also check that the same number of columns are supplied in each row
-    M_BLOCK = len(blocks)
-    N_BLOCK = len(blocks[0])
-    for row in range(1, M_BLOCK):
-        assert N_BLOCK == len(blocks[row])
-
-    return M_BLOCK, N_BLOCK
-
-def get_blocks_sizes(blocks, blocks_shape):
-    """
-    Return the sizes of each block in the block matrix
-
-    Parameters
-    ----------
-    blocks : [[Petsc.Mat, ...]]
-        A list of lists containing the matrices forming the blocks of the desired block matrix.
-        These are organized as:
-            [[mat00, ..., mat0n],
-             [mat10, ..., mat1n],
-             [  ..., ...,   ...],
-             [matm0, ..., matmn]]
-    blocks_shape : (M, N)
-        The shape of the blocks matrix i.e. number of row blocks by number of column blocks.
-
-    Returns
-    -------
-    block_row_sizes, block_col_sizes: np.ndarray
-        An array containing the number of rows/columns in each row/column block. For example, if
-        the block matrix contains blocks of shape
-        [[(2, 5), (2, 6)],
-         [(7, 5), (7, 6)]]
-        `block_row_sizes` and `block_col_sizes` will be [2, 7] and [5, 6], respectively.
-    """
-    M_BLOCK, N_BLOCK = blocks_shape
-
-    ## Calculate an array containing the n_rows in each row block
-    # and n_columns in each column block
-    block_row_sizes = -1*np.ones(M_BLOCK, dtype=np.intp)
-    block_col_sizes = -1*np.ones(N_BLOCK, dtype=np.intp)
-
-    # check that row/col sizes are consistent with the other row/col block sizes
-    for row in range(M_BLOCK):
-        for col in range(N_BLOCK):
-            block = blocks[row][col]
-            shape = None
-            if isinstance(block, PETSc.Mat):
-                shape = block.getSize()
-            elif isinstance(block, (int, float)):
-                # Use -1 to indicate a variable size 'diagonal' matrix, that will adopt
-                # the shape of neighbouring blocks to form a proper block matrix
-                shape = (-1, -1)
-            else:
-                raise ValueError("Blocks can only be matrices or floats")
-
-            for block_sizes in (block_row_sizes, block_col_sizes):
-                if block_sizes[row] == -1:
-                    block_sizes[row] = shape[0]
-                else:
-                    assert (block_sizes[row] == shape[0]
-                            or shape[0] == -1)
-
-    # convert any purely variable size blocks to size 1 blocks
-    block_row_sizes = np.where(block_row_sizes == -1, 1, block_row_sizes)
-    block_col_sizes = np.where(block_col_sizes == -1, 1, block_col_sizes)
-    return block_row_sizes, block_col_sizes
-
-def get_blocks_csr(blocks, blocks_shape):
+def get_blocks_csr(bmat):
     """
     Return the CSR format data for each block in a block matrix form
 
@@ -161,7 +76,7 @@ def get_blocks_csr(blocks, blocks_shape):
     [[(i, j, v), ...]]
         A 2d list containing the CSR data for each block
     """
-    M_BLOCK, N_BLOCK = blocks_shape
+    M_BLOCK, N_BLOCK = bmat.shape
 
     # Grab all the CSR format values and put them into a block list form
     i_block = []
@@ -173,18 +88,11 @@ def get_blocks_csr(blocks, blocks_shape):
         j_block_row = []
         v_block_row = []
         for col in range(N_BLOCK):
-            block = blocks[row][col]
-            if isinstance(block, PETSc.Mat):
-                i, j, v = block.getValuesCSR()
-                i_block_row.append(i)
-                j_block_row.append(j)
-                v_block_row.append(v)
-            else:
-                # In this case the block should just be a constant value, like 1.0
-                # to indicate an identity matrix
-                i_block_row.append(None)
-                j_block_row.append(None)
-                v_block_row.append(block)
+            i, j, v = bmat[row, col].getValuesCSR()
+            i_block_row.append(i)
+            j_block_row.append(j)
+            v_block_row.append(v)
+
         i_block.append(i_block_row)
         j_block.append(j_block_row)
         v_block.append(v_block_row)
@@ -430,7 +338,7 @@ def concatenate_mat(bmats, labels=None):
     """
     # check the array is 2D by checking that the number of columns in each row
     # are equal, pairwise
-    NUM_BROW, NUM_BCOL = get_blocks_shape(bmats)
+    _, (NUM_BROW, NUM_BCOL) = flatten_array(bmats)
 
     mats = []
     for brow in range(NUM_BROW):
@@ -472,7 +380,7 @@ class BlockMatrix(BlockTensor):
             raise ValueError(f"BlockMatrix must have dimension == 2, not {len(self.shape)}")
 
     def to_petsc(self, comm=None):
-        return form_block_matrix(self.subtensors_nested)
+        return form_block_matrix(self)
 
     def norm(self):
         return norm(self)
