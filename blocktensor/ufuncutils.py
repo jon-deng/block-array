@@ -95,7 +95,7 @@ def calculate_output_shapes(
         assert shapea == shapeb
 
     if free_name_to_input is None:
-        _, free_name_to_input = interpret_ufunc_signature(sig_inputs, sig_outputs)
+        free_name_to_input, _ = interpret_ufunc_signature(sig_inputs, sig_outputs)
 
     ewise_output_shape = ewise_input_shapes[0]
     ewise_output_shapes = [ewise_output_shape] * len(sig_outputs)
