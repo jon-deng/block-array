@@ -33,18 +33,18 @@ def test_calculate_output_shapes():
     ewise_output_shapes, core_output_shapes = ufuncutils.calculate_output_shapes(ewise_input_shapes, core_input_shapes, sig_inputs, sig_outputs)
     print(ewise_output_shapes, core_output_shapes)
 
-def test_gen_input_multi_index():
+def test_gen_in_multi_index():
     shape_inputs = [(2, 3, 2, 4), (2, 3, 4, 2)]
     sig_inputs = [('i', 'j'), ('j', 'k')]
     sig_outputs = [('i', 'k')]
 
     ewise_input_ndims = [2, 2]
 
-    gen_input_midx = ufuncutils.make_gen_input_multi_index(
+    gen_input_midx = ufuncutils.make_gen_in_multi_index(
         ewise_input_ndims, sig_inputs, sig_outputs[0]
     )
 
-    out_midx = (0, 0, 0, 0)
+    out_midx = (0, 0, 9, 2)
     print(gen_input_midx(out_midx))
 
 
@@ -53,5 +53,5 @@ if __name__ == '__main__':
     test_interpret_ufunc_signature()
     test_split_shapes_by_signatures()
     test_calculate_output_shapes()
-    test_gen_input_multi_index()
+    test_gen_in_multi_index()
     
