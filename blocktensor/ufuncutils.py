@@ -114,7 +114,7 @@ def split_shapes_by_signatures(
     Splits a list of shapes into lists of elementwise dims and core dims
     """
     ewise_shapes = [
-        shape[:len(sig)] for shape, sig in zip(shapes, sigs)
+        shape[:-len(sig)] for shape, sig in zip(shapes, sigs)
     ]
     core_shapes = [
         shape[-len(sig):] for shape, sig in zip(shapes, sigs)
@@ -155,16 +155,16 @@ def calculate_output_shapes(
 def make_gen_in_multi_index(
         e_ndim_ins: List[int],
         sig_ins: Signatures, 
-        sig_outs: Signatures
+        sig_out: Signature
     ):
     """
     Make a function that generates indices for inputs given an output index
     """
-    free_name_to_output = {label: ii for ii, label in enumerate(sig_outs)}
+    free_name_to_output = {label: ii for ii, label in enumerate(sig_out)}
 
     def gen_in_multi_index(out_multi_idx):
-        e_midx_outs = out_multi_idx[:-len(sig_outs)]
-        c_midx_outs = out_multi_idx[-len(sig_outs):]
+        e_midx_outs = out_multi_idx[:-len(sig_out)]
+        c_midx_outs = out_multi_idx[-len(sig_out):]
 
         e_midx_ins = [e_midx_outs[-n:] for n in e_ndim_ins]
         c_midx_ins = [
@@ -184,17 +184,18 @@ def make_gen_in_multi_index(
 
     return gen_in_multi_index
 
-def recursive_concatenate(arrays, shape, axes):
+def recursive_concatenate(arrays: types.FlatArray, shape: types.Shape, axes: types.IntIndices):
     """
     Recursively concatenate logically nested list of arrays
     """
     assert len(arrays) == np.prod(shape)
     N = len(arrays)
 
-    ret_array = arrays
+    ret_arrays = arrays
     for ax_size, axis in zip(shape[::-1], axes[::-1]):
         concat_arrays = [
-            ret_array[n*ax_size:n+1*(ax_size)] for n in range(N//ax_size)
+            ret_arrays[n*ax_size:(n+1)*ax_size] 
+            for n in range(len(ret_arrays)//ax_size)
         ]
         ret_arrays = [np.concatenate(arrays, axis) for arrays in concat_arrays]
 
@@ -208,7 +209,11 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     if method != '__call__':
         raise ValueError(f"ufunc method {method} is not supported")
 
-    sig_ins, sig_outs = parse_ufunc_signature(ufunc.signature)
+    if ufunc.signature is None:
+        signature = ','.join(['()']*ufunc.nin) + '->' + ','.join(['()']*ufunc.nout)
+    else:
+        signature = ufunc.signature
+    sig_ins, sig_outs = parse_ufunc_signature(signature)
     free_name_to_in, redu_name_to_in = interpret_ufunc_signature(sig_ins, sig_outs)
 
     shape_ins = [input.shape for input in inputs]
@@ -232,8 +237,8 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
 
     shape_outs = [eshape+cshape for eshape, cshape in zip(eshape_outs, cshape_outs)]
     outputs = []
-    for shape_out, labels_out in zip(shape_outs, labels_outs):
-        gen_in_midx = make_gen_in_multi_index(e_ndim_ins, sig_ins, sig_outs)
+    for shape_out, labels_out, sig_out in zip(shape_outs, labels_outs, sig_outs):
+        gen_in_midx = make_gen_in_multi_index(e_ndim_ins, sig_ins, sig_out)
 
         subtensors_out = []
         for midx_out in itertools.product(
@@ -254,3 +259,8 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
             subtensors_out.append(ufunc(*subtensor_ins, **kwargs))
 
         outputs.append(BlockTensor(subtensors_out, shape_out, labels_out))
+
+    if len(outputs) == 1:
+        return outputs[0]
+    else:
+        return tuple(outputs)

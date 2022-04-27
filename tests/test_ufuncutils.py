@@ -1,5 +1,6 @@
-from numpy import ufunc
-from blocktensor import ufuncutils
+
+import numpy as np
+from blocktensor import ufuncutils, tensor as btensor
 
 SIGNATURE = '(i,j),(j,k)->(i, k)'
 
@@ -34,18 +35,51 @@ def test_calculate_output_shapes():
     print(ewise_output_shapes, core_output_shapes)
 
 def test_gen_in_multi_index():
-    shape_inputs = [(2, 3, 2, 4), (2, 3, 4, 2)]
     sig_inputs = [('i', 'j'), ('j', 'k')]
     sig_outputs = [('i', 'k')]
 
+    shape_inputs = [(2, 3, 2, 4), (2, 3, 4, 2)]
     ewise_input_ndims = [2, 2]
+    out_midx = (0, 0, 9, 2)
+
+    shape_inputs = [(2, 4), (4, 2)]
+    ewise_input_ndims = [0, 0]
+    out_midx = (9, 2)
 
     gen_input_midx = ufuncutils.make_gen_in_multi_index(
         ewise_input_ndims, sig_inputs, sig_outputs[0]
     )
 
-    out_midx = (0, 0, 9, 2)
     print(gen_input_midx(out_midx))
+
+def test_recursive_concatenate():
+    a = np.ones((4, 4))
+    b = np.ones((4, 2))
+    c = np.ones((2, 4))
+    d = np.ones((2, 2))
+    A = btensor.BlockTensor([[a, b], [c, d]])
+
+    ufuncutils.recursive_concatenate(A.subtensors_flat, A.shape, A.dims)
+
+def test_apply_ufunc():
+    a = np.ones((4, 4))
+    b = np.ones((4, 2))
+    c = np.ones((2, 4))
+    d = np.ones((2, 2))
+    A = btensor.BlockTensor([[a, b], [c, d]])
+
+    a = np.ones((4, 4))
+    b = np.ones((4, 2))
+    c = np.ones((2, 4))
+    d = np.ones((2, 2))
+    B = btensor.BlockTensor([[a, b], [c, d]])
+
+    # C = ufuncutils.apply_ufunc(np.add, '__call__', *[A, B])
+    # print(C.shape)
+
+    D = ufuncutils.apply_ufunc(np.matmul, '__call__', *[A, B])
+    print(D.shape)
+
 
 
 if __name__ == '__main__':
@@ -54,4 +88,5 @@ if __name__ == '__main__':
     test_split_shapes_by_signatures()
     test_calculate_output_shapes()
     test_gen_in_multi_index()
-    
+    test_recursive_concatenate()
+    test_apply_ufunc()
