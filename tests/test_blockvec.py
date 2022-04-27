@@ -1,9 +1,9 @@
 import numpy as np
 import petsc4py.PETSc as PETSc
 
-from blocktensor import mat as bmat
+from blocktensor import blockmat as bmat
 from blocktensor import linalg as bla
-from blocktensor import vec as bvec
+from blocktensor import blockvec as bvec
 from blocktensor import blockarray as btensor
 
 # pylint: disable=unused-import

@@ -5,8 +5,8 @@ This module contains various linear algebra operations on block matrices/vectors
 from functools import reduce
 
 from . import subops as gops
-from .vec import (BlockVector, dot, norm)
-from .mat import BlockMatrix
+from .blockvec import (BlockVector, dot, norm)
+from .blockmat import BlockMatrix
 
 def mult_mat_vec(bmat, bvec):
     vecs = []

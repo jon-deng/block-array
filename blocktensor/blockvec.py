@@ -11,7 +11,7 @@ from petsc4py import PETSc
 
 from . import subops as gops
 from .blockarray import BlockArray
-from .mat import BlockMatrix
+from .blockmat import BlockMatrix
 
 ## pylint: disable=no-member
 

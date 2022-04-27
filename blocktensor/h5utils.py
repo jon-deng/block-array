@@ -4,7 +4,7 @@ Utilities for reading/writing BlockArray objects to hdf5
 
 import h5py
 
-from blocktensor import vec as bvec
+from blocktensor import blockvec as bvec
 
 def create_resizable_block_vector_group(
     f: h5py.Group, blocklabels, blockshape, dataset_kwargs=None):
