@@ -128,7 +128,7 @@ class BlockArray:
 
         self._bshape = _block_shape(self._larray)
 
-        validate_subtensor_shapes(self._larray, self.red_bshape)
+        validate_subtensor_shapes(self._larray, self.r_bshape)
 
     ## String representation functions
     def __repr__(self):
@@ -178,11 +178,11 @@ class BlockArray:
         return self.larray.shape
 
     @property
-    def rshape(self):
+    def r_shape(self):
         """
         Return the reduced shape (number of blocks in each axis)
         """
-        return self.larray.rshape
+        return self.larray.r_shape
 
     @property
     def ndim(self):
@@ -193,8 +193,8 @@ class BlockArray:
         return self.larray.dims
 
     @property
-    def rdims(self):
-        return self.larray.rdims
+    def r_dims(self):
+        return self.larray.r_dims
 
     @property
     def mshape(self) -> Shape:
@@ -211,7 +211,7 @@ class BlockArray:
         return self._bshape
 
     @property
-    def red_bshape(self) -> BlockShape:
+    def r_bshape(self) -> BlockShape:
         """
         Return the reduced block shape (number of blocks in each axis)
         """
@@ -219,7 +219,7 @@ class BlockArray:
         return ret_rbshape
 
     @property
-    def red_mshape(self) -> Shape:
+    def r_mshape(self) -> Shape:
         """
         Return the reduced block size (number of blocks in each axis)
         """
@@ -264,7 +264,7 @@ class BlockArray:
 
     ## Iterable interface over the first non-reduced axis
     def __iter__(self):
-        for ii in range(self.rshape[0]):
+        for ii in range(self.r_shape[0]):
             yield self[ii]
 
     ## common operator overloading

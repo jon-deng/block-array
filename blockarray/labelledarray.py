@@ -207,11 +207,11 @@ class LabelledArray:
         # Compute convenience constants
         _strides = [
             stride for stride
-            in accumulate(self.rshape[-1:0:-1], lambda a, b: a*b, initial=1)]
+            in accumulate(self.r_shape[-1:0:-1], lambda a, b: a*b, initial=1)]
         self._STRIDES = tuple(_strides[::-1])
         self._MULTI_LABEL_TO_IDX = tuple([
             {label: ii for label, ii in zip(axis_labels, idxs)}
-            for axis_labels, idxs in zip(self.rlabels, [range(axis_size) for axis_size in self.rshape])])
+            for axis_labels, idxs in zip(self.r_labels, [range(axis_size) for axis_size in self.r_shape])])
 
     @property
     def flat(self) -> FlatArray:
@@ -239,7 +239,7 @@ class LabelledArray:
         return tuple(range(self.ndim))
 
     @property
-    def rdims(self) -> Tuple[int, ...]:
+    def r_dims(self) -> Tuple[int, ...]:
         """Return the reduced axis/dimensions indices"""
         return tuple([ii for ii, ax_size in zip(self.dims, self.shape) if ax_size != -1])
 
@@ -249,7 +249,7 @@ class LabelledArray:
         return self._labels
 
     @property
-    def rshape(self) -> Shape:
+    def r_shape(self) -> Shape:
         """
         Return the reduced array shape
         """
@@ -257,7 +257,7 @@ class LabelledArray:
         return tuple(ret_rshape)
 
     @property
-    def rlabels(self) -> MultiLabels:
+    def r_labels(self) -> MultiLabels:
         """
         Return the reduced labels
         """
@@ -267,17 +267,17 @@ class LabelledArray:
     @property
     def size(self) -> int:
         """Return the array size"""
-        return math.prod(self.rshape)
+        return math.prod(self.r_shape)
 
     def __len__(self):
         return self.size
 
     def __getitem__(self, multi_idx) -> Union[T, 'LabelledArray']:
         multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
-        multi_idx = expand_multidx(multi_idx, self.rshape)
-        validate_multi_general_idx(tuple(multi_idx), self.rshape)
+        multi_idx = expand_multidx(multi_idx, self.r_shape)
+        validate_multi_general_idx(tuple(multi_idx), self.r_shape)
 
-        multi_idx = conv_gen_to_std_multidx(multi_idx, self.rshape, self._MULTI_LABEL_TO_IDX)
+        multi_idx = conv_gen_to_std_multidx(multi_idx, self.r_shape, self._MULTI_LABEL_TO_IDX)
 
         # Find the returned BlockArray's shape and labels
         # -1 represents a reduced dimension,
@@ -325,7 +325,7 @@ class LabelledArray:
 
     ## Iterable interface over the first axis
     def __iter__(self) -> Union[List['LabelledArray'], List[T]]:
-        for ii in range(self.rshape[0]):
+        for ii in range(self.r_shape[0]):
             yield self[ii]
 
 # For the below, the naming convention where applicable is:
