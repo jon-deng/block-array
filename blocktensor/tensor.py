@@ -5,6 +5,7 @@ from typing import TypeVar, Optional, Union, Callable
 from itertools import accumulate
 import functools
 import operator
+import numpy as np
 
 from . import labelledarray as larr
 from . import subops as gops
@@ -12,9 +13,12 @@ from .types import (BlockShape, Shape)
 
 T = TypeVar('T')
 
-def _block_shape(array):
+def _block_shape(array: barr.LabelledArray):
     """
     Return the block shape of an array of subtensors
+
+    The block shape is based on the subtensors along the 'boundary'. For an
+    array of subtensors with shape `(2, 3, 4)` ...
     """
 
     ret_bshape = []
@@ -185,6 +189,14 @@ class BlockTensor:
         return self.larray.ndim
 
     @property
+    def dims(self):
+        return self.larray.dims
+
+    @property
+    def rdims(self):
+        return self.larray.rdims
+
+    @property
     def mshape(self) -> Shape:
         """
         Return the shape of the equivalent monolithic tensor
@@ -301,6 +313,24 @@ class BlockTensor:
         else:
             return div(other, self)
 
+    ## Numpy ufunc interface
+    def __array_ufunc__(ufunc, method, *inputs, **kwargs):
+        for btensor in inputs:
+            if not isinstance(btensor, BlockTensor):
+                raise TypeError(
+                    f"ufunc {ufunc} cannot be called with inputs" +
+                    ", ".join([f"{type(input)}" for input in inputs])
+                    )
+
+        subtensors_in = [btensor.subtensors_flat for btensor in inputs]
+        subtensors_out = [
+            ufunc(*subtensor_inputs) for subtensor_inputs in subtensors_in
+            ]
+        ret_shape = inputs[0].shape
+        ret_labels = inputs[0].labels
+
+        return BlockTensor(subtensors_out, ret_shape, ret_labels)
+
 def validate_elementwise_binary_op(a, b):
     """
     Validates if BlockTensor inputs are applicable
@@ -378,3 +408,9 @@ def to_ndarray(block_tensor: BlockTensor):
         ret_array[idx] = block_tensor[block_idx]
 
     return ret_array
+
+
+## Ufunc interface
+elementwise_ufuncs = {
+    np.add
+}
