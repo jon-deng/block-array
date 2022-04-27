@@ -6,7 +6,7 @@ This package provides a ``BlockArray`` object that makes it easier to work with 
 The basic usage of the ``BlockArray`` is illustrated below for the case of a block matrix and block vector::
 
     import numpy as np
-    from blocktensor.tensor import BlockArray
+    from blockarray.tensor import BlockArray
 
     # `A` is a block representation of the matrix
     # [[1, 2, 3],

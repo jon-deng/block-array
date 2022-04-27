@@ -2,7 +2,7 @@
 
 BlockArray is a package for working with tensors logically partitioned into blocks (or subtensors) in a nested format. For example, block matrices and block vectors can be created as:
 ```python
-from BlockArray.tensor import BlockArray
+from BlockArray.blockarray import BlockArray
 from BlockArray.linalg import mult_mat_vec
 
 # model the block vector
