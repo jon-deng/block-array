@@ -60,7 +60,7 @@ BMAT2 = bmat.BlockMatrix(MATS, labels=(('a', 'b'), ('a', 'b')))
 BMAT3 = BMAT1+BMAT2
 
 print(BMAT1.to_mono_petsc()[:, :])
-print(BMAT3.to_petsc()[:, :])
+print(BMAT3.to_mono_petsc()[:, :])
 
 def test_mat_size_shape():
     print(BMAT1.size)
@@ -72,7 +72,7 @@ def test_add():
     BMAT3 = BMAT1 + BMAT2
     print(f"A: {BMAT1[:, :].to_mono_petsc()[:, :]}")
     print(f"B: {BMAT1[:, :].to_mono_petsc()[:, :]}")
-    print(f"A+B: {BMAT3[:, :].to_petsc()[:, :]}")
+    print(f"A+B: {BMAT3[:, :].to_mono_petsc()[:, :]}")
 
 def test_zero_mat():
     print(bmat.zero_mat(5, 6)[:, :])
