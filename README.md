@@ -1,15 +1,15 @@
-# BlockTensor
+# BlockArray
 
-BlockTensor is a package for working with tensors logically partitioned into blocks (or subtensors) in a nested format. For example, block matrices and block vectors can be created as:
+BlockArray is a package for working with tensors logically partitioned into blocks (or subtensors) in a nested format. For example, block matrices and block vectors can be created as:
 ```python
-from blocktensor.tensor import BlockTensor
-from blocktensor.linalg import mult_mat_vec
+from BlockArray.tensor import BlockArray
+from BlockArray.linalg import mult_mat_vec
 
 # model the block vector
 # [x0, x1]
 # where x0 = np.array([1, 2, 3])
 # x1 = np.array([4, 5])
-x = BlockTensor([np.array([1, 2, 3]), np.array([4, 5])])
+x = BlockArray([np.array([1, 2, 3]), np.array([4, 5])])
 
 # model the block matrix
 # [[A00, A01],
@@ -29,7 +29,7 @@ A10 = np.array(
 A11 = np.array(
     [[1, 2],
      [3, 4]])
-A = BlockTensor([[A00, A01], [A10, A11]])
+A = BlockArray([[A00, A01], [A10, A11]])
 
 # Basic math operations
 y = mult_mat_vec(2*A, x)

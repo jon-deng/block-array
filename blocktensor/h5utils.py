@@ -1,5 +1,5 @@
 """
-Utilities for reading/writing BlockTensor objects to hdf5
+Utilities for reading/writing BlockArray objects to hdf5
 """
 
 import h5py

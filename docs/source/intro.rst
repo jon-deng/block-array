@@ -2,11 +2,11 @@
 Introduction
 ************
 
-This package provides a ``BlockTensor`` object that makes it easier to work with tensors that are logically divided into multiple blocks or subtensors.
-The basic usage of the ``BlockTensor`` is illustrated below for the case of a block matrix and block vector::
+This package provides a ``BlockArray`` object that makes it easier to work with tensors that are logically divided into multiple blocks or subtensors.
+The basic usage of the ``BlockArray`` is illustrated below for the case of a block matrix and block vector::
 
     import numpy as np
-    from blocktensor.tensor import BlockTensor
+    from blocktensor.tensor import BlockArray
 
     # `A` is a block representation of the matrix
     # [[1, 2, 3],
@@ -24,7 +24,7 @@ The basic usage of the ``BlockTensor`` is illustrated below for the case of a bl
         [[7, 8]])
     A11 = np.array(
         [[9]])
-    A = BlockTensor([[A00, A01], [A10, A11]], labels=(('a', 'b'), ('a', 'b')))
+    A = BlockArray([[A00, A01], [A10, A11]], labels=(('a', 'b'), ('a', 'b')))
 
 
     # `X` is a block representation of the vector
@@ -32,7 +32,7 @@ The basic usage of the ``BlockTensor`` is illustrated below for the case of a bl
     # the first block is labelled 'a' and the second 'b'
     X0 = np.array([1, 2])
     X1 = np.array([3])
-    X = BlockTensor([X0, X1], labels=(('a', 'b'),))
+    X = BlockArray([X0, X1], labels=(('a', 'b'),))
 
 In the above example, the matrix ``A`` is represented by 2 row blocks (with corresponding submatrix row sizes 2 and 1) and 2 column blocks (with corresponding submatrix column sizes 2 and 1) while the vector ``X`` is represented with two row blocks (with corresponding subvector sizes 2 and 1).
 Blocks of ``A`` and ``X`` are also labelled; labels are useful to organize blocks since blocks often represent different different systems.
@@ -47,9 +47,9 @@ Indexing block tensors works similarly to indexing in ``numpy`` with some additi
         * ``tensor[0]`` returns subtensor ``a``
         * ``tensor[-1]`` returns subtensor ``c``
     * range of indices by slice
-        * ``tensor[0:2]`` returns a ``BlockTensor`` with subtensors ``(a, b)``
-        * ``tensor[:]`` returns the same ``BlockTensor`` as ``tensor``
+        * ``tensor[0:2]`` returns a ``BlockArray`` with subtensors ``(a, b)``
+        * ``tensor[:]`` returns the same ``BlockArray`` as ``tensor``
     * range of indices by list of single indices
-        * ``tensor[['a', 'b']]`` returns a ``BlockTensor`` with subtensors ``(a, b)``
-        * ``tensor[[0, 1]]`` returns a ``BlockTensor`` with subtensors ``(a, b)``
-        * ``tensor[[0, -1]]`` returns a ``BlockTensor`` with subtensors ``(a, c)``
+        * ``tensor[['a', 'b']]`` returns a ``BlockArray`` with subtensors ``(a, b)``
+        * ``tensor[[0, 1]]`` returns a ``BlockArray`` with subtensors ``(a, b)``
+        * ``tensor[[0, -1]]`` returns a ``BlockArray`` with subtensors ``(a, c)``

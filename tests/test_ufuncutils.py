@@ -1,6 +1,6 @@
 
 import numpy as np
-from blocktensor import ufunc, tensor as btensor
+from blocktensor import blockarray as btensor, ufunc
 
 SIGNATURE = '(i,j),(j,k)->(i, k)'
 
@@ -57,7 +57,7 @@ def test_recursive_concatenate():
     b = np.ones((4, 2))
     c = np.ones((2, 4))
     d = np.ones((2, 2))
-    A = btensor.BlockTensor([[a, b], [c, d]])
+    A = btensor.BlockArray([[a, b], [c, d]])
 
     ufunc.recursive_concatenate(A.subtensors_flat, A.shape, A.dims)
 
@@ -66,13 +66,13 @@ def test_apply_ufunc():
     b = np.ones((4, 2))
     c = np.ones((2, 4))
     d = np.ones((2, 2))
-    A = btensor.BlockTensor([[a, b], [c, d]])
+    A = btensor.BlockArray([[a, b], [c, d]])
 
     a = np.ones((4, 4))
     b = np.ones((4, 2))
     c = np.ones((2, 4))
     d = np.ones((2, 2))
-    B = btensor.BlockTensor([[a, b], [c, d]])
+    B = btensor.BlockArray([[a, b], [c, d]])
 
     # C = ufuncutils.apply_ufunc(np.add, '__call__', *[A, B])
     # print(C.shape)

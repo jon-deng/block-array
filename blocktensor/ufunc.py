@@ -7,7 +7,7 @@ from typing import Tuple, List, Mapping, Optional
 import numpy as np
 
 from . import types
-from .tensor import BlockTensor
+from .blockarray import BlockArray
 
 Signature = Tuple[str, ...]
 Signatures = List[Signature]
@@ -204,7 +204,7 @@ def recursive_concatenate(arrays: types.FlatArray, shape: types.Shape, axes: typ
 
 def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
-    Apply a ufunc on sequence of BlockTensor inputs
+    Apply a ufunc on sequence of BlockArray inputs
     """
     if method != '__call__':
         raise ValueError(f"ufunc method {method} is not supported")
@@ -258,7 +258,7 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
 
             subtensors_out.append(ufunc(*subtensor_ins, **kwargs))
 
-        outputs.append(BlockTensor(subtensors_out, shape_out, labels_out))
+        outputs.append(BlockArray(subtensors_out, shape_out, labels_out))
 
     if len(outputs) == 1:
         return outputs[0]

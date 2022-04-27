@@ -5,12 +5,11 @@ block matrices
 
 import itertools
 import numpy as np
-from blocktensor.tensor import BlockTensor
+from blocktensor.blockarray import BlockArray
 from petsc4py import PETSc
 
 from . import subops as gops
 from .labelledarray import LabelledArray, flatten_array
-from .tensor import BlockTensor
 
 # pylint: disable=no-member
 
@@ -366,7 +365,7 @@ def convert_bmat_to_petsc(bmat):
     barray = LabelledArray(mats, bmat.shape, bmat.labels)
     return BlockMatrix(barray)
 
-class BlockMatrix(BlockTensor):
+class BlockMatrix(BlockArray):
     """
     Represents a block matrix with blocks indexed by keys
     """

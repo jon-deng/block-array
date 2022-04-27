@@ -39,12 +39,12 @@ def _block_shape(array: larr.LabelledArray):
 
 def validate_subtensor_shapes(array: larr.LabelledArray, bshape):
     """
-    Validate subtensors in a BlockTensor have a valid shape
+    Validate subtensors in a BlockArray have a valid shape
 
     array :
         The block array containing the subtensors
     shape :
-        The target block shape of the BlockTensor
+        The target block shape of the BlockArray
     """
     # Subtensors are valid along an axis at a certain block if:
     # all subtensors in the remaining dimensions have the same shape along that
@@ -69,13 +69,13 @@ def validate_subtensor_shapes(array: larr.LabelledArray, bshape):
                 valid_bsizes = [bsize == _bsize for _bsize in ascblock_sizes]
                 assert all(valid_bsizes)
 
-class BlockTensor:
+class BlockArray:
     """
     An n-dimensional block tensor object
 
-    `BlockTensor` has two main attributes: an underlying `LabelledArray` that stores the subtensors in an n-d layout and a `bshape` attributes that stores the shape of the blocks along each axis.
+    `BlockArray` has two main attributes: an underlying `LabelledArray` that stores the subtensors in an n-d layout and a `bshape` attributes that stores the shape of the blocks along each axis.
 
-    For example, consider a `BlockTensor` `A` with the block shape `((10, 5), (2, 4))`.
+    For example, consider a `BlockArray` `A` with the block shape `((10, 5), (2, 4))`.
     This represents a matrix with blocks of size 10 and 5 along the rows, and blocks of size 2 and 4 along the columns. Subtensors of `A` would then have shapes:
         `A[0, 0].shape == (10, 2)`
         `A[0, 1].shape == (10, 4)`
@@ -316,7 +316,7 @@ class BlockTensor:
     ## Numpy ufunc interface
     def __array_ufunc__(ufunc, method, *inputs, **kwargs):
         for btensor in inputs:
-            if not isinstance(btensor, BlockTensor):
+            if not isinstance(btensor, BlockArray):
                 raise TypeError(
                     f"ufunc {ufunc} cannot be called with inputs" +
                     ", ".join([f"{type(input)}" for input in inputs])
@@ -329,24 +329,24 @@ class BlockTensor:
         ret_shape = inputs[0].shape
         ret_labels = inputs[0].labels
 
-        return BlockTensor(subtensors_out, ret_shape, ret_labels)
+        return BlockArray(subtensors_out, ret_shape, ret_labels)
 
 def validate_elementwise_binary_op(a, b):
     """
-    Validates if BlockTensor inputs are applicable
+    Validates if BlockArray inputs are applicable
     """
     assert a.bshape == b.bshape
 
-def _elementwise_binary_op(op: Callable[[T, T], T], a: BlockTensor, b: BlockTensor):
+def _elementwise_binary_op(op: Callable[[T, T], T], a: BlockArray, b: BlockArray):
     """
-    Compute elementwise binary operation on BlockTensors
+    Compute elementwise binary operation on BlockArrays
 
     Parameters
     ----------
     op: function
         A function with signature func(a, b) -> c, where a, b, c are vector of
         the same shape
-    a, b: BlockTensor
+    a, b: BlockArray
     """
     validate_elementwise_binary_op(a, b)
     array = tuple([op(ai, bi) for ai, bi in zip(a.subtensors_flat, b.subtensors_flat)])
@@ -364,13 +364,13 @@ div = functools.partial(_elementwise_binary_op, operator.truediv)
 power = functools.partial(_elementwise_binary_op, operator.pow)
 
 
-def _elementwise_unary_op(op: Callable[[T], T], a: BlockTensor):
+def _elementwise_unary_op(op: Callable[[T], T], a: BlockArray):
     """
-    Compute elementwise unary operation on a BlockTensor
+    Compute elementwise unary operation on a BlockArray
 
     Parameters
     ----------
-    a: BlockTensor
+    a: BlockArray
     """
     array = larr.LabelledArray([op(ai) for ai in a.subtensors_flat], a.shape, a.labels)
     return type(a)(array)
@@ -385,9 +385,9 @@ def scalar_mul(alpha, a):
 def scalar_div(alpha, a):
     return _elementwise_unary_op(lambda subvec: subvec/alpha, a)
 
-def to_ndarray(block_tensor: BlockTensor):
+def to_ndarray(block_tensor: BlockArray):
     """
-    Convert a BlockTensor object to a ndarray object
+    Convert a BlockArray object to a ndarray object
     """
     # .bsize (block size) is the resulting shape of the monolithic array
     ret_array = np.zeros(block_tensor.mshape)

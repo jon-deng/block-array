@@ -4,7 +4,7 @@ import petsc4py.PETSc as PETSc
 from blocktensor import mat as bmat
 from blocktensor import linalg as bla
 from blocktensor import vec as bvec
-from blocktensor import tensor as btensor
+from blocktensor import blockarray as btensor
 
 # pylint: disable=unused-import
 # pylint: disable=missing-function-docstring

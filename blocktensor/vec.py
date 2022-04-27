@@ -10,7 +10,7 @@ import numpy as np
 from petsc4py import PETSc
 
 from . import subops as gops
-from .tensor import BlockTensor
+from .blockarray import BlockArray
 from .mat import BlockMatrix
 
 ## pylint: disable=no-member
@@ -94,7 +94,7 @@ def norm(a):
     """Return the 2-norm of a vector"""
     return dot(a, a)**0.5
 
-class BlockVector(BlockTensor):
+class BlockVector(BlockArray):
     """
     Represents a block vector with blocks indexed by labels
     """
@@ -138,8 +138,8 @@ class BlockVector(BlockTensor):
         value : array_like or BlockVector
         """
         _array = self[key]
-        if isinstance(_array, BlockTensor):
-            if isinstance(value, BlockTensor):
+        if isinstance(_array, BlockArray):
+            if isinstance(value, BlockArray):
                 for subvec, subvec_value in zip(_array, value):
                     gops.set_vec(subvec, subvec_value)
             else:
