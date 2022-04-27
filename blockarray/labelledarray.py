@@ -9,7 +9,7 @@ from itertools import product, chain, accumulate
 
 import math
 
-from .types import (
+from .typing import (
     T,
     NestedArray,
     FlatArray,

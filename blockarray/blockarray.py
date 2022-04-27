@@ -9,7 +9,7 @@ import numpy as np
 
 from . import labelledarray as larr
 from . import subops as gops
-from .types import (BlockShape, Shape)
+from .typing import (BlockShape, Shape)
 
 T = TypeVar('T')
 

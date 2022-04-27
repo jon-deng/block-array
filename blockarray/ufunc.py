@@ -6,13 +6,13 @@ import itertools
 from typing import Tuple, List, Mapping, Optional
 import numpy as np
 
-from . import types
+from . import typing
 from .blockarray import BlockArray
 
 Signature = Tuple[str, ...]
 Signatures = List[Signature]
 
-Shapes = List[types.Shape]
+Shapes = List[typing.Shape]
 
 def parse_ufunc_signature(
         sig: str
@@ -107,7 +107,7 @@ def interpret_ufunc_signature(
     return free_dname_to_in, redu_dname_to_ins
 
 def split_shapes_by_signatures(
-        shapes: types.Shape, 
+        shapes: typing.Shape, 
         sigs: Signatures
     ) -> Tuple[Shapes, Shapes]:
     """
@@ -184,7 +184,7 @@ def make_gen_in_multi_index(
 
     return gen_in_multi_index
 
-def recursive_concatenate(arrays: types.FlatArray, shape: types.Shape, axes: types.IntIndices):
+def recursive_concatenate(arrays: typing.FlatArray, shape: typing.Shape, axes: typing.IntIndices):
     """
     Recursively concatenate logically nested list of arrays
     """
