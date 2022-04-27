@@ -226,7 +226,11 @@ def convert_mat_to_petsc(mat, comm=None, keep_diagonal=True):
     mat_shape = shape_mat(mat)
     assert len(mat_shape) == 2
     is_square = mat_shape[0] == mat_shape[1]
-    if isinstance(mat, NDARRAY_TYPES):
+    if isinstance(mat, PETSc.Mat):
+        out = mat
+    elif isinstance(mat, dfn.PETScMatrix):
+        out = mat.mat()
+    elif isinstance(mat, NDARRAY_TYPES):
         COL_IDXS = np.arange(mat_shape[1], dtype=np.int32)
         out = PETSc.Mat().createAIJ(mat_shape, comm=comm)
         out.setUp()
@@ -243,10 +247,8 @@ def convert_mat_to_petsc(mat, comm=None, keep_diagonal=True):
             for ii in range(mat_shape[0]):
                 out.setValue(ii, ii, 0.0, addv=PETSc.InsertMode.ADD_VALUES)
         out.assemble()
-    elif isinstance(mat, dfn.PETScMatrix):
-        out = mat.mat()
     else:
-        out = mat
+        raise ValueError(f"Can't convert matrix of type {type(mat)} to PETSc.Mat")
 
     return out
 
@@ -255,15 +257,18 @@ def convert_vec_to_petsc(vec, comm=None):
     Return a `PETSc.Vec` representation of `vec`
     """
     M = size_vec(vec)
-    if isinstance(vec, NDARRAY_TYPES):
+    if isinstance(vec, PETSc.Vec):
+        out = vec
+    elif isinstance(vec, dfn.PETScVector):
+        out = vec.vec()
+    elif isinstance(vec, NDARRAY_TYPES):
         out = PETSc.Vec().createSeq(M, comm=comm)
         out.setUp()
         out.array[:] = vec
         out.assemble()
-    elif isinstance(vec, dfn.PETScVector):
-        out = vec.vec()
     else:
-        out = vec
+        raise ValueError(f"Can't convert vector of type {type(vec)} to PETSc.Vec")
+
     return out
 
 ## Convert vectors to row/column matrices
