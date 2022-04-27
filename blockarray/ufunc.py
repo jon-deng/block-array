@@ -7,7 +7,7 @@ from typing import Tuple, List, Mapping, Optional
 import numpy as np
 
 from . import typing
-from .blockarray import BlockArray
+# from .blockarray import BlockArray
 
 Signature = Tuple[str, ...]
 Signatures = List[Signature]
@@ -206,6 +206,11 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
     Apply a ufunc on sequence of BlockArray inputs
     """
+    input_types = [type(x) for x in inputs]
+    input_type = input_types[0]
+    if not all([typ == input_type for typ in input_types]):
+        raise TypeError(f"Inputs must be of uniform type, not {input_types}")
+
     if method != '__call__':
         return NotImplemented
 
@@ -258,7 +263,8 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
 
             subtensors_out.append(ufunc(*subtensor_ins, **kwargs))
 
-        outputs.append(BlockArray(subtensors_out, shape_out, labels_out))
+
+        outputs.append(type(inputs[0])(subtensors_out, shape_out, labels_out))
 
     if len(outputs) == 1:
         return outputs[0]
