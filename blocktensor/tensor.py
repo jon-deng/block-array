@@ -13,7 +13,7 @@ from .types import (BlockShape, Shape)
 
 T = TypeVar('T')
 
-def _block_shape(array: barr.LabelledArray):
+def _block_shape(array: larr.LabelledArray):
     """
     Return the block shape of an array of subtensors
 
