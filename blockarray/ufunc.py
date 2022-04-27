@@ -20,7 +20,7 @@ def parse_ufunc_signature(
     """
     Parse a ufunc signature into a nicer format
 
-    For a ufunc signature string 
+    For a ufunc signature string
     '(i,j),(j,k)->(i,k)'
     this function represents the inputs and output axis labels in a tuple
     `('i', 'j') ('j', 'k') ('i', 'k')`
@@ -29,13 +29,13 @@ def parse_ufunc_signature(
     sig = sig.replace(' ', '')
     sig_inputs, sig_outputs = sig.split('->')
 
-    # further split the input/output signatures into signatures for each 
+    # further split the input/output signatures into signatures for each
     # input/output
-    sig_inputs = sig_inputs.split('),(') 
+    sig_inputs = sig_inputs.split('),(')
     sig_inputs[0] = sig_inputs[0].replace('(', '')
     sig_inputs[-1] = sig_inputs[-1].replace(')', '')
 
-    sig_outputs = sig_outputs.split('),(') 
+    sig_outputs = sig_outputs.split('),(')
     sig_outputs[0] = sig_outputs[0].replace('(', '')
     sig_outputs[-1] = sig_outputs[-1].replace(')', '')
 
@@ -45,10 +45,10 @@ def parse_ufunc_signature(
     return sig_inputs, sig_outputs
 
 def interpret_ufunc_signature(
-        sig_ins: Signatures, 
+        sig_ins: Signatures,
         sig_outs: Signatures
     ) -> Tuple[
-        Mapping[str, Tuple[int, int]], 
+        Mapping[str, Tuple[int, int]],
         Mapping[str, List[Tuple[int, int]]]
     ]:
     """
@@ -56,7 +56,7 @@ def interpret_ufunc_signature(
 
     Parameters
     ----------
-    sig_ins, sig_outs: 
+    sig_ins, sig_outs:
         Signatures for inputs and outputs
 
     Returns
@@ -65,14 +65,14 @@ def interpret_ufunc_signature(
         A description of free dimension names. This
         dictionary maps the dimension name to a tuple of 2 integers `(nin, dim)`
         containing the input number and dimension of the dimension name. For
-        example, a signature '(i,j),(j,k)->(i,k)' has free dimension names of 
+        example, a signature '(i,j),(j,k)->(i,k)' has free dimension names of
         'i,k' and would have `free_dname_descr` be
         `{'i': (0, 0), 'k': (1, 1)}`.
     redu_dname_to_ins: Dict
-        A description of reduced dimension names. 
-        This dictionary maps the dimension name to a list of tuples of 2 
+        A description of reduced dimension names.
+        This dictionary maps the dimension name to a list of tuples of 2
         integers `(nin, dim)` containing inputs and dimensions where the reduced
-        dimension occurs. For example, a signature '(i,j),(j,k)->(i,k)' has 
+        dimension occurs. For example, a signature '(i,j),(j,k)->(i,k)' has
         reduced dimension names of 'j' and would have `redu_dname_descr` be
         `{'j': [(0, 1), (1, 0)]}`.
     """
@@ -85,7 +85,7 @@ def interpret_ufunc_signature(
         name for sig_in in sig_ins for name in sig_in
         if name not in free_names
     }
-    
+
     # For each free dimension name, record the input number and axis number that
     # it occurs in
     free_dname_to_in = {
@@ -96,7 +96,7 @@ def interpret_ufunc_signature(
     }
     assert set(free_dname_to_in.keys()) == free_names
 
-    # For each reduced dimension name, record the axis indices it occurs in 
+    # For each reduced dimension name, record the axis indices it occurs in
     # for each input
     redu_dname_to_ins = {name: [] for name in list(redu_names)}
     for ii_input, sig_input in enumerate(sig_ins):
@@ -107,7 +107,7 @@ def interpret_ufunc_signature(
     return free_dname_to_in, redu_dname_to_ins
 
 def split_shapes_by_signatures(
-        shapes: typing.Shape, 
+        shapes: typing.Shape,
         sigs: Signatures
     ) -> Tuple[Shapes, Shapes]:
     """
@@ -122,9 +122,9 @@ def split_shapes_by_signatures(
     return ewise_shapes, core_shapes
 
 def calculate_output_shapes(
-        e_shape_ins: Shapes, 
-        c_shape_ins: Shapes, 
-        sig_ins: Signatures, 
+        e_shape_ins: Shapes,
+        c_shape_ins: Shapes,
+        sig_ins: Signatures,
         sig_outs: Signatures,
         free_name_to_in : Optional[Mapping[str, Tuple[int, int]]]=None
     ) -> Tuple[Shapes, Shapes]:
@@ -144,17 +144,17 @@ def calculate_output_shapes(
 
     cshape_outs = [
         tuple([
-            c_shape_ins[free_name_to_in[label][0]][free_name_to_in[label][1]] 
+            c_shape_ins[free_name_to_in[label][0]][free_name_to_in[label][1]]
             for label in sig
-        ]) 
+        ])
         for sig in sig_outs
     ]
 
     return eshape_outs, cshape_outs
-    
+
 def make_gen_in_multi_index(
         e_ndim_ins: List[int],
-        sig_ins: Signatures, 
+        sig_ins: Signatures,
         sig_out: Signature
     ):
     """
@@ -169,8 +169,8 @@ def make_gen_in_multi_index(
         e_midx_ins = [e_midx_outs[-n:] for n in e_ndim_ins]
         c_midx_ins = [
             tuple([
-                c_midx_outs[free_name_to_output[label]] 
-                if label in free_name_to_output 
+                c_midx_outs[free_name_to_output[label]]
+                if label in free_name_to_output
                 else slice(None)
                 for label in sig_input
             ])
@@ -194,7 +194,7 @@ def recursive_concatenate(arrays: typing.FlatArray, shape: typing.Shape, axes: t
     ret_arrays = arrays
     for ax_size, axis in zip(shape[::-1], axes[::-1]):
         concat_arrays = [
-            ret_arrays[n*ax_size:(n+1)*ax_size] 
+            ret_arrays[n*ax_size:(n+1)*ax_size]
             for n in range(len(ret_arrays)//ax_size)
         ]
         ret_arrays = [np.concatenate(arrays, axis) for arrays in concat_arrays]
@@ -207,7 +207,7 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     Apply a ufunc on sequence of BlockArray inputs
     """
     if method != '__call__':
-        raise ValueError(f"ufunc method {method} is not supported")
+        return NotImplemented
 
     if ufunc.signature is None:
         signature = ','.join(['()']*ufunc.nin) + '->' + ','.join(['()']*ufunc.nout)
@@ -228,7 +228,7 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     clabels_ins = [input.labels[-len(sig_in):] for input, sig_in in zip(inputs, sig_ins)]
     clabels_outs = [
         tuple([
-            clabels_ins[free_name_to_in[name][0]][free_name_to_in[name][1]] 
+            clabels_ins[free_name_to_in[name][0]][free_name_to_in[name][1]]
             for name in sig_out
         ])
         for sig_out in sig_outs
@@ -250,7 +250,7 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
             ]
             subtensor_ins = [
                 recursive_concatenate(
-                    subtensor.subarrays_flat, 
+                    subtensor.subarrays_flat,
                     subtensor.r_shape,
                     subtensor.r_dims)
                 for subtensor in subtensor_ins

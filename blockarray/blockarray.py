@@ -10,6 +10,7 @@ import numpy as np
 from . import labelledarray as larr
 from . import subops as gops
 from .typing import (BlockShape, Shape, MultiLabels, Scalar)
+from .ufunc import apply_ufunc
 
 T = TypeVar('T')
 
@@ -352,22 +353,8 @@ class BlockArray:
             return div(other, self)
 
     ## Numpy ufunc interface
-    def __array_ufunc__(ufunc, method, *inputs, **kwargs):
-        for btensor in inputs:
-            if not isinstance(btensor, BlockArray):
-                raise TypeError(
-                    f"ufunc {ufunc} cannot be called with inputs" +
-                    ", ".join([f"{type(input)}" for input in inputs])
-                    )
-
-        subtensors_in = [btensor.subarrays_flat for btensor in inputs]
-        subtensors_out = [
-            ufunc(*subtensor_inputs) for subtensor_inputs in subtensors_in
-            ]
-        ret_shape = inputs[0].shape
-        ret_labels = inputs[0].labels
-
-        return BlockArray(subtensors_out, ret_shape, ret_labels)
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        return apply_ufunc(ufunc, method, *inputs, **kwargs)
 
 def validate_elementwise_binary_op(a: BlockArray, b: BlockArray):
     """
