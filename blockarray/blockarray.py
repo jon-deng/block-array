@@ -416,7 +416,7 @@ def scalar_mul(alpha: Scalar, a: BlockArray) -> BlockArray:
 def scalar_div(alpha: Scalar, a: BlockArray) -> BlockArray:
     return _elementwise_unary_op(lambda subvec: subvec/alpha, a)
 
-def to_ndarray(block_tensor: BlockArray):
+def to_mono_ndarray(block_tensor: BlockArray):
     """
     Convert a BlockArray object to a ndarray object
     """
