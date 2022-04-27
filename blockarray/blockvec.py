@@ -19,81 +19,6 @@ from .blockmat import BlockMatrix
 # Type variable for a 'sub'vector
 T = TypeVar('T')
 
-# BlockVector methods
-def split_bvec(bvec, block_sizes):
-    """
-    Splits a block vector into multiple block vectors
-    """
-    block_cumul_sizes = [0] + np.cumsum(block_sizes).tolist()
-    split_bvecs = [
-        bvec[ii:jj]
-        for ii, jj in zip(block_cumul_sizes[:-1], block_cumul_sizes[1:])
-        ]
-    return tuple(split_bvecs)
-
-def concatenate_vec(args, labels=None):
-    """
-    Concatenate a series of BlockVecs into a single BlockVector
-
-    Parameters
-    ----------
-    args : List of BlockVector
-    """
-    if labels is None:
-        labels = [ftls.reduce(lambda a, b: a+b, [bvec.labels[0] for bvec in args])]
-
-    vecs = ftls.reduce(lambda a, b: a+b, [bvec.subarrays_flat for bvec in args])
-
-    return BlockVector(vecs, labels=labels)
-
-def validate_blockvec_size(*args):
-    """
-    Check if a collection of BlockVecs have compatible block sizes
-    """
-    ref_bsize = args[0].bshape[0]
-    valid_bsizes = [arg.bshape[0] == ref_bsize for arg in args]
-
-    return all(valid_bsizes)
-
-def convert_bvec_to_petsc(bvec):
-    """
-    Converts a block matrix from one submatrix type to the PETSc submatrix type
-
-    Parameters
-    ----------
-    bmat: BlockMatrix
-    """
-    vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.subarrays_flat]
-    return BlockVector(vecs, labels=bvec.labels)
-
-def convert_bvec_to_petsc_rowbmat(bvec):
-    mats = tuple([
-        tuple([gops.convert_vec_to_rowmat(vec) for vec in bvec.subarrays_flat])
-        ])
-    return BlockMatrix(mats)
-
-def convert_bvec_to_petsc_colbmat(bvec):
-    mats = tuple([
-        tuple([gops.convert_vec_to_colmat(vec)]) for vec in bvec.subarrays_flat
-        ])
-    return BlockMatrix(mats)
-
-def dot(a, b):
-    """
-    Return the dot product of a and b
-    """
-    c = a*b
-    ret = 0
-    for vec in c:
-        # using the [:] indexing notation makes sum interpret the different data types as np arrays
-        # which can improve performance a lot
-        ret += sum(vec[:])
-    return ret
-
-def norm(a):
-    """Return the 2-norm of a vector"""
-    return dot(a, a)**0.5
-
 class BlockVector(BlockArray):
     """
     Represents a block vector with blocks indexed by labels
@@ -118,14 +43,6 @@ class BlockVector(BlockArray):
         summary_message = ", ".join(["block: (min/max/mean)"] + summary_strings)
         print(summary_message)
         return summary_message
-
-    ## Array/dictionary-like slicing and indexing interface
-    @property
-    def monovec(self):
-        """
-        Return an object allowing indexing of the block vector as a monolithic vector
-        """
-        return MonotoBlock(self)
 
     def __setitem__(self, key, value):
         """
@@ -168,24 +85,24 @@ class BlockVector(BlockArray):
             self[i][:] = vec[n_start:n_stop]
 
     ## Conversion and treatment as a monolithic vector
-    def to_ndarray(self):
+    def to_mono_ndarray(self):
         ndarray_vecs = [np.array(vec) for vec in self]
         return np.concatenate(ndarray_vecs, axis=0)
 
-    def to_petsc_seq(self, comm=None):
+    def to_mono_petsc_seq(self, comm=None):
         total_size = np.sum(self.mshape)
         vec = PETSc.Vec().createSeq(total_size, comm=comm)
         vec.setUp()
-        vec.setArray(self.to_ndarray())
+        vec.setArray(self.to_mono_ndarray())
         vec.assemble()
         return vec
 
-    def to_petsc(self, comm=None):
+    def to_mono_petsc(self, comm=None):
         total_size = np.sum(self.mshape)
         vec = PETSc.Vec().create(comm=comm)
         vec.setSizes(total_size)
         vec.setUp()
-        vec.setArray(self.to_ndarray())
+        vec.setArray(self.to_mono_ndarray())
         vec.assemble()
         return vec
 
@@ -204,6 +121,89 @@ class BlockVector(BlockArray):
     ##
     def norm(self):
         return dot(self, self)**0.5
+
+def validate_blockvec_size(*args):
+    """
+    Check if a collection of BlockVecs have compatible block sizes
+    """
+    ref_bsize = args[0].bshape[0]
+    valid_bsizes = [arg.bshape[0] == ref_bsize for arg in args]
+
+    return all(valid_bsizes)
+
+# Utilities
+def split_bvec(bvec, block_sizes):
+    """
+    Splits a block vector into multiple block vectors
+    """
+    block_cumul_sizes = [0] + np.cumsum(block_sizes).tolist()
+    split_bvecs = [
+        bvec[ii:jj]
+        for ii, jj in zip(block_cumul_sizes[:-1], block_cumul_sizes[1:])
+        ]
+    return tuple(split_bvecs)
+
+def concatenate_vec(args, labels=None):
+    """
+    Concatenate a series of BlockVecs into a single BlockVector
+
+    Parameters
+    ----------
+    args : List of BlockVector
+    """
+    if labels is None:
+        labels = [ftls.reduce(lambda a, b: a+b, [bvec.labels[0] for bvec in args])]
+
+    vecs = ftls.reduce(lambda a, b: a+b, [bvec.subarrays_flat for bvec in args])
+
+    return BlockVector(vecs, labels=labels)
+
+# Converting subtypes
+def convert_to_subtype_petsc(bvec):
+    """
+    Converts a block matrix from one submatrix type to the PETSc submatrix type
+
+    Parameters
+    ----------
+    bmat: BlockMatrix
+    """
+    vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.subarrays_flat]
+    return BlockVector(vecs, labels=bvec.labels)
+
+# Converting to monolithic vectors
+def to_mono_petsc(bvec, comm=None, finalize=True):
+    raise NotImplementedError()
+
+# Converting to block matrix formats
+def to_block_rowmat(bvec):
+    mats = tuple([
+        tuple([gops.convert_vec_to_rowmat(vec) for vec in bvec.subarrays_flat])
+        ])
+    return BlockMatrix(mats)
+
+def to_block_colmat(bvec):
+    mats = tuple([
+        tuple([gops.convert_vec_to_colmat(vec)]) for vec in bvec.subarrays_flat
+        ])
+    return BlockMatrix(mats)
+
+# Basic operations
+def dot(a, b):
+    """
+    Return the dot product of a and b
+    """
+    c = a*b
+    ret = 0
+    for vec in c:
+        # using the [:] indexing notation makes sum interpret the different data types as np arrays
+        # which can improve performance a lot
+        ret += sum(vec[:])
+    return ret
+
+def norm(a):
+    """Return the 2-norm of a vector"""
+    return dot(a, a)**0.5
+
 
 class MonotoBlock:
     def __init__(self, bvec):

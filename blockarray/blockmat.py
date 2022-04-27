@@ -35,7 +35,7 @@ class BlockMatrix(BlockArray):
             raise ValueError(f"BlockMatrix must have dimension == 2, not {len(self.shape)}")
 
     def to_mono_petsc(self, comm=None):
-        return to_mono_petsc(self)
+        return to_mono_petsc(self, comm=comm)
 
     def norm(self):
         return norm(self)
@@ -397,7 +397,8 @@ def concatenate_mat(bmats: List[List[BlockMatrix]], labels=None):
         labels = (tuple(row_labels), tuple(col_labels))
     return BlockMatrix(mats, labels=labels)
 
-def convert_bmat_to_petsc(bmat: BlockMatrix):
+## Converting subtypes
+def convert_to_subtype_petsc(bmat: BlockMatrix):
     """
     Converts a block matrix from one submatrix type to the PETSc submatrix type
 
