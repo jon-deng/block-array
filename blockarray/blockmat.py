@@ -361,7 +361,7 @@ def convert_bmat_to_petsc(bmat):
     ----------
     bmat: BlockMatrix
     """
-    mats = [gops.convert_mat_to_petsc(mat) for mat in bmat.subtensors_flat]
+    mats = [gops.convert_mat_to_petsc(mat) for mat in bmat.subarrays_flat]
     barray = LabelledArray(mats, bmat.shape, bmat.labels)
     return BlockMatrix(barray)
 

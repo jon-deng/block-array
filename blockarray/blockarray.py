@@ -73,12 +73,12 @@ class BlockArray:
     """
     An n-dimensional block tensor object
 
-    `BlockArray` has two main attributes: an underlying `LabelledArray` that stores 
-    the subtensors in an n-d layout and a `bshape` attributes that stores the shape 
+    `BlockArray` has two main attributes: an underlying `LabelledArray` that stores
+    the subtensors in an n-d layout and a `bshape` attributes that stores the shape
     of the blocks along each axis.
 
     For example, consider a `BlockArray` `A` with the block shape `((10, 5), (2, 4))`.
-    This represents a matrix with blocks of size 10 and 5 along the rows, and blocks 
+    This represents a matrix with blocks of size 10 and 5 along the rows, and blocks
     of size 2 and 4 along the columns. Subtensors of `A` would then have shapes:
         `A[0, 0].shape == (10, 2)`
         `A[0, 1].shape == (10, 4)`
@@ -90,15 +90,15 @@ class BlockArray:
     array :
         The subarray elements. Depending on the type of array, the remaining parameters
         are interpreted differently:
-            - If `array` is a `LabelledArray`, `shape` and `labels` parameters are 
+            - If `array` is a `LabelledArray`, `shape` and `labels` parameters are
             not required.
-            - If `array` is a nested list/tuple of subtensor elements, the shape will 
-            be derived from the shape of the nested list/tuple so the `shape` parameter 
+            - If `array` is a nested list/tuple of subtensor elements, the shape will
+            be derived from the shape of the nested list/tuple so the `shape` parameter
             is optional.
-            - If `array` is a flat list/tuple of subtensor elements, a shape parameter 
+            - If `array` is a flat list/tuple of subtensor elements, a shape parameter
             must be supplied or the flat list will be interpreted as 1D nested list/tuple.
     shape :
-        The shape of the blocks in the block tensor. For example, (2, 3) is a  
+        The shape of the blocks in the block tensor. For example, (2, 3) is a
         block matrix with 2 row blocks by 3 column blocks.
     labels :
         Labels for each block along each axis.
@@ -131,7 +131,7 @@ class BlockArray:
     r_dims :
         A tuple of indices for each non-reduced dimension
 
-    subarrays_flat : 
+    subarrays_flat :
         A flat tuple of the contained subarrays
     subarrays_nest :
         A nested tuple of the contained subarrays
@@ -360,7 +360,7 @@ class BlockArray:
                     ", ".join([f"{type(input)}" for input in inputs])
                     )
 
-        subtensors_in = [btensor.subtensors_flat for btensor in inputs]
+        subtensors_in = [btensor.subarrays_flat for btensor in inputs]
         subtensors_out = [
             ufunc(*subtensor_inputs) for subtensor_inputs in subtensors_in
             ]
@@ -376,7 +376,7 @@ def validate_elementwise_binary_op(a: BlockArray, b: BlockArray):
     assert a.bshape == b.bshape
 
 def _elementwise_binary_op(
-        op: Callable[[T, T], T], 
+        op: Callable[[T, T], T],
         a: BlockArray, b: BlockArray
     ) -> BlockArray:
     """
