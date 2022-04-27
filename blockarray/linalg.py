@@ -8,7 +8,7 @@ from . import subops as gops
 from .blockvec import (BlockVector, dot, norm)
 from .blockmat import BlockMatrix
 
-def mult_mat_vec(bmat, bvec):
+def mult_mat_vec(bmat: BlockMatrix, bvec: BlockVector):
     vecs = []
     for submat_row in bmat:
         vec = reduce(
@@ -17,7 +17,7 @@ def mult_mat_vec(bmat, bvec):
         vecs.append(vec)
     return BlockVector(vecs, labels=bmat.labels[0:1])
 
-def mult_mat_mat(bmata, bmatb):
+def mult_mat_mat(bmata: BlockMatrix, bmatb: BlockMatrix):
     ## ii/jj denote the current row/col indices
     NROW, NCOL = bmata.shape[0], bmatb.shape[1]
 
