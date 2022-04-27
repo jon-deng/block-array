@@ -19,7 +19,7 @@ import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
-project = 'Block Array'
+project = 'BlockArray'
 copyright = '2022, Jonathan Deng'
 author = 'Jonathan Deng'
 
