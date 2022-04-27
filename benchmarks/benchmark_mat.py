@@ -3,7 +3,7 @@ import timeit
 import petsc4py.PETSc as PETSc
 import numpy as np
 
-from blocktensor import blockmat as bmat
+from blockarray import blockmat as bmat
 
 
 COMM = PETSc.COMM_WORLD

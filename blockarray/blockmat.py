@@ -5,7 +5,7 @@ block matrices
 
 import itertools
 import numpy as np
-from blocktensor.blockarray import BlockArray
+from blockarray.blockarray import BlockArray
 from petsc4py import PETSc
 
 from . import subops as gops

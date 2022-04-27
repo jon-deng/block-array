@@ -1,6 +1,6 @@
 
 import numpy as np
-from blocktensor import blockarray as btensor, ufunc
+from blockarray import blockarray as btensor, ufunc
 
 SIGNATURE = '(i,j),(j,k)->(i, k)'
 

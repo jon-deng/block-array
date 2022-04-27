@@ -4,8 +4,8 @@ A collection of examples illustrating some use cases for blocktensor
 
 import numpy as np
 
-from blocktensor import blockmat as bmat, blockvec as bvec
-from blocktensor import linalg as bla
+from blockarray import blockmat as bmat, blockvec as bvec
+from blockarray import linalg as bla
 
 ## Storing block matrices
 A00 = np.array(

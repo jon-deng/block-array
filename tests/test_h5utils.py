@@ -5,8 +5,8 @@ Tests that h5utils works
 import numpy as np
 import h5py
 
-from blocktensor import blockvec as bvec
-from blocktensor.h5utils import (
+from blockarray import blockvec as bvec
+from blockarray.h5utils import (
     create_resizable_block_vector_group,
     append_block_vector_to_group,
     read_block_vector_from_group)

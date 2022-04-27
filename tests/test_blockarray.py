@@ -4,7 +4,7 @@ Test the operations in blockmath.py
 
 import numpy as np
 
-import blocktensor.blockarray as ba
+import blockarray.blockarray as ba
 
 
 a = np.ones((4, 4))
