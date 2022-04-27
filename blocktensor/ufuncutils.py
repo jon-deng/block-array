@@ -2,9 +2,12 @@
 Module implementing `ufunc` logic
 """
 
+import itertools
 from typing import Tuple, List, Mapping, Optional
+import numpy as np
 
 from . import types
+from .tensor import BlockTensor
 
 Signature = Tuple[str, ...]
 Signatures = List[Signature]
@@ -58,14 +61,14 @@ def interpret_ufunc_signature(
 
     Returns
     -------
-    free_dname_descr: Dict
+    free_dname_to_in: Dict
         A description of free dimension names. This
         dictionary maps the dimension name to a tuple of 2 integers `(nin, dim)`
         containing the input number and dimension of the dimension name. For
         example, a signature '(i,j),(j,k)->(i,k)' has free dimension names of 
         'i,k' and would have `free_dname_descr` be
         `{'i': (0, 0), 'k': (1, 1)}`.
-    redu_dname_descr: Dict
+    redu_dname_to_ins: Dict
         A description of reduced dimension names. 
         This dictionary maps the dimension name to a list of tuples of 2 
         integers `(nin, dim)` containing inputs and dimensions where the reduced
@@ -85,23 +88,23 @@ def interpret_ufunc_signature(
     
     # For each free dimension name, record the input number and axis number that
     # it occurs in
-    free_dname_descr = {
+    free_dname_to_in = {
         name: (ii_input, ii_ax)
         for ii_input, sig_input in enumerate(sig_ins)
         for ii_ax, name in enumerate(sig_input)
         if name in free_names
     }
-    assert set(free_dname_descr.keys()) == free_names
+    assert set(free_dname_to_in.keys()) == free_names
 
     # For each reduced dimension name, record the axis indices it occurs in 
     # for each input
-    redu_dname_descr = {name: [] for name in list(redu_names)}
+    redu_dname_to_ins = {name: [] for name in list(redu_names)}
     for ii_input, sig_input in enumerate(sig_ins):
         for ii_ax, name in enumerate(sig_input):
-            if name in redu_dname_descr:
-                redu_dname_descr[name].append(tuple([ii_input, ii_ax]))
+            if name in redu_dname_to_ins:
+                redu_dname_to_ins[name].append(tuple([ii_input, ii_ax]))
 
-    return free_dname_descr, redu_dname_descr
+    return free_dname_to_in, redu_dname_to_ins
 
 def split_shapes_by_signatures(
         shapes: types.Shape, 
@@ -123,7 +126,7 @@ def calculate_output_shapes(
         c_shape_ins: Shapes, 
         sig_ins: Signatures, 
         sig_outs: Signatures,
-        free_name_to_input : Optional[Mapping[str, Tuple[int, int]]]=None
+        free_name_to_in : Optional[Mapping[str, Tuple[int, int]]]=None
     ) -> Tuple[Shapes, Shapes]:
     """
     Calculate the shape of the output BlockArray
@@ -133,15 +136,15 @@ def calculate_output_shapes(
     for shapea, shapeb in zip(e_shape_ins[:-1], e_shape_ins[1:]):
         assert shapea == shapeb
 
-    if free_name_to_input is None:
-        free_name_to_input, _ = interpret_ufunc_signature(sig_ins, sig_outs)
+    if free_name_to_in is None:
+        free_name_to_in, _ = interpret_ufunc_signature(sig_ins, sig_outs)
 
     eshape_out = e_shape_ins[0]
     eshape_outs = [eshape_out] * len(sig_outs)
 
     cshape_outs = [
         tuple([
-            c_shape_ins[free_name_to_input[label][0]][free_name_to_input[label][1]] 
+            c_shape_ins[free_name_to_in[label][0]][free_name_to_in[label][1]] 
             for label in sig
         ]) 
         for sig in sig_outs
@@ -180,3 +183,74 @@ def make_gen_in_multi_index(
         return midx_ins
 
     return gen_in_multi_index
+
+def recursive_concatenate(arrays, shape, axes):
+    """
+    Recursively concatenate logically nested list of arrays
+    """
+    assert len(arrays) == np.prod(shape)
+    N = len(arrays)
+
+    ret_array = arrays
+    for ax_size, axis in zip(shape[::-1], axes[::-1]):
+        concat_arrays = [
+            ret_array[n*ax_size:n+1*(ax_size)] for n in range(N//ax_size)
+        ]
+        ret_arrays = [np.concatenate(arrays, axis) for arrays in concat_arrays]
+
+    assert len(ret_arrays) == 1
+    return ret_arrays[0]
+
+def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
+    """
+    Apply a ufunc on sequence of BlockTensor inputs
+    """
+    if method != '__call__':
+        raise ValueError(f"ufunc method {method} is not supported")
+
+    sig_ins, sig_outs = parse_ufunc_signature(ufunc.signature)
+    free_name_to_in, redu_name_to_in = interpret_ufunc_signature(sig_ins, sig_outs)
+
+    shape_ins = [input.shape for input in inputs]
+    eshape_ins, cshape_ins = split_shapes_by_signatures(shape_ins, sig_ins)
+    e_ndim_ins = [len(eshape) for eshape in eshape_ins]
+
+    eshape_outs, cshape_outs = calculate_output_shapes(
+        eshape_ins, cshape_ins, sig_ins, sig_outs, free_name_to_in
+    )
+
+    elabels_ins = [input.labels[:-len(sig_in)] for input, sig_in in zip(inputs, sig_ins)]
+    clabels_ins = [input.labels[-len(sig_in):] for input, sig_in in zip(inputs, sig_ins)]
+    clabels_outs = [
+        tuple([
+            clabels_ins[free_name_to_in[name][0]][free_name_to_in[name][1]] 
+            for name in sig_out
+        ])
+        for sig_out in sig_outs
+    ]
+    labels_outs = [elabels_ins[0] + clabels_out for clabels_out in clabels_outs]
+
+    shape_outs = [eshape+cshape for eshape, cshape in zip(eshape_outs, cshape_outs)]
+    outputs = []
+    for shape_out, labels_out in zip(shape_outs, labels_outs):
+        gen_in_midx = make_gen_in_multi_index(e_ndim_ins, sig_ins, sig_outs)
+
+        subtensors_out = []
+        for midx_out in itertools.product(
+            *[range(ax_size) for ax_size in shape_out]
+        ):
+            midx_ins = gen_in_midx(midx_out)
+            subtensor_ins = [
+                input[midx_in] for input, midx_in in zip(inputs, midx_ins)
+            ]
+            subtensor_ins = [
+                recursive_concatenate(
+                    subtensor.subtensors_flat, 
+                    subtensor.rshape,
+                    subtensor.rdims)
+                for subtensor in subtensor_ins
+            ]
+
+            subtensors_out.append(ufunc(*subtensor_ins, **kwargs))
+
+        outputs.append(BlockTensor(subtensors_out, shape_out, labels_out))
