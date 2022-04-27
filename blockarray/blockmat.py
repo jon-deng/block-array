@@ -398,7 +398,7 @@ def concatenate_mat(bmats: List[List[BlockMatrix]], labels=None):
     return BlockMatrix(mats, labels=labels)
 
 ## Converting subtypes
-def convert_to_subtype_petsc(bmat: BlockMatrix):
+def convert_subtype_to_petsc(bmat: BlockMatrix):
     """
     Converts a block matrix from one submatrix type to the PETSc submatrix type
 

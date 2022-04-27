@@ -159,7 +159,7 @@ def concatenate_vec(args, labels=None):
     return BlockVector(vecs, labels=labels)
 
 # Converting subtypes
-def convert_to_subtype_petsc(bvec):
+def convert_subtype_to_petsc(bvec):
     """
     Converts a block matrix from one submatrix type to the PETSc submatrix type
 
