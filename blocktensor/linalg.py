@@ -8,8 +8,6 @@ from . import subops as gops
 from .vec import (BlockVector, dot, norm)
 from .mat import BlockMatrix
 
-from . import subops as gops
-
 def mult_mat_vec(bmat, bvec):
     vecs = []
     for submat_row in bmat:
