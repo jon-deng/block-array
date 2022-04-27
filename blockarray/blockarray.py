@@ -14,62 +14,6 @@ from .ufunc import apply_ufunc
 
 T = TypeVar('T')
 
-def _block_shape(array: larr.LabelledArray) -> BlockShape:
-    """
-    Return the block shape of an array of subtensors
-
-    The block shape is based on the subtensors along the 'boundary'. For an
-    array of subtensors with shape `(2, 3, 4)` ...
-    """
-
-    ret_bshape = []
-    num_axes = len(array.shape)
-    for idx_ax, num_blocks in enumerate(array.shape):
-        axis_sizes = []
-        for idx_block in range(num_blocks):
-            idx = tuple((idx_ax)*[0] + [idx_block] + (num_axes-idx_ax-1)*[0])
-            # remove indices along reduced dimensions
-            ridx = tuple([
-                idx_ax for nax, idx_ax in enumerate(idx)
-                if array.shape[nax] != -1])
-
-            block_axis_size = gops.shape(array[ridx])[idx_ax]
-            axis_sizes.append(block_axis_size)
-        ret_bshape.append(tuple(axis_sizes))
-    return tuple(ret_bshape)
-
-def validate_subtensor_shapes(array: larr.LabelledArray, bshape: BlockShape):
-    """
-    Validate subtensors in a BlockArray have a valid shape
-
-    array :
-        The block array containing the subtensors
-    shape :
-        The target block shape of the BlockArray
-    """
-    # Subtensors are valid along an axis at a certain block if:
-    # all subtensors in the remaining dimensions have the same shape along that
-    # axis (i.e. shape[axis_idx] is the same for all subtensors in the remaining
-    # dimensions)
-    ndim = len(bshape)
-    if ndim > 1:
-        # no need to check compatibility for 1 dimensional tensors
-        for idx_ax, bsizes in enumerate(bshape):
-            for idx_block, bsize in enumerate(bsizes):
-                # index all subtensors with the associated (asc) `idx_block`,
-                # i.e. all subtensors along the remaining axes
-                ascblock_idx = (
-                    (slice(None),)*idx_ax
-                    + (idx_block,)
-                    + (slice(None),)*(ndim-idx_ax-1))
-                ascblock_subtensors = array[ascblock_idx].flat
-                ascblock_sizes = [
-                    gops.shape(subtensor)[idx_ax] for subtensor in ascblock_subtensors]
-
-                # compute the block sizes of all the remaining dimensions
-                valid_bsizes = [bsize == _bsize for _bsize in ascblock_sizes]
-                assert all(valid_bsizes)
-
 class BlockArray:
     """
     An n-dimensional block tensor object
@@ -355,6 +299,63 @@ class BlockArray:
     ## Numpy ufunc interface
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         return apply_ufunc(ufunc, method, *inputs, **kwargs)
+
+def _block_shape(array: larr.LabelledArray) -> BlockShape:
+    """
+    Return the block shape of an array of subtensors
+
+    The block shape is based on the subtensors along the 'boundary'. For an
+    array of subtensors with shape `(2, 3, 4)` ...
+    """
+
+    ret_bshape = []
+    num_axes = len(array.shape)
+    for idx_ax, num_blocks in enumerate(array.shape):
+        axis_sizes = []
+        for idx_block in range(num_blocks):
+            idx = tuple((idx_ax)*[0] + [idx_block] + (num_axes-idx_ax-1)*[0])
+            # remove indices along reduced dimensions
+            ridx = tuple([
+                idx_ax for nax, idx_ax in enumerate(idx)
+                if array.shape[nax] != -1])
+
+            block_axis_size = gops.shape(array[ridx])[idx_ax]
+            axis_sizes.append(block_axis_size)
+        ret_bshape.append(tuple(axis_sizes))
+    return tuple(ret_bshape)
+
+def validate_subtensor_shapes(array: larr.LabelledArray, bshape: BlockShape):
+    """
+    Validate subtensors in a BlockArray have a valid shape
+
+    array :
+        The block array containing the subtensors
+    shape :
+        The target block shape of the BlockArray
+    """
+    # Subtensors are valid along an axis at a certain block if:
+    # all subtensors in the remaining dimensions have the same shape along that
+    # axis (i.e. shape[axis_idx] is the same for all subtensors in the remaining
+    # dimensions)
+    ndim = len(bshape)
+    if ndim > 1:
+        # no need to check compatibility for 1 dimensional tensors
+        for idx_ax, bsizes in enumerate(bshape):
+            for idx_block, bsize in enumerate(bsizes):
+                # index all subtensors with the associated (asc) `idx_block`,
+                # i.e. all subtensors along the remaining axes
+                ascblock_idx = (
+                    (slice(None),)*idx_ax
+                    + (idx_block,)
+                    + (slice(None),)*(ndim-idx_ax-1))
+                ascblock_subtensors = array[ascblock_idx].flat
+                ascblock_sizes = [
+                    gops.shape(subtensor)[idx_ax] for subtensor in ascblock_subtensors]
+
+                # compute the block sizes of all the remaining dimensions
+                valid_bsizes = [bsize == _bsize for _bsize in ascblock_sizes]
+                assert all(valid_bsizes)
+
 
 def validate_elementwise_binary_op(a: BlockArray, b: BlockArray):
     """
