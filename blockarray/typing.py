@@ -4,6 +4,8 @@ Modules to collect all types used for type hints
 
 from typing import TypeVar, Tuple, Union, Mapping
 
+Scalar = Union[int, float]
+
 T = TypeVar("T")
 
 NestedArray = Union['NestedArray', Tuple[T, ...]]

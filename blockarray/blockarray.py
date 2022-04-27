@@ -2,18 +2,18 @@
 This module contains the block tensor definition which provides some basic operations
 """
 from typing import TypeVar, Optional, Union, Callable
-from itertools import accumulate
+import itertools
 import functools
 import operator
 import numpy as np
 
 from . import labelledarray as larr
 from . import subops as gops
-from .typing import (BlockShape, Shape)
+from .typing import (BlockShape, Shape, MultiLabels, Scalar)
 
 T = TypeVar('T')
 
-def _block_shape(array: larr.LabelledArray):
+def _block_shape(array: larr.LabelledArray) -> BlockShape:
     """
     Return the block shape of an array of subtensors
 
@@ -37,7 +37,7 @@ def _block_shape(array: larr.LabelledArray):
         ret_bshape.append(tuple(axis_sizes))
     return tuple(ret_bshape)
 
-def validate_subtensor_shapes(array: larr.LabelledArray, bshape):
+def validate_subtensor_shapes(array: larr.LabelledArray, bshape: BlockShape):
     """
     Validate subtensors in a BlockArray have a valid shape
 
@@ -105,8 +105,8 @@ class BlockArray:
     def __init__(
         self,
         array: Union[larr.LabelledArray, larr.NestedArray, larr.FlatArray],
-        shape: Optional[larr.Shape] = None,
-        labels: Optional[larr.MultiLabels] = None):
+        shape: Optional[Shape] = None,
+        labels: Optional[MultiLabels] = None):
 
         if isinstance(array, larr.LabelledArray):
             self._larray = array
@@ -331,13 +331,16 @@ class BlockArray:
 
         return BlockArray(subtensors_out, ret_shape, ret_labels)
 
-def validate_elementwise_binary_op(a, b):
+def validate_elementwise_binary_op(a: BlockArray, b: BlockArray):
     """
     Validates if BlockArray inputs are applicable
     """
     assert a.bshape == b.bshape
 
-def _elementwise_binary_op(op: Callable[[T, T], T], a: BlockArray, b: BlockArray):
+def _elementwise_binary_op(
+        op: Callable[[T, T], T], 
+        a: BlockArray, b: BlockArray
+    ) -> BlockArray:
     """
     Compute elementwise binary operation on BlockArrays
 
@@ -364,7 +367,9 @@ div = functools.partial(_elementwise_binary_op, operator.truediv)
 power = functools.partial(_elementwise_binary_op, operator.pow)
 
 
-def _elementwise_unary_op(op: Callable[[T], T], a: BlockArray):
+def _elementwise_unary_op(
+        op: Callable[[T], T], a: BlockArray
+    ) -> BlockArray:
     """
     Compute elementwise unary operation on a BlockArray
 
@@ -379,10 +384,10 @@ neg = functools.partial(_elementwise_unary_op, operator.neg)
 
 pos = functools.partial(_elementwise_unary_op, operator.pos)
 
-def scalar_mul(alpha, a):
+def scalar_mul(alpha: Scalar, a: BlockArray) -> BlockArray:
     return _elementwise_unary_op(lambda subvec: alpha*subvec, a)
 
-def scalar_div(alpha, a):
+def scalar_div(alpha: Scalar, a: BlockArray) -> BlockArray:
     return _elementwise_unary_op(lambda subvec: subvec/alpha, a)
 
 def to_ndarray(block_tensor: BlockArray):
@@ -395,12 +400,12 @@ def to_ndarray(block_tensor: BlockArray):
     # cumulative block shape gives lower/upper block index bounds for assigning
     # individual blocks into the ndarray
     cum_bshape = [
-        [nn for nn in accumulate(axis_shape, initial=0)]
+        [nn for nn in itertools.accumulate(axis_shape, initial=0)]
         for axis_shape in block_tensor.bshape]
 
     # loop through each block and assign its elements to the appropriate
     # part of the monolithic ndarray
-    for block_idx in product(*[range(axis_size) for axis_size in block_tensor.shape]):
+    for block_idx in itertools.product(*[range(axis_size) for axis_size in block_tensor.shape]):
         lbs = [cum_bshape[ii] for ii in block_idx]
         ubs = [cum_bshape[ii+1] for ii in block_idx]
 
@@ -408,9 +413,3 @@ def to_ndarray(block_tensor: BlockArray):
         ret_array[idx] = block_tensor[block_idx]
 
     return ret_array
-
-
-## Ufunc interface
-elementwise_ufuncs = {
-    np.add
-}
