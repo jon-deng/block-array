@@ -97,9 +97,14 @@ def test_transpose():
     print(D.to_petsc()[:, :])
     print(BMAT1.to_petsc()[:, :])
 
+def test_to_mono_petsc_aij():
+    print(bmat.form_block_matrix(BMAT1))
+    # print(bmat.to_mono_petsc_aij(BMAT1))
+
 if __name__ == '__main__':
     test_mat_size_shape()
     test_zero_mat()
     test_ident_mat()
     test_concatenate_mat()
     test_transpose()
+    test_to_mono_petsc_aij()
