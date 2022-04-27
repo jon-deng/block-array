@@ -59,7 +59,7 @@ BMAT1 = bmat.BlockMatrix(MATS, labels=(('a', 'b'), ('a', 'b')))
 BMAT2 = bmat.BlockMatrix(MATS, labels=(('a', 'b'), ('a', 'b')))
 BMAT3 = BMAT1+BMAT2
 
-print(BMAT1.to_petsc()[:, :])
+print(BMAT1.to_mono_petsc()[:, :])
 print(BMAT3.to_petsc()[:, :])
 
 def test_mat_size_shape():
@@ -70,8 +70,8 @@ def test_mat_size_shape():
 
 def test_add():
     BMAT3 = BMAT1 + BMAT2
-    print(f"A: {BMAT1[:, :].to_petsc()[:, :]}")
-    print(f"B: {BMAT1[:, :].to_petsc()[:, :]}")
+    print(f"A: {BMAT1[:, :].to_mono_petsc()[:, :]}")
+    print(f"B: {BMAT1[:, :].to_mono_petsc()[:, :]}")
     print(f"A+B: {BMAT3[:, :].to_petsc()[:, :]}")
 
 def test_zero_mat():
@@ -94,11 +94,11 @@ def test_transpose():
 
     print(BMAT1.shape)
     D = BMAT1.transpose()
-    print(D.to_petsc()[:, :])
-    print(BMAT1.to_petsc()[:, :])
+    print(D.to_mono_petsc()[:, :])
+    print(BMAT1.to_mono_petsc()[:, :])
 
 def test_to_mono_petsc_aij():
-    print(bmat.form_block_matrix(BMAT1))
+    print(bmat.to_mono_petsc(BMAT1))
     # print(bmat.to_mono_petsc_aij(BMAT1))
 
 if __name__ == '__main__':

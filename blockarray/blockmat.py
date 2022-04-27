@@ -21,8 +21,44 @@ Jcsr = List[int]
 Vcsr = List[float]
 CSR = Tuple[Icsr, Jcsr, Vcsr]
 
-# Utilies for constructing block matrices
-def form_block_matrix(bmat: BlockArray, comm=None, finalize: bool=True) -> PETSc.Mat:
+class BlockMatrix(BlockArray):
+    """
+    Represents a block matrix with blocks indexed by keys
+    """
+    def __init__(self,
+        array,
+        shape=None,
+        labels=None):
+        super().__init__(array, shape, labels)
+
+        if len(self.shape) != 2:
+            raise ValueError(f"BlockMatrix must have dimension == 2, not {len(self.shape)}")
+
+    def to_mono_petsc(self, comm=None):
+        return to_mono_petsc(self)
+
+    def norm(self):
+        return norm(self)
+
+    def transpose(self):
+        """Return the block matrix transpose"""
+        ret_labels = self.labels[::-1]
+        ret_shape = self.shape[::-1]
+
+        # Loop over the row axis last in `product` so that the row indices
+        # change the fastet; this ensures that the flat tensor represent the
+        # transpose
+        ret_subtensors = [
+            self[multi_idx[::-1]].copy().transpose()
+            for multi_idx in itertools.product(
+                *[range(ax_size) for ax_size in self.shape[::-1]]
+                )
+            ]
+
+        return BlockMatrix(ret_subtensors, ret_shape, ret_labels)
+
+# Utilies for constructing monolithic PETSc matrix
+def to_mono_petsc(bmat: BlockArray, comm=None, finalize: bool=True) -> PETSc.Mat:
     """
     Form a monolithic block matrix by combining matrices in `blocks`
 
@@ -318,42 +354,6 @@ def diag_mat(n, diag=1.0, comm=None):
 
 def ident_mat(n, comm=None):
     return diag_mat(n, diag=1.0, comm=comm)
-
-class BlockMatrix(BlockArray):
-    """
-    Represents a block matrix with blocks indexed by keys
-    """
-    def __init__(self,
-        array,
-        shape=None,
-        labels=None):
-        super().__init__(array, shape, labels)
-
-        if len(self.shape) != 2:
-            raise ValueError(f"BlockMatrix must have dimension == 2, not {len(self.shape)}")
-
-    def to_petsc(self, comm=None):
-        return form_block_matrix(self)
-
-    def norm(self):
-        return norm(self)
-
-    def transpose(self):
-        """Return the block matrix transpose"""
-        ret_labels = self.labels[::-1]
-        ret_shape = self.shape[::-1]
-
-        # Loop over the row axis last in `product` so that the row indices
-        # change the fastet; this ensures that the flat tensor represent the
-        # transpose
-        ret_subtensors = [
-            self[multi_idx[::-1]].copy().transpose()
-            for multi_idx in itertools.product(
-                *[range(ax_size) for ax_size in self.shape[::-1]]
-                )
-            ]
-
-        return BlockMatrix(ret_subtensors, ret_shape, ret_labels)
 
 ## Basic BlockMatrix operations
 def norm(A: BlockMatrix):
