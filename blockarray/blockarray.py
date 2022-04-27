@@ -73,10 +73,13 @@ class BlockArray:
     """
     An n-dimensional block tensor object
 
-    `BlockArray` has two main attributes: an underlying `LabelledArray` that stores the subtensors in an n-d layout and a `bshape` attributes that stores the shape of the blocks along each axis.
+    `BlockArray` has two main attributes: an underlying `LabelledArray` that stores 
+    the subtensors in an n-d layout and a `bshape` attributes that stores the shape 
+    of the blocks along each axis.
 
     For example, consider a `BlockArray` `A` with the block shape `((10, 5), (2, 4))`.
-    This represents a matrix with blocks of size 10 and 5 along the rows, and blocks of size 2 and 4 along the columns. Subtensors of `A` would then have shapes:
+    This represents a matrix with blocks of size 10 and 5 along the rows, and blocks 
+    of size 2 and 4 along the columns. Subtensors of `A` would then have shapes:
         `A[0, 0].shape == (10, 2)`
         `A[0, 1].shape == (10, 4)`
         `A[1, 0].shape == (5, 2)`
@@ -85,12 +88,18 @@ class BlockArray:
     Parameters
     ----------
     array :
-        The subtensor elements.
-        If `array` is a `LabelledArray`, `shape` and `labels` parameters are not required.
-        If `array` is a nested list/tuple of subtensor elements, the shape will be derived from the shape of the nested list/tuple so the `shape` parameter is optional.
-        If `array` is a flat list/tuple of subtensor elements, a shape parameter must be supplied or the flat list will be interpreted as 1D nested list/tuple.
+        The subarray elements. Depending on the type of array, the remaining parameters
+        are interpreted differently:
+            - If `array` is a `LabelledArray`, `shape` and `labels` parameters are 
+            not required.
+            - If `array` is a nested list/tuple of subtensor elements, the shape will 
+            be derived from the shape of the nested list/tuple so the `shape` parameter 
+            is optional.
+            - If `array` is a flat list/tuple of subtensor elements, a shape parameter 
+            must be supplied or the flat list will be interpreted as 1D nested list/tuple.
     shape :
-        The shape of the blocks in the block tensor. For example, (2, 3) is a  block matrix with 2 row blocks by 3 column blocks.
+        The shape of the blocks in the block tensor. For example, (2, 3) is a  
+        block matrix with 2 row blocks by 3 column blocks.
     labels :
         Labels for each block along each axis.
         If not provided, these default to string representation of integers.
@@ -99,8 +108,33 @@ class BlockArray:
     ----------
     larray : larr.LabelledArray
         The `LabelledArray` instance used to store the subtensors in a block format
+
+    size :
+        The total number of subarrays contained in the block array
+    shape :
+        The shape of the block array
     bshape :
-        A nested tuple representing the sizes of each block along each axis.
+        The block shape of the block array. A nested tuple representing the sizes
+        of each block along each axis.
+    mshape :
+        The monolithic shape of the block array
+    r_shape, r_bshape, r_mshape :
+        Reduced version of `shape`, `bshape` and `mshape`, respectively. These
+        have the same format as their correponding attributes but do not
+        include any reduced/collapsed dimensions.
+    ndim :
+        The number of dimensions
+    r_ndim :
+        The number of reduced dimensions
+    dims :
+        A tuples of indices for each dimension
+    r_dims :
+        A tuple of indices for each non-reduced dimension
+
+    subarrays_flat : 
+        A flat tuple of the contained subarrays
+    subarrays_nest :
+        A nested tuple of the contained subarrays
     """
     def __init__(
         self,
@@ -187,6 +221,10 @@ class BlockArray:
     @property
     def ndim(self):
         return self.larray.ndim
+
+    @property
+    def r_ndim(self):
+        return self.larray.r_ndim
 
     @property
     def dims(self):

@@ -234,6 +234,11 @@ class LabelledArray:
         return len(self.shape)
 
     @property
+    def r_ndim(self) -> int:
+        """Return the reduced number of dimensions (number of axes)"""
+        return len(self.r_shape)
+
+    @property
     def dims(self) -> Tuple[int, ...]:
         """Return the axis/dimensions indices"""
         return tuple(range(self.ndim))
