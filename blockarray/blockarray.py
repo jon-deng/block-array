@@ -132,24 +132,24 @@ class BlockArray:
 
     ## String representation functions
     def __repr__(self):
-        return f"{self.__class__.__name__}({repr(self.subtensors_flat)}, {self.shape}, {self.labels})"
+        return f"{self.__class__.__name__}({repr(self.subarrays_flat)}, {self.shape}, {self.labels})"
 
     def __str__(self):
         return f"{self.__class__.__name__}(bshape={self.bshape} labels={self.labels})"
 
     @property
-    def subtensors_flat(self):
+    def subarrays_flat(self):
         """
         Return the flat tuple storing all subtensors
         """
         return self._larray.flat
 
     @property
-    def subtensors_nested(self):
+    def subarrays_nest(self):
         """
         Return the nested tuple storing all subtensors
         """
-        return self._larray.nested
+        return self._larray.nest
 
     @property
     def larray(self) -> larr.LabelledArray:
@@ -352,7 +352,7 @@ def _elementwise_binary_op(
     a, b: BlockArray
     """
     validate_elementwise_binary_op(a, b)
-    array = tuple([op(ai, bi) for ai, bi in zip(a.subtensors_flat, b.subtensors_flat)])
+    array = tuple([op(ai, bi) for ai, bi in zip(a.subarrays_flat, b.subarrays_flat)])
     larrayay = larr.LabelledArray(array, a.shape, a.labels)
     return type(a)(larrayay)
 
@@ -377,7 +377,7 @@ def _elementwise_unary_op(
     ----------
     a: BlockArray
     """
-    array = larr.LabelledArray([op(ai) for ai in a.subtensors_flat], a.shape, a.labels)
+    array = larr.LabelledArray([op(ai) for ai in a.subarrays_flat], a.shape, a.labels)
     return type(a)(array)
 
 neg = functools.partial(_elementwise_unary_op, operator.neg)

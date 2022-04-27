@@ -107,7 +107,7 @@ class BlockVector(BlockArray):
     ## Add vecs property for special case/backwards compatibilty
     @property
     def vecs(self):
-        return self.subtensors_flat
+        return self.subarrays_flat
 
     ## Basic string representation functions
     def print_summary(self):

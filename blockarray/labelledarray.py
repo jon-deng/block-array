@@ -219,7 +219,7 @@ class LabelledArray:
         return self._array
 
     @property
-    def nested(self) -> NestedArray:
+    def nest(self) -> NestedArray:
         """Return a nested array representation"""
         return nest_array(self.flat, self._STRIDES)
 

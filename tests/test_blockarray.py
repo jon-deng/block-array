@@ -29,8 +29,8 @@ def _test_elementwise_binary_op(sub_op, a, b, block_op=None):
     """
     if block_op is None:
         block_op = sub_op
-    c_array_result = block_op(a, b).subtensors_flat
-    c_array_reference = tuple([sub_op(ai, bi) for ai, bi in zip(a.subtensors_flat, b.subtensors_flat)])
+    c_array_result = block_op(a, b).subarrays_flat
+    c_array_reference = tuple([sub_op(ai, bi) for ai, bi in zip(a.subarrays_flat, b.subarrays_flat)])
 
     correct_subarrays = [
         np.all(sub_res == sub_ref)

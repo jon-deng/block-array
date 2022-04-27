@@ -250,7 +250,7 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
             ]
             subtensor_ins = [
                 recursive_concatenate(
-                    subtensor.subtensors_flat, 
+                    subtensor.subarrays_flat, 
                     subtensor.r_shape,
                     subtensor.r_dims)
                 for subtensor in subtensor_ins

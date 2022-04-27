@@ -59,7 +59,7 @@ def test_recursive_concatenate():
     d = np.ones((2, 2))
     A = btensor.BlockArray([[a, b], [c, d]])
 
-    ufunc.recursive_concatenate(A.subtensors_flat, A.shape, A.dims)
+    ufunc.recursive_concatenate(A.subarrays_flat, A.shape, A.dims)
 
 def test_apply_ufunc():
     a = np.ones((4, 4))
