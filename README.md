@@ -1,4 +1,6 @@
-# BlockArray
+<h1 align="center">
+<img src="docs/source/logo/BlockArray.png" width="300">
+</h1><br>
 
 BlockArray is a package for working with tensors logically partitioned into blocks (or subtensors) in a nested format. For example, block matrices and block vectors can be created as:
 ```python
