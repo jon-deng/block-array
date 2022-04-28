@@ -231,22 +231,7 @@ def convert_mat_to_petsc(mat, comm=None, keep_diagonal=True):
     elif isinstance(mat, dfn.PETScMatrix):
         out = mat.mat()
     elif isinstance(mat, NDARRAY_TYPES):
-        COL_IDXS = np.arange(mat_shape[1], dtype=np.int32)
-        out = PETSc.Mat().createAIJ(mat_shape, comm=comm)
-        out.setUp()
-        for ii in range(mat_shape[0]):
-            current_row = np.array(mat[ii, :])
-            idx_nonzero = np.array(current_row != 0)
-
-            rows = [ii]
-            cols = COL_IDXS[idx_nonzero]
-            vals = current_row[idx_nonzero]
-            out.setValues(rows, cols, vals, addv=PETSc.InsertMode.ADD_VALUES)
-
-        if keep_diagonal and is_square:
-            for ii in range(mat_shape[0]):
-                out.setValue(ii, ii, 0.0, addv=PETSc.InsertMode.ADD_VALUES)
-        out.assemble()
+        out = numpy_mat_to_petsc_mat_2(mat, comm=comm, keep_diagonal=keep_diagonal)
     else:
         raise ValueError(f"Can't convert matrix of type {type(mat)} to PETSc.Mat")
 
@@ -269,6 +254,52 @@ def convert_vec_to_petsc(vec, comm=None):
     else:
         raise ValueError(f"Can't convert vector of type {type(vec)} to PETSc.Vec")
 
+    return out
+
+def numpy_mat_to_petsc_mat_2(mat, comm=None, keep_diagonal=True):
+    mat_shape = shape_mat(mat)
+    is_square = mat_shape[0] == mat_shape[1]
+    # assert is_square
+
+    COL_IDXS = np.arange(mat_shape[1], dtype=np.int32)
+
+    # Build the CSR format of the resulting matrix by adding only non-zero values
+    nz_row_idxs = [np.array(current_row != 0) for current_row in mat]
+    Js = [COL_IDXS[nz_row_idx] for nz_row_idx in nz_row_idxs]
+    Vs = [current_row[nz_row_idx] for nz_row_idx, current_row in zip(nz_row_idxs, mat)]
+
+    # number of nonzeros in each row
+    nnz = [len(sub_v) for sub_v in Vs]
+    Is = [0] + [ii for ii in np.cumsum(nnz)]
+
+    I = np.array(Is, dtype=np.int32)
+    J = np.concatenate(Js, dtype=np.int32)
+    V = np.concatenate(Vs)
+
+    out = PETSc.Mat().createAIJ(mat_shape, comm=comm, csr=(I, J, V))
+    out.assemble()
+    return out
+
+def numpy_mat_to_petsc_mat_1(mat, comm=None, keep_diagonal=True):
+    mat_shape = shape_mat(mat)
+    is_square = mat_shape[0] == mat_shape[1]
+
+    COL_IDXS = np.arange(mat_shape[1], dtype=np.int32)
+    out = PETSc.Mat().createAIJ(mat_shape, comm=comm)
+    out.setUp()
+    for ii in range(mat_shape[0]):
+        current_row = mat[ii, :]
+        idx_nonzero = np.array(current_row != 0)
+
+        rows = [ii]
+        cols = COL_IDXS[idx_nonzero]
+        vals = current_row[idx_nonzero]
+        out.setValues(rows, cols, vals, addv=PETSc.InsertMode.ADD_VALUES)
+
+    if keep_diagonal and is_square:
+        for ii in range(mat_shape[0]):
+            out.setValue(ii, ii, 0.0, addv=PETSc.InsertMode.ADD_VALUES)
+    out.assemble()
     return out
 
 ## Convert vectors to row/column matrices
