@@ -4,8 +4,8 @@
 
 BlockArray is a package for working with tensors logically partitioned into blocks (or subtensors) in a nested format. For example, block matrices and block vectors can be created as:
 ```python
-from BlockArray.blockarray import BlockArray
-from BlockArray.linalg import mult_mat_vec
+from blockarray.blockarray import BlockArray
+from blockarray.linalg import mult_mat_vec
 
 # model the block vector
 # [x0, x1]
@@ -40,4 +40,4 @@ z = x+y
 
 ## Motivation and Similar Projects
 
-There are similar projects that provide block matrix and block vector functionality such as the excellent FEniCS project and it's associated projects (https://github.com/FEniCS, https://fenicsproject.org/, https://bitbucket.org/fenics-apps/cbc.block). These are typically specialized to the solution of PDE systems and sparse matrix/vector formats so can be difficult to apply outside of that use case. This package provides a more generic block tensor compatible with numpy to facilitate these other use cases.
+There are similar projects that provide block matrix and block vector functionality such as the excellent FEniCS project and its associated projects (https://github.com/FEniCS, https://fenicsproject.org/, https://bitbucket.org/fenics-apps/cbc.block). The PETSc project also provides a nested matrix and vector format (https://petsc.org/release/#). This package provides a more generic block array to facilititate higher dimensional arrays.
