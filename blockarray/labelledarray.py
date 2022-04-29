@@ -33,7 +33,7 @@ from .typing import (
 )
 
 
-def block_array(array: NestedArray, labels: MultiLabels):
+def block_array(array: NestedArray[T], labels: MultiLabels):
     """
     Return a BlockArray from nested lists/tuples
 
@@ -48,7 +48,7 @@ def block_array(array: NestedArray, labels: MultiLabels):
     flat_array, shape = flatten_array(array)
     return LabelledArray(flat_array, shape, labels)
 
-def flatten_array(array: NestedArray):
+def flatten_array(array: NestedArray[T]):
     """
     Flattens and return the shape of a nested array
     """
@@ -75,7 +75,7 @@ def flatten_array(array: NestedArray):
 
     return flat_array, tuple(shape)
 
-def nest_array(array: FlatArray, strides: Strides):
+def nest_array(array: FlatArray[T], strides: Strides):
     """
     Convert a flat array into a nested array from given strides
 
@@ -101,14 +101,14 @@ def nest_array(array: FlatArray, strides: Strides):
             ]
         return ret_array
 
-def validate_shape(array, shape):
+def validate_shape(array: FlatArray[T], shape: Shape):
     """Validates the array shape"""
     # use `abs()` as hacky way to account for reduced dimensions represented
     # by -1
     if len(array) != abs(math.prod(shape)):
         raise ValueError(f"shape {shape} is incompatible with array of length {len(array)}")
 
-def validate_labels(labels, shape):
+def validate_labels(labels: MultiLabels, shape: Shape):
     """Validates the array labels"""
     if len(labels) != len(shape):
         raise ValueError(f"{len(labels)} axis labels is incompatible for array with {len(shape)} dimensions")
@@ -126,7 +126,7 @@ def validate_labels(labels, shape):
             if len(set(axis_labels)) != len(axis_labels):
                 raise ValueError(f"duplicate labels found for axis {dim} with labels {axis_labels}")
 
-def validate_general_idx(idx, size):
+def validate_general_idx(idx: GenIndex, size: int):
     """Validate a general index"""
     lb = -size
     ub = size-1

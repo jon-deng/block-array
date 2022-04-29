@@ -7,7 +7,6 @@ from typing import TypeVar, Tuple, Union, Mapping
 Scalar = Union[int, float]
 
 T = TypeVar("T")
-
 NestedArray = Union['NestedArray', Tuple[T, ...]]
 FlatArray = Tuple[T, ...]
 
