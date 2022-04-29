@@ -1,10 +1,12 @@
 """
+This module contains the LabelledArray class
+
 A LabelledArray is a multidimensional array of a fixed shape containing
-arbitrary objects and with labelled indices along each axis. These can be
-indexed in a similar way to `numpy.ndarray`.
+arbitrary objects and with labelled indices in addition to integer indices
+along each axis. These can be indexed in a similar way to `numpy.ndarray`.
 """
 
-from typing import Optional, Union, List, Tuple
+from typing import Optional, Union, List, Tuple, Generic
 from itertools import product, chain, accumulate
 
 import math
@@ -156,7 +158,7 @@ def validate_multi_general_idx(multi_idx: MultiGenIndex, shape: Shape):
         validate_general_idx(idx, size)
 
 
-class LabelledArray:
+class LabelledArray(Generic[T]):
     """
     An N-dimensional array with labelled indices
 
@@ -189,7 +191,7 @@ class LabelledArray:
         A mapping of labels to indices for each axis
     """
 
-    def __init__(self, array: FlatArray, shape: Shape, labels: Optional[MultiLabels]=None):
+    def __init__(self, array: FlatArray[T], shape: Shape, labels: Optional[MultiLabels]=None):
         if labels is None:
             labels = tuple([tuple([str(ii) for ii in range(axis_size)]) for axis_size in shape])
         # Convert any lists to tuples in labels
@@ -214,12 +216,12 @@ class LabelledArray:
             for axis_labels, idxs in zip(self.r_labels, [range(axis_size) for axis_size in self.r_shape])])
 
     @property
-    def flat(self) -> FlatArray:
+    def flat(self) -> FlatArray[T]:
         """Return the flat array representation"""
         return self._array
 
     @property
-    def nest(self) -> NestedArray:
+    def nest(self) -> NestedArray[T]:
         """Return a nested array representation"""
         return nest_array(self.flat, self._STRIDES)
 
@@ -277,7 +279,7 @@ class LabelledArray:
     def __len__(self):
         return self.size
 
-    def __getitem__(self, multi_idx) -> Union[T, 'LabelledArray']:
+    def __getitem__(self, multi_idx) -> Union[T, 'LabelledArray[T]']:
         multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
         multi_idx = expand_multidx(multi_idx, self.r_shape)
         validate_multi_general_idx(tuple(multi_idx), self.r_shape)
