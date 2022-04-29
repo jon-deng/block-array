@@ -185,7 +185,8 @@ class BlockArray(Generic[T]):
         """
         Return the shape of the equivalent monolithic tensor
         """
-        return tuple([sum(axis_sizes) for axis_sizes in self.bshape])
+        _mshape = gops.shape(self.subarrays_flat[0])
+        return tuple([max(sum(axis_sizes), r_size) for r_size, axis_sizes in zip(_mshape, self.bshape)])
 
     @property
     def bshape(self) -> BlockShape:
@@ -209,6 +210,10 @@ class BlockArray(Generic[T]):
         """
         ret_rbsize = [axis_size for axis_size in self.mshape if axis_size != 0]
         return ret_rbsize
+
+    ## Methods for converting to monolithic arary
+    def to_mono_ndarray(self):
+        return to_mono_ndarray(self)
 
     ## Copy methods
     def copy(self):
@@ -421,22 +426,26 @@ def to_mono_ndarray(block_tensor: BlockArray[T]) -> np.ndarray:
     """
     Convert a BlockArray object to a ndarray object
     """
-    # .bsize (block size) is the resulting shape of the monolithic array
+    # Get the shape of the monolithic array
     ret_array = np.zeros(block_tensor.mshape)
 
     # cumulative block shape gives lower/upper block index bounds for assigning
     # individual blocks into the ndarray
-    cum_bshape = [
+    cum_r_bshape = [
         [nn for nn in itertools.accumulate(axis_shape, initial=0)]
-        for axis_shape in block_tensor.bshape]
+        for axis_shape in block_tensor.r_bshape]
 
     # loop through each block and assign its elements to the appropriate
     # part of the monolithic ndarray
-    for block_idx in itertools.product(*[range(axis_size) for axis_size in block_tensor.shape]):
-        lbs = [cum_bshape[ii] for ii in block_idx]
-        ubs = [cum_bshape[ii+1] for ii in block_idx]
+    for block_idx in itertools.product(*[range(axis_size) for axis_size in block_tensor.r_shape]):
+        lbs = [ax_strides[ii] for ii, ax_strides in zip(block_idx, cum_r_bshape)]
+        ubs = [ax_strides[ii+1] for ii, ax_strides in zip(block_idx, cum_r_bshape)]
 
-        idx = tuple([slice(lb, ub) for lb, ub in zip(lbs, ubs)])
-        ret_array[idx] = block_tensor[block_idx]
+        idxs = tuple([slice(lb, ub) for lb, ub in zip(lbs, ubs)])
+
+        midx = [slice(None)]*len(block_tensor.shape)
+        for ii, idx in zip(block_tensor.r_dims, idxs):
+            midx[ii] = idx
+        ret_array[tuple(midx)] = block_tensor[block_idx]
 
     return ret_array

@@ -78,6 +78,7 @@ def test_apply_ufunc():
     # print(C.shape)
 
     D = ufunc.apply_ufunc(np.matmul, '__call__', *[A, B])
+    D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray())
     print(D.shape)
 
     D = ufunc.apply_ufunc(np.add, '__call__', *[A, B])

@@ -54,6 +54,7 @@ def test_power():
     _test_elementwise_binary_op(lambda x, y: x**y, A, B, ba.power)
 
 def test_bshape():
+    assert A.bshape == ((4, 2), (4, 2))
     print(f"A.bshape = {A.bshape}")
     print(f"A[:, :].bshape = {A[:, :].bshape}")
     print(f"A[:, 0].bshape = {A[:, 0].bshape}")
