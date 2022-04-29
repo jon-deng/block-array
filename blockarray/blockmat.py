@@ -2,7 +2,7 @@
 This module contains the block matrix definition
 """
 
-from typing import Tuple, List
+from typing import Tuple, List, TypeVar
 import itertools
 import numpy as np
 from blockarray.blockarray import BlockArray
@@ -10,7 +10,7 @@ from petsc4py import PETSc
 
 from . import subops as gops
 from .labelledarray import LabelledArray, flatten_array
-from .typing import (Shape, BlockShape)
+from .typing import (Shape, BlockShape, MultiLabels)
 
 # pylint: disable=no-member, abstract-method
 #
@@ -20,7 +20,8 @@ Jcsr = List[int]
 Vcsr = List[float]
 CSR = Tuple[Icsr, Jcsr, Vcsr]
 
-class BlockMatrix(BlockArray):
+T = TypeVar('T')
+class BlockMatrix(BlockArray[T]):
     """
     Represents a block matrix with blocks indexed by keys
     """
@@ -57,7 +58,7 @@ class BlockMatrix(BlockArray):
         return BlockMatrix(ret_subtensors, ret_shape, ret_labels)
 
 # Utilies for constructing monolithic PETSc matrix
-def to_mono_petsc(bmat: BlockArray, comm=None, finalize: bool=True) -> PETSc.Mat:
+def to_mono_petsc(bmat: BlockArray[PETSc.Mat], comm=None, finalize: bool=True) -> PETSc.Mat:
     """
     Form a monolithic block matrix by combining matrices in `blocks`
 
@@ -97,7 +98,7 @@ def to_mono_petsc(bmat: BlockArray, comm=None, finalize: bool=True) -> PETSc.Mat
 
     return ret_mat
 
-def get_blocks_csr(bmat: BlockArray) -> Tuple[List[List[Icsr]], List[List[Jcsr]], List[List[Vcsr]]]:
+def get_blocks_csr(bmat: BlockArray[PETSc.Mat]) -> Tuple[List[List[Icsr]], List[List[Jcsr]], List[List[Vcsr]]]:
     """
     Return the CSR format data for each block in a block matrix form
 
@@ -355,7 +356,7 @@ def ident_mat(n, comm=None):
     return diag_mat(n, diag=1.0, comm=comm)
 
 ## Basic BlockMatrix operations
-def norm(A: BlockMatrix):
+def norm(A: BlockMatrix[T]):
     """
     Return the Frobenius norm of A
 
@@ -370,7 +371,7 @@ def norm(A: BlockMatrix):
     return frobenius_norm
 
 ## More utilities
-def concatenate_mat(bmats: List[List[BlockMatrix]], labels=None):
+def concatenate_mat(bmats: List[List[BlockMatrix[T]]], labels: MultiLabels=None):
     """
     Form a block matrix by joining other block matrices
 
@@ -397,7 +398,7 @@ def concatenate_mat(bmats: List[List[BlockMatrix]], labels=None):
     return BlockMatrix(mats, labels=labels)
 
 ## Converting subtypes
-def convert_subtype_to_petsc(bmat: BlockMatrix):
+def convert_subtype_to_petsc(bmat: BlockMatrix[T]):
     """
     Converts a block matrix from one submatrix type to the PETSc submatrix type
 
