@@ -3,7 +3,7 @@ This module contains generic functions for operating on vector/matrix objects
 from PETSc, numpy, and FEniCS.
 
 This is needed for BlockVector and BlockMatrix to work with different
-'subelements' from the different packages.
+'subarrays' from the different packages.
 """
 
 import dolfin as dfn

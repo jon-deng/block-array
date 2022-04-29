@@ -83,6 +83,13 @@ def test_apply_ufunc():
     D = ufunc.apply_ufunc(np.add, '__call__', *[A, B])
     print(D.shape)
 
+    scalar_np = np.float64(5.0)
+    D = ufunc.apply_ufunc(np.add, '__call__', *[scalar_np, B])
+    print(D.shape)
+
+    D = ufunc.apply_ufunc(np.multiply, '__call__', *[scalar_np, B])
+    print(D.shape)
+
 
 
 if __name__ == '__main__':

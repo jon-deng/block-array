@@ -1,7 +1,8 @@
 """
-This module contains the block tensor definition which provides some basic operations
+This module contains the block array definition and defines some basic operations
 """
-from typing import TypeVar, Optional, Union, Callable
+
+from typing import TypeVar, Optional, Union, Callable, Generic
 import itertools
 import functools
 import operator
@@ -9,12 +10,12 @@ import numpy as np
 
 from . import labelledarray as larr
 from . import subops as gops
-from .typing import (BlockShape, Shape, MultiLabels, Scalar)
 from .ufunc import apply_ufunc
+from .typing import (BlockShape, Shape, MultiLabels, Scalar, MultiGenIndex)
 
 T = TypeVar('T')
 
-class BlockArray:
+class BlockArray(Generic[T]):
     """
     An n-dimensional block tensor object
 
@@ -83,7 +84,7 @@ class BlockArray:
     """
     def __init__(
         self,
-        array: Union[larr.LabelledArray, larr.NestedArray, larr.FlatArray],
+        array: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
         shape: Optional[Shape] = None,
         labels: Optional[MultiLabels] = None):
 
@@ -218,7 +219,7 @@ class BlockArray:
     def __copy__(self):
         return self.copy()
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: MultiGenIndex):
         """
         Return the vector or BlockVector corresponding to the index
 
@@ -297,10 +298,10 @@ class BlockArray:
             return div(other, self)
 
     ## Numpy ufunc interface
-    # def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-    #     return apply_ufunc(ufunc, method, *inputs, **kwargs)
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        return apply_ufunc(ufunc, method, *inputs, **kwargs)
 
-def _block_shape(array: larr.LabelledArray) -> BlockShape:
+def _block_shape(array: larr.LabelledArray[T]) -> BlockShape:
     """
     Return the block shape of an array of subtensors
 
@@ -324,7 +325,7 @@ def _block_shape(array: larr.LabelledArray) -> BlockShape:
         ret_bshape.append(tuple(axis_sizes))
     return tuple(ret_bshape)
 
-def validate_subtensor_shapes(array: larr.LabelledArray, bshape: BlockShape):
+def validate_subtensor_shapes(array: larr.LabelledArray[T], bshape: BlockShape):
     """
     Validate subtensors in a BlockArray have a valid shape
 
@@ -357,7 +358,7 @@ def validate_subtensor_shapes(array: larr.LabelledArray, bshape: BlockShape):
                 assert all(valid_bsizes)
 
 
-def validate_elementwise_binary_op(a: BlockArray, b: BlockArray):
+def validate_elementwise_binary_op(a: BlockArray[T], b: BlockArray[T]):
     """
     Validates if BlockArray inputs are applicable
     """
@@ -365,8 +366,8 @@ def validate_elementwise_binary_op(a: BlockArray, b: BlockArray):
 
 def _elementwise_binary_op(
         op: Callable[[T, T], T],
-        a: BlockArray, b: BlockArray
-    ) -> BlockArray:
+        a: BlockArray[T], b: BlockArray[T]
+    ) -> BlockArray[T]:
     """
     Compute elementwise binary operation on BlockArrays
 
@@ -394,8 +395,8 @@ power = functools.partial(_elementwise_binary_op, operator.pow)
 
 
 def _elementwise_unary_op(
-        op: Callable[[T], T], a: BlockArray
-    ) -> BlockArray:
+        op: Callable[[T], T], a: BlockArray[T]
+    ) -> BlockArray[T]:
     """
     Compute elementwise unary operation on a BlockArray
 
@@ -410,13 +411,13 @@ neg = functools.partial(_elementwise_unary_op, operator.neg)
 
 pos = functools.partial(_elementwise_unary_op, operator.pos)
 
-def scalar_mul(alpha: Scalar, a: BlockArray) -> BlockArray:
+def scalar_mul(alpha: Scalar, a: BlockArray[T]) -> BlockArray[T]:
     return _elementwise_unary_op(lambda subvec: alpha*subvec, a)
 
-def scalar_div(alpha: Scalar, a: BlockArray) -> BlockArray:
+def scalar_div(alpha: Scalar, a: BlockArray[T]) -> BlockArray[T]:
     return _elementwise_unary_op(lambda subvec: subvec/alpha, a)
 
-def to_mono_ndarray(block_tensor: BlockArray):
+def to_mono_ndarray(block_tensor: BlockArray[T]) -> np.ndarray:
     """
     Convert a BlockArray object to a ndarray object
     """

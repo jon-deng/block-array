@@ -1,6 +1,5 @@
 """
-This module contains the block vector definition and various operations on
-block vectors
+This module contains the block vector definition
 """
 
 from typing import TypeVar
@@ -19,7 +18,7 @@ from .blockmat import BlockMatrix
 # Type variable for a 'sub'vector
 T = TypeVar('T')
 
-class BlockVector(BlockArray):
+class BlockVector(BlockArray[T]):
     """
     Represents a block vector with blocks indexed by labels
     """

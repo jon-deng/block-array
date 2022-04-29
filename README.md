@@ -2,16 +2,17 @@
 <img src="docs/source/logo/blockarray_logo.svg" width="300">
 </h1><br>
 
-BlockArray is a package for working with tensors logically partitioned into blocks (or subtensors) in a nested format. For example, block matrices and block vectors can be created as:
+BlockArray is a package for working with arrays logically partitioned into blocks (or subarrays) in a nested format (also called block tensors or nested matrices, etc.). The main object is a `BlockArray` which can be created and indexed as shown:
 ```python
 from blockarray.blockarray import BlockArray
 from blockarray.linalg import mult_mat_vec
 
 # model the block vector
 # [x0, x1]
-# where x0 = np.array([1, 2, 3])
-# x1 = np.array([4, 5])
-x = BlockArray([np.array([1, 2, 3]), np.array([4, 5])])
+# where,
+x0 = np.array([1, 2, 3])
+x1 = np.array([4, 5])
+x = BlockArray([x0, x1])
 
 # model the block matrix
 # [[A00, A01],
@@ -33,9 +34,43 @@ A11 = np.array(
      [3, 4]])
 A = BlockArray([[A00, A01], [A10, A11]])
 
-# Basic math operations
+## Indexing
+# Select the (0,) subarray. This is equal to x0
+x[0] 
+
+# Select the (0, 0) subarray. This is equal to A00
+A[0, 0] 
+
+# Select the (0, 0) subarray as a BlockArray with 1 subarray
+A[0:1, 0:1] 
+
+# Select the (0, 0) subarray as a BlockArray with 1 subarray
+# Represents the block matrix
+# [[A00]]
+A[0:1, 0:1] 
+
+# Select the upper row of the BlockArray (2 subarrays)
+# Represents the block matrix
+# [[A00, A01]]
+A[0:1, :] 
+
+# Select column zero of the BlockArray (2 subarrays)
+# Represents the block matrix
+# [[A00],
+#  [A10]]
+A[:, 0:1] 
+```
+
+In addition, basic math operations can be applied on `BlockArray`s. A numpy ufunc interface currently works for simple operations but is likely buggy and needs to be further tested.
+```python
+## Basic math operations
+# Basic math operations (add, sub, scalar mul, etc) are defined
+# A numpy ufunc interface also works for simple examples but needs to be tested 
+# more thoroughly
 y = mult_mat_vec(2*A, x)
 z = x+y
+
+y = np.matmul(A, x)
 ```
 
 ## Motivation and Similar Projects
