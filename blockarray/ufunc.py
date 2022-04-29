@@ -2,6 +2,8 @@
 Module implementing `ufunc` logic
 """
 
+from ast import Num
+from numbers import Number
 import itertools
 from typing import Tuple, List, Mapping, Optional
 import numpy as np
@@ -206,6 +208,11 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
     Apply a ufunc on sequence of BlockArray inputs
     """
+    # Remove any scalar inputs from the list of inputs
+    # These should be put back in when the ufunc is computed on subarrays
+    scalar_descr_inputs = [(ii, x) for ii, x in enumerate(inputs) if isinstance(x, Number)]
+    inputs = [x for x in inputs if not isinstance(x, Number)]
+
     input_types = [type(x) for x in inputs]
     input_type = input_types[0]
     if not all([typ == input_type for typ in input_types]):
@@ -260,6 +267,9 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
                     subarray.r_dims)
                 for subarray in subarray_ins
             ]
+            # Put any scalar inputs back into subarray_ins
+            for ii, scalar in scalar_descr_inputs:
+                subarray_ins.insert(ii, scalar)
 
             subarrays_out.append(ufunc(*subarray_ins, **kwargs))
 
