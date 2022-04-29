@@ -208,11 +208,20 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
     Apply a ufunc on sequence of BlockArray inputs
     """
-    # Remove any scalar inputs from the list of inputs
+    # Parse signature into nice format
+    if ufunc.signature is None:
+        signature = ','.join(['()']*ufunc.nin) + '->' + ','.join(['()']*ufunc.nout)
+    else:
+        signature = ufunc.signature
+    sig_ins, sig_outs = parse_ufunc_signature(signature)
+
+    # Remove any scalar inputs from the list of inputs/signatures
     # These should be put back in when the ufunc is computed on subarrays
     scalar_descr_inputs = [(ii, x) for ii, x in enumerate(inputs) if isinstance(x, Number)]
     inputs = [x for x in inputs if not isinstance(x, Number)]
+    sig_ins = [sig for x, sig in zip(inputs, sig_ins) if not isinstance(x, Number)]
 
+    # Check input types
     input_types = [type(x) for x in inputs]
     input_type = input_types[0]
     if not all([typ == input_type for typ in input_types]):
@@ -220,12 +229,7 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
 
     if method != '__call__':
         return NotImplemented
-
-    if ufunc.signature is None:
-        signature = ','.join(['()']*ufunc.nin) + '->' + ','.join(['()']*ufunc.nout)
-    else:
-        signature = ufunc.signature
-    sig_ins, sig_outs = parse_ufunc_signature(signature)
+    
     free_name_to_in, redu_name_to_in = interpret_ufunc_signature(sig_ins, sig_outs)
 
     shape_ins = [input.shape for input in inputs]

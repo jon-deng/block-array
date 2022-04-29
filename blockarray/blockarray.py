@@ -297,8 +297,8 @@ class BlockArray:
             return div(other, self)
 
     ## Numpy ufunc interface
-    # def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-    #     return apply_ufunc(ufunc, method, *inputs, **kwargs)
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        return apply_ufunc(ufunc, method, *inputs, **kwargs)
 
 def _block_shape(array: larr.LabelledArray) -> BlockShape:
     """
