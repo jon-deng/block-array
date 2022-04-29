@@ -1,5 +1,5 @@
 """
-This module contains various utilities for sparse linear algebra
+This package provides functionality for working block arrays (also called nested arrays)
 """
 
 from . import linalg

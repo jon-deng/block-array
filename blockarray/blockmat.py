@@ -1,6 +1,5 @@
 """
-This module contains the block matrix definition and various operations on
-block matrices
+This module contains the block matrix definition
 """
 
 from typing import Tuple, List

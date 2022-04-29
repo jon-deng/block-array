@@ -1,6 +1,7 @@
 """
-This module contains the block tensor definition which provides some basic operations
+This module contains the block array definition and defines some basic operations
 """
+
 from typing import TypeVar, Optional, Union, Callable
 import itertools
 import functools

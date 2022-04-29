@@ -1,6 +1,5 @@
 """
-This module contains the block vector definition and various operations on
-block vectors
+This module contains the block vector definition
 """
 
 from typing import TypeVar
