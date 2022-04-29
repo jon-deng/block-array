@@ -245,26 +245,26 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     for shape_out, labels_out, sig_out in zip(shape_outs, labels_outs, sig_outs):
         gen_in_midx = make_gen_in_multi_index(e_ndim_ins, sig_ins, sig_out)
 
-        subtensors_out = []
+        subarrays_out = []
         for midx_out in itertools.product(
             *[range(ax_size) for ax_size in shape_out]
         ):
             midx_ins = gen_in_midx(midx_out)
-            subtensor_ins = [
+            subarray_ins = [
                 input[midx_in] for input, midx_in in zip(inputs, midx_ins)
             ]
-            subtensor_ins = [
+            subarray_ins = [
                 recursive_concatenate(
-                    subtensor.subarrays_flat,
-                    subtensor.r_shape,
-                    subtensor.r_dims)
-                for subtensor in subtensor_ins
+                    subarray.subarrays_flat,
+                    subarray.r_shape,
+                    subarray.r_dims)
+                for subarray in subarray_ins
             ]
 
-            subtensors_out.append(ufunc(*subtensor_ins, **kwargs))
+            subarrays_out.append(ufunc(*subarray_ins, **kwargs))
 
 
-        outputs.append(type(inputs[0])(subtensors_out, shape_out, labels_out))
+        outputs.append(type(inputs[0])(subarrays_out, shape_out, labels_out))
 
     if len(outputs) == 1:
         return outputs[0]
