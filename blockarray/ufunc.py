@@ -8,8 +8,8 @@ import itertools
 from typing import Tuple, List, Mapping, Optional
 import numpy as np
 
+from . import blockarray as ba
 from . import typing
-# from .blockarray import BlockArray
 
 Signature = Tuple[str, ...]
 Signatures = List[Signature]
@@ -265,6 +265,8 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
                     subarray.subarrays_flat,
                     subarray.r_shape,
                     subarray.r_dims)
+                if isinstance(subarray, ba.BlockArray)
+                else subarray
                 for subarray in subarray_ins
             ]
             # Put any scalar inputs back into subarray_ins

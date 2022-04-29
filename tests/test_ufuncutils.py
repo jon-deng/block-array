@@ -80,6 +80,9 @@ def test_apply_ufunc():
     D = ufunc.apply_ufunc(np.matmul, '__call__', *[A, B])
     print(D.shape)
 
+    D = ufunc.apply_ufunc(np.add, '__call__', *[A, B])
+    print(D.shape)
+
 
 
 if __name__ == '__main__':
