@@ -201,7 +201,7 @@ class BlockArray(Generic[T]):
         Return the reduced block shape (number of blocks in each axis)
         """
         ret_rbshape = [axis_sizes for axis_sizes in self.bshape if axis_sizes != ()]
-        return ret_rbshape
+        return tuple(ret_rbshape)
 
     @property
     def r_mshape(self) -> Shape:
