@@ -222,10 +222,12 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     sig_ins = [sig for x, sig in zip(inputs, sig_ins) if not isinstance(x, Number)]
 
     # Check input types
-    input_types = [type(x) for x in inputs]
-    input_type = input_types[0]
-    if not all([typ == input_type for typ in input_types]):
-        raise TypeError(f"Inputs must be of uniform type, not {input_types}")
+    if not all([
+            isinstance(input, (Number, ba.BlockArray)) 
+            for input in inputs
+        ]):
+        input_types = [type(x) for x in inputs]
+        raise TypeError(f"Inputs must be of type `scalar` or `BlockArray`, not {input_types}")
 
     if method != '__call__':
         return NotImplemented

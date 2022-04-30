@@ -60,6 +60,17 @@ def test_bshape():
     print(f"A[:, 0].bshape = {A[:, 0].bshape}")
     print(f"A[0, :].bshape = {A[0, :].bshape}")
 
+def test_ufunc():
+    for op in [np.add, np.multiply, np.divide]:
+        D = op(5.0, A)
+        _D = op(5.0, A.to_mono_ndarray())
+        assert np.all(np.isclose(D.to_mono_ndarray(), _D))
+
+    for op in [np.add, np.multiply, np.divide]:
+        D = op(np.float64(5.0), A)
+        _D = op(np.float64(5.0), A.to_mono_ndarray())
+        assert np.all(np.isclose(D.to_mono_ndarray(), _D))
+
 # def test_to_ndarray():
 
 
@@ -70,4 +81,5 @@ if __name__ == '__main__':
     test_mul()
     test_div()
     test_bshape()
+    test_ufunc()
     # test_power()
