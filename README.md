@@ -73,6 +73,9 @@ z = x+y
 y = np.matmul(A, x)
 ```
 
+## Contributing
+This project is a work in progress so there are likely bugs and missing features. If you would like to contribute a bug fix, a feature, refactor etc. thank you! All contributions are welcome.
+
 ## Motivation and Similar Projects
 
 There are similar projects that provide block matrix and block vector functionality such as the excellent FEniCS project and its associated projects (https://github.com/FEniCS, https://fenicsproject.org/, https://bitbucket.org/fenics-apps/cbc.block). The PETSc project also provides a nested matrix and vector format (https://petsc.org/release/#). This package provides a more generic block array to facilititate higher dimensional arrays.
