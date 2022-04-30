@@ -73,6 +73,9 @@ z = x+y
 y = np.matmul(A, x)
 ```
 
+## Documentation
+Documentation is available but incomplete. To build the documentation, go to the `docs` directory and use the command `make html` to build the html documentation in the `build` directory.
+
 ## Contributing
 This project is a work in progress so there are likely bugs and missing features. If you would like to contribute a bug fix, a feature, refactor etc. thank you! All contributions are welcome.
 
