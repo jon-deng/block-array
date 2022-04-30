@@ -121,6 +121,9 @@ class BlockVector(BlockArray[T]):
     def norm(self):
         return dot(self, self)**0.5
 
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        return NotImplemented
+
 def validate_blockvec_size(*args):
     """
     Check if a collection of BlockVecs have compatible block sizes

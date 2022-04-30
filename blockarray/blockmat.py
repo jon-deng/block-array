@@ -57,6 +57,9 @@ class BlockMatrix(BlockArray[T]):
 
         return BlockMatrix(ret_subtensors, ret_shape, ret_labels)
 
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        return NotImplemented
+
 # Utilies for constructing monolithic PETSc matrix
 def to_mono_petsc(bmat: BlockArray[PETSc.Mat], comm=None, finalize: bool=True) -> PETSc.Mat:
     """
