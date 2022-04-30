@@ -84,7 +84,7 @@ class BlockVector(BlockArray[T]):
         for i, (n_start, n_stop) in enumerate(zip(n_blocks[:-1], n_blocks[1:])):
             self[i][:] = vec[n_start:n_stop]
 
-    ## Conversion and treatment as a monolithic vector
+    ## Conversion to monolithic formats
     def to_mono_ndarray(self):
         ndarray_vecs = [np.array(vec) for vec in self]
         return np.concatenate(ndarray_vecs, axis=0)
@@ -106,19 +106,7 @@ class BlockVector(BlockArray[T]):
         vec.assemble()
         return vec
 
-    ## common operator overloading
-    def __eq__(self, other):
-        eq = False
-        if isinstance(other, BlockVector):
-            err = self - other
-            if dot(err, err) == 0:
-                eq = True
-        else:
-            raise TypeError(f"Cannot compare {type(other)} to {type(self)}")
-
-        return eq
-
-    ##
+    ## Special vector operations
     def norm(self):
         return dot(self, self)**0.5
 

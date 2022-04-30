@@ -35,9 +35,11 @@ class BlockMatrix(BlockArray[T]):
         if len(self.shape) != 2:
             raise ValueError(f"BlockMatrix must have dimension == 2, not {len(self.shape)}")
 
+    ## Conversion to monolithic formats
     def to_mono_petsc(self, comm=None):
         return to_mono_petsc(self, comm=comm)
 
+    ## Special matrix operations
     def norm(self):
         return norm(self)
 
