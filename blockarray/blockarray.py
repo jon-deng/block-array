@@ -10,7 +10,7 @@ import numpy as np
 
 from . import labelledarray as larr
 from . import subops as gops
-from .ufunc import apply_ufunc
+from .ufunc import apply_ufunc_array
 from .typing import (BlockShape, Shape, MultiLabels, Scalar, MultiGenIndex)
 
 T = TypeVar('T')
@@ -304,7 +304,7 @@ class BlockArray(Generic[T]):
 
     ## Numpy ufunc interface
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        return apply_ufunc(ufunc, method, *inputs, **kwargs)
+        return apply_ufunc_array(ufunc, method, *inputs, **kwargs)
 
 def _block_shape(array: larr.LabelledArray[T]) -> BlockShape:
     """

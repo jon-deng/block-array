@@ -2,7 +2,7 @@
 Module implementing `ufunc` logic
 """
 
-from ast import Num
+import operator
 from numbers import Number
 import itertools
 from typing import Tuple, List, Mapping, Optional
@@ -204,7 +204,7 @@ def recursive_concatenate(arrays: typing.FlatArray, shape: typing.Shape, axes: t
     assert len(ret_arrays) == 1
     return ret_arrays[0]
 
-def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
+def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
     Apply a ufunc on sequence of BlockArray inputs
     """
@@ -288,3 +288,27 @@ def apply_ufunc(ufunc: np.ufunc, method: str, *inputs, **kwargs):
         return outputs[0]
     else:
         return tuple(outputs)
+
+def apply_ufunc_mat_vec(ufunc: np.ufunc, method: str, *inputs, **kwargs):
+    """
+    A function to apply a limited set of ufuncs for BlockMatrix and BlockVector
+    """
+    # Convert any numpy scalar inputs to floats so that you don't trigger the 
+    # __array_ufunc__ interface again
+    inputs = [
+        float(input) if isinstance(input, Number) else input 
+        for input in inputs
+    ]
+
+    if ufunc == np.add:
+        return operator.add(*inputs)
+    elif ufunc == np.subtract:
+        return operator.sub(*inputs)
+    elif ufunc == np.multiply:
+        return operator.mul(*inputs)
+    elif ufunc == np.divide:
+        return operator.truediv(*inputs)
+    elif ufunc == np.power:
+        return operator.pow(*inputs)
+    else:
+        return NotImplemented

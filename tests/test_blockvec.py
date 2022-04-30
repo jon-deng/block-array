@@ -58,6 +58,11 @@ def test_scalar_mul():
     for vec_ans, vec in zip(ans, VEC1):
         assert np.all(vec_ans == alpha*vec)
 
+    alpha = np.float64(5.0)
+    ans = alpha*VEC1
+    for vec_ans, vec in zip(ans, VEC1):
+        assert np.all(vec_ans == alpha*vec)
+
 def test_vec_set():
     VEC1['a'] = 5
     assert np.all(VEC1['a'] == 5)

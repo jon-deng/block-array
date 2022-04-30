@@ -11,6 +11,7 @@ from petsc4py import PETSc
 from . import subops as gops
 from .labelledarray import LabelledArray, flatten_array
 from .typing import (Shape, BlockShape, MultiLabels)
+from .ufunc import apply_ufunc_mat_vec
 
 # pylint: disable=no-member, abstract-method
 #
@@ -58,7 +59,8 @@ class BlockMatrix(BlockArray[T]):
         return BlockMatrix(ret_subtensors, ret_shape, ret_labels)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        return NotImplemented
+        # Define __array_ufunc__ only for the basic arithmetic operations
+        return apply_ufunc_mat_vec(ufunc, method, *inputs, **kwargs)
 
 # Utilies for constructing monolithic PETSc matrix
 def to_mono_petsc(bmat: BlockArray[PETSc.Mat], comm=None, finalize: bool=True) -> PETSc.Mat:

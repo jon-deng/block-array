@@ -77,20 +77,20 @@ def test_apply_ufunc():
     # C = ufuncutils.apply_ufunc(np.add, '__call__', *[A, B])
     # print(C.shape)
 
-    D = ufunc.apply_ufunc(np.matmul, '__call__', *[A, B])
+    D = ufunc.apply_ufunc_array(np.matmul, '__call__', *[A, B])
     D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray())
     assert np.all(np.isclose(D.to_mono_ndarray(), D_))
 
-    D = ufunc.apply_ufunc(np.add, '__call__', *[A, B])
+    D = ufunc.apply_ufunc_array(np.add, '__call__', *[A, B])
     D_ = np.add(A.to_mono_ndarray(), B.to_mono_ndarray())
     assert np.all(np.isclose(D.to_mono_ndarray(), D_))
 
     scalar_np = np.float64(5.0)
-    D = ufunc.apply_ufunc(np.add, '__call__', *[scalar_np, B])
+    D = ufunc.apply_ufunc_array(np.add, '__call__', *[scalar_np, B])
     D_ = np.add(scalar_np, B.to_mono_ndarray())
     assert np.all(np.isclose(D.to_mono_ndarray(), D_))
 
-    D = ufunc.apply_ufunc(np.multiply, '__call__', *[scalar_np, B])
+    D = ufunc.apply_ufunc_array(np.multiply, '__call__', *[scalar_np, B])
     D_ = np.multiply(scalar_np, B.to_mono_ndarray())
     assert np.all(np.isclose(D.to_mono_ndarray(), D_))
 
