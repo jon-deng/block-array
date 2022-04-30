@@ -17,19 +17,9 @@ T = TypeVar('T')
 
 class BlockArray(Generic[T]):
     """
-    An n-dimensional block tensor object
+    An n-dimensional block array
 
-    `BlockArray` has two main attributes: an underlying `LabelledArray` that stores
-    the subtensors in an n-d layout and a `bshape` attributes that stores the shape
-    of the blocks along each axis.
-
-    For example, consider a `BlockArray` `A` with the block shape `((10, 5), (2, 4))`.
-    This represents a matrix with blocks of size 10 and 5 along the rows, and blocks
-    of size 2 and 4 along the columns. Subtensors of `A` would then have shapes:
-        `A[0, 0].shape == (10, 2)`
-        `A[0, 1].shape == (10, 4)`
-        `A[1, 0].shape == (5, 2)`
-        `A[1, 1].shape == (5, 4)`
+    `BlockArray` represents a nested or block array by storing subarrays.
 
     Parameters
     ----------
@@ -52,35 +42,45 @@ class BlockArray(Generic[T]):
 
     Attributes
     ----------
-    larray : larr.LabelledArray
-        The `LabelledArray` instance used to store the subtensors in a block format
-
     size :
-        The total number of subarrays contained in the block array
+        The total number of subarrays contained in the block array.
     shape :
-        The shape of the block array
+        The number of blocks (subarrays) along each axis. For example, a matrix
+        with 2 row blocks and 2 column blocks has shape `(2, 2)`.
     bshape :
-        The block shape of the block array. A nested tuple representing the sizes
-        of each block along each axis.
+        The 'block shape' of the block array. This stores the axis sizes of
+        subarrays along each axis. For example, a block shape 
+        `((120, 6), (5, 4))` represents a 2-by-2 block matrix with entries:
+            - (0, 0) is a 120x5 matrix
+            - (0, 1) is a 120x4 matrix
+            - (1, 0) is a 6x5 matrix
+            - (1, 1) is a 6x4 matrix
     mshape :
-        The monolithic shape of the block array
-    r_shape, r_bshape, r_mshape :
-        Reduced version of `shape`, `bshape` and `mshape`, respectively. These
+        The monolithic shape of the block array. This is the shape of the
+        equivalent monolithic array.
+    r_shape, r_bshape :
+        Reduced version of `shape` and `bshape` respectively. These
         have the same format as their correponding attributes but do not
         include any reduced/collapsed dimensions.
     ndim :
         The number of dimensions
     r_ndim :
-        The number of reduced dimensions
+        The number of non-reduced/collapsed dimensions
     dims :
         A tuples of indices for each dimension
     r_dims :
-        A tuple of indices for each non-reduced dimension
+        A tuple of indices for each non-reduced/collapsed dimension
+    labels :
+        A tuple of labels for each block along each axis
 
     subarrays_flat :
         A flat tuple of the contained subarrays
     subarrays_nest :
         A nested tuple of the contained subarrays
+
+    larray : larr.LabelledArray
+        The `LabelledArray` instance used to store the subtensors in a block 
+        format
     """
     def __init__(
         self,
