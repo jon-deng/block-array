@@ -186,7 +186,7 @@ def make_gen_in_multi_index(
 
     return gen_in_multi_index
 
-def recursive_concatenate(arrays: typing.FlatArray, shape: typing.Shape, axes: typing.IntIndices):
+def recursive_concatenate(arrays: typing.FlatArray, shape: typing.Shape, axes: typing.StdIndices):
     """
     Recursively concatenate logically nested list of arrays
     """

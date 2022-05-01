@@ -19,17 +19,17 @@ from .typing import (
     Strides,
     MultiLabels,
 
-    IntIndex,
-    IntIndices,
-
     GenIndex,
     StdIndex,
+    
+    StdIndices,
+    GenIndices,
 
     MultiStdIndex,
     MultiGenIndex,
 
-    LabelToIntIndex,
-    MultiLabelToIntIndex
+    LabelToStdIndex,
+    MultiLabelToStdIndex
 )
 
 
@@ -339,7 +339,7 @@ class LabelledArray(Generic[T]):
 # dnote multi-indexes by `multidx`
 # use `gen_` and `std_` to denote general and standard indexes
 def multi_to_flat_idx(
-    multidx: MultiStdIndex, strides: Strides) -> StdIndex:
+    multidx: MultiStdIndex, strides: Strides) -> StdIndices:
     """
     Return a flat index given a multi index and strides for each dimension
 
@@ -392,7 +392,7 @@ def expand_multidx(
 def conv_gen_to_std_multidx(
         multidx: MultiGenIndex,
         shape: Shape,
-        multi_label_to_idx: MultiLabelToIntIndex
+        multi_label_to_idx: MultiLabelToStdIndex
     ) -> MultiStdIndex:
     """
     Return a standard multi-index from a general multi-index
@@ -419,12 +419,12 @@ def conv_gen_to_std_multidx(
     return tuple(multi_sidx)
 
 def conv_gen_to_std_idx(
-        idx: GenIndex,
-        label_to_idx: LabelToIntIndex,
+        idx: Union[GenIndex, GenIndices, slice],
+        label_to_idx: LabelToStdIndex,
         size: int
-    ) -> StdIndex:
+    ) -> Union[StdIndex, StdIndices]:
     """
-    Return a standard index corresponding to any of the general index approaches
+    Return a standard index(s) form any of the 3 valid general index formats
 
     Parameters
     ----------
@@ -452,9 +452,9 @@ def conv_gen_to_std_idx(
 # (StandardIndex)
 def conv_list_to_std_idx(
         idx: Union[List[Union[str, int]], Tuple[Union[str, int]]], 
-        label_to_idx: LabelToIntIndex, 
+        label_to_idx: LabelToStdIndex, 
         size: int
-    ):
+    ) -> StdIndices:
     """
     Convert a sequence of indices so that each index is a integer
     """
@@ -464,7 +464,7 @@ def conv_list_to_std_idx(
         for ii in idx
     ]
 
-def conv_slice_to_std_idx(idx: slice, size: int) -> IntIndices:
+def conv_slice_to_std_idx(idx: slice, size: int) -> StdIndices:
     """
     Return the sequence of indexes corresponding to a slice
     """
@@ -477,12 +477,12 @@ def conv_slice_to_std_idx(idx: slice, size: int) -> IntIndices:
     return list(range(start, stop, step))
 
 # These functions convert a general single index (GeneralIndex)
-# to a standard single index (StandardIndex, specifically IntIndex)
+# to a standard single index (StandardIndex, specifically StdIndex)
 def conv_label_to_std_idx(
         idx: str, 
-        label_to_idx: LabelToIntIndex, 
+        label_to_idx: LabelToStdIndex, 
         size: int
-    ) -> IntIndex:
+    ) -> StdIndex:
     """
     Return the integer index corresponding to a labelled index
 
@@ -499,7 +499,7 @@ def conv_label_to_std_idx(
     assert ret_index >= 0 and ret_index < size
     return ret_index
 
-def conv_neg_to_std_idx(idx: int, size: int) -> IntIndex:
+def conv_neg_to_std_idx(idx: int, size: int) -> StdIndex:
     """
     Return the positive index corresponding to a negative index
 
@@ -518,7 +518,7 @@ def conv_neg_to_std_idx(idx: int, size: int) -> IntIndex:
     else:
         return size+idx
 
-def conv_slice_start_to_idx(idx: Union[int, None], size: int) -> IntIndex:
+def conv_slice_start_to_idx(idx: Union[int, None], size: int) -> StdIndex:
     """
     Return an int representing the starting index from a slice object
 
@@ -534,7 +534,7 @@ def conv_slice_start_to_idx(idx: Union[int, None], size: int) -> IntIndex:
     else:
         return conv_neg_to_std_idx(idx, size)
 
-def conv_slice_stop_to_idx(idx: Union[int, None], size: int) -> IntIndex:
+def conv_slice_stop_to_idx(idx: Union[int, None], size: int) -> StdIndex:
     """
     Return an int representing the end index from a slice object
 

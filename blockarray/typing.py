@@ -2,7 +2,7 @@
 Modules to collect all types used for type hints
 """
 
-from typing import TypeVar, Tuple, Union, Mapping
+from typing import TypeVar, Tuple, List, Union, Mapping
 
 Scalar = Union[int, float]
 
@@ -18,16 +18,23 @@ Labels = Tuple[str, ...]
 MultiLabels = Tuple[Labels, ...]
 
 ## Indexing types
-IntIndex = int
-IntIndices = Tuple[IntIndex, ...]
+# These types represent an index to single element
+StdIndex = int
+GenIndex = Union[int, str]
+
+# These types represents indexes to a collection of elements
+GenIndices = List[GenIndex]
+# a slice also selects a collection of elements
+
+StdIndices = List[StdIndex]
+
+# Special type for expanding missing indices 
 EllipsisType = type(...)
 
-# General and Standard index
-GenIndex = Union[slice, IntIndex, str, IntIndices, EllipsisType]
-StdIndex = Union[IntIndex, IntIndices]
+# Multidimensions general/standard indices
+MultiGenIndex = Tuple[Union[GenIndex, GenIndices, slice, EllipsisType], ...]
+MultiStdIndex = Tuple[Union[StdIndex, StdIndices], ...]
 
-MultiStdIndex = Tuple[StdIndex, ...]
-MultiGenIndex = Tuple[GenIndex, ...]
-
-LabelToIntIndex = Mapping[str, IntIndex]
-MultiLabelToIntIndex = Tuple[LabelToIntIndex, ...]
+# These types represent the mapping from labels to indices
+LabelToStdIndex = Mapping[str, StdIndex]
+MultiLabelToStdIndex = Tuple[LabelToStdIndex, ...]
