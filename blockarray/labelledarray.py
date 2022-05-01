@@ -390,9 +390,10 @@ def expand_multidx(
 # This function handles conversion of any of the general index/indices
 # to a standard index/indices
 def conv_gen_to_std_multidx(
-    multidx: MultiGenIndex,
-    shape: Shape,
-    multi_label_to_idx: MultiLabelToIntIndex) -> MultiStdIndex:
+        multidx: MultiGenIndex,
+        shape: Shape,
+        multi_label_to_idx: MultiLabelToIntIndex
+    ) -> MultiStdIndex:
     """
     Return a standard multi-index from a general multi-index
 
@@ -411,14 +412,17 @@ def conv_gen_to_std_multidx(
         for the given axis
     """
     multi_sidx = [
-        conv_gen_to_std_idx(index, axis_size, axis_label_to_idx)
-        for index, axis_size, axis_label_to_idx in zip(multidx, shape, multi_label_to_idx)]
+        conv_gen_to_std_idx(index, axis_label_to_idx, axis_size)
+        for index, axis_size, axis_label_to_idx 
+        in zip(multidx, shape, multi_label_to_idx)
+    ]
     return tuple(multi_sidx)
 
 def conv_gen_to_std_idx(
-    idx: GenIndex,
-    size: int,
-    label_to_idx: LabelToIntIndex) -> StdIndex:
+        idx: GenIndex,
+        label_to_idx: LabelToIntIndex,
+        size: int
+    ) -> StdIndex:
     """
     Return a standard index corresponding to any of the general index approaches
 
@@ -436,9 +440,7 @@ def conv_gen_to_std_idx(
     if isinstance(idx, slice):
         return conv_slice_to_std_idx(idx, size)
     elif isinstance(idx, (list, tuple)):
-        return [
-            conv_label_to_std_idx(ii, label_to_idx, size) if isinstance(ii, str) else ii
-            for ii in idx]
+        return conv_list_to_std_idx(idx, label_to_idx, size)
     elif isinstance(idx, str):
         return conv_label_to_std_idx(idx, label_to_idx, size)
     elif isinstance(idx, int):
@@ -448,6 +450,20 @@ def conv_gen_to_std_idx(
 
 # These functions convert general indices (GeneralIndex) to standard indices
 # (StandardIndex)
+def conv_list_to_std_idx(
+        idx: Union[List[Union[str, int]], Tuple[Union[str, int]]], 
+        label_to_idx: LabelToIntIndex, 
+        size: int
+    ):
+    """
+    Convert a sequence of indices so that each index is a integer
+    """
+    return [
+        conv_label_to_std_idx(ii, label_to_idx, size) 
+        if isinstance(ii, str) else conv_neg_to_std_idx(ii, size)
+        for ii in idx
+    ]
+
 def conv_slice_to_std_idx(idx: slice, size: int) -> IntIndices:
     """
     Return the sequence of indexes corresponding to a slice
@@ -462,9 +478,13 @@ def conv_slice_to_std_idx(idx: slice, size: int) -> IntIndices:
 
 # These functions convert a general single index (GeneralIndex)
 # to a standard single index (StandardIndex, specifically IntIndex)
-def conv_label_to_std_idx(idx: str, label_to_idx: LabelToIntIndex, size: int) -> IntIndex:
+def conv_label_to_std_idx(
+        idx: str, 
+        label_to_idx: LabelToIntIndex, 
+        size: int
+    ) -> IntIndex:
     """
-    Return an integer index corresponding to a label
+    Return the integer index corresponding to a labelled index
 
     Parameters
     ----------
@@ -481,7 +501,7 @@ def conv_label_to_std_idx(idx: str, label_to_idx: LabelToIntIndex, size: int) ->
 
 def conv_neg_to_std_idx(idx: int, size: int) -> IntIndex:
     """
-    Return the index representing the equivalent negative index
+    Return the positive index corresponding to a negative index
 
     For an array of size N, a negative index `-k`, correspond to the positive
     index `N-k`.
@@ -491,7 +511,7 @@ def conv_neg_to_std_idx(idx: int, size: int) -> IntIndex:
     idx : int
         Index of the element
     size : int
-        Size of the iterable
+        Number of elements in the iterable
     """
     if idx >= 0:
         return idx
