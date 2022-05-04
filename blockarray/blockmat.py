@@ -214,7 +214,7 @@ def get_block_matrix_csr(blocks_csr: CSR, blocks_shape: Shape, blocks_sizes: Blo
 
     i_mono = np.array(i_mono, dtype=np.int32)
     j_mono = np.array(j_mono, dtype=np.int32)
-    v_mono = np.array(v_mono, dtype=np.float)
+    v_mono = np.array(v_mono, dtype=np.float64)
     return i_mono, j_mono, v_mono
 
 def reorder_mat_rows(mat, rows_in, rows_out, m_out, finalize=True):
