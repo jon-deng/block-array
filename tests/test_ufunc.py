@@ -4,6 +4,8 @@ from blockarray import blockarray as btensor, ufunc
 
 SIGNATURE = '(i,j),(j,k)->(i, k)'
 
+# pylint: disable=missing-function-docstring
+
 def test_parse_ufunc_signature():
     sig = SIGNATURE
     input_sigs, output_sig = ufunc.parse_ufunc_signature(sig)
@@ -62,16 +64,16 @@ def test_recursive_concatenate():
     ufunc.recursive_concatenate(A.subarrays_flat, A.shape, A.dims)
 
 def test_apply_ufunc():
-    a = np.ones((4, 4))
-    b = np.ones((4, 2))
-    c = np.ones((2, 4))
-    d = np.ones((2, 2))
+    a = np.random.random_sample((4, 4))
+    b = np.random.random_sample((4, 2))
+    c = np.random.random_sample((2, 4))
+    d = np.random.random_sample((2, 2))
     A = btensor.BlockArray([[a, b], [c, d]])
 
-    a = np.ones((4, 4))
-    b = np.ones((4, 2))
-    c = np.ones((2, 4))
-    d = np.ones((2, 2))
+    a = np.random.random_sample((4, 4))
+    b = np.random.random_sample((4, 2))
+    c = np.random.random_sample((2, 4))
+    d = np.random.random_sample((2, 2))
     B = btensor.BlockArray([[a, b], [c, d]])
 
     # C = ufuncutils.apply_ufunc(np.add, '__call__', *[A, B])
@@ -93,6 +95,12 @@ def test_apply_ufunc():
     D = ufunc.apply_ufunc_array(np.multiply, '__call__', *[scalar_np, B])
     D_ = np.multiply(scalar_np, B.to_mono_ndarray())
     assert np.all(np.isclose(D.to_mono_ndarray(), D_))
+
+    # Unfortunately, seems like inner1d is not available in the numpy public api?
+    # D = ufunc.apply_ufunc_array(
+    #     np.inner1d, '__call__', *[A, B], axes=[(1,), (0,), ()])
+    # D_ = np.inner1d(A.to_mono_ndarray(), B.to_mono_ndarray(), axes=[(1,), (0,), ()])
+    # assert np.all(np.isclose(D.to_mono_ndarray(), D_))
 
 if __name__ == '__main__':
     test_parse_ufunc_signature()
