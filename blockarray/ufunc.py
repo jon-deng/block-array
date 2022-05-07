@@ -231,7 +231,7 @@ def apply_permutation(arg, perm: List[int]):
 
 def conv_neg(n, size):
     if n < 0:
-        return size-n
+        return size+n
     else:
         return n
 
