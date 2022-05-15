@@ -39,10 +39,10 @@ This package provides a ``BlockArray`` object that makes it easier to work with 
     X.bshape == ((3, 2),)
 
 In the above example, the matrix ``A`` is represented by 2 row blocks (with corresponding submatrix row sizes 2 and 1) and 2 column blocks (with corresponding submatrix column sizes 2 and 1) while the vector ``X`` is represented with two row blocks (with corresponding subvector sizes 2 and 1).
-Blocks of ``A`` and ``X`` are also labelled; labels are useful to organize blocks since blocks often represent different different systems.
-For example, the block 0 of ``X``, ``X0``, might correspond to a vector associated with system ``'a'`` while block 1 of ``X``, ``X1``, corresponds to a vector associated with system ``'b'``.
+Blocks of ``A`` and ``X`` are also labelled; labels are useful to organize blocks since blocks often represent different systems.
+For example, block 0 of ``X``, ``X0``, might correspond to a vector associated with system ``'a'`` while block 1 of ``X``, ``X1``, corresponds to a vector associated with system ``'b'``.
 
-The ``shape`` and ``bshape`` attributes stores the layout of the blocks. ``shape`` represents the number of blocks along each dimension. ``bshape`` gives the axis size of each block, along each axis.
+The ``shape`` and ``bshape`` attributes store the layout of the blocks. ``shape`` represents the number of blocks along each dimension. ``bshape`` gives the axis size of each block, along each axis.
 
 Indexing
 ========
@@ -61,7 +61,7 @@ Indexing block arrays works similarly to indexing in ``numpy`` with some additio
         * ``x[[0, -1]]`` returns a ``BlockArray`` with subarrays ``(a, c)``
 Indexing a single subarray returns the appropriate subarray, while indexing a range of indices returns another ``BlockArray`` but with a (possibly) different shape.
 
-Multidimensional indexing works in a similar fashion; one of the four indexing types above is supplied for each axis to extract a single subarray, or a ``BlockArray``. The range of subarrays selected is then the set of subarrays that lie in the indices for each axis. To demonstrate this, for a ``BlockArray`` ``x`` with shape ``(1, 2, 3, 4)`` and labels ``(('a',), ('a', 'b'), ('a', 'b', 'c'), ('a', 'b', 'c', 'd'))``:
+Multidimensional indexing works in a similar fashion; one of the four indexing methods above can be used in each axis to extract a single subarray, or a ``BlockArray``. The range of subarrays selected is then the set of subarrays that lie in the indices for each axis. To demonstrate this, for a ``BlockArray`` ``x`` with shape ``(1, 2, 3, 4)`` and labels ``(('a',), ('a', 'b'), ('a', 'b', 'c'), ('a', 'b', 'c', 'd'))``:
     * single index for each axis by string/integer
         * ``x[0, 0, 0, 3]`` returns the (0, 0, 0, 3) subarray
         * ``x['a', 'a', 'a', 3]`` returns the (0, 0, 0, 3) subarray
@@ -75,13 +75,12 @@ Multidimensional indexing works in a similar fashion; one of the four indexing t
         * ``x[0:1, 0, 3, 0:3]`` returns a ``BlockArray`` with ``shape`` ``(1, -1, -1, 3)`` and ``r_shape`` ``(1, 3)``
 
 A special case occurs in the last example when mixing a single index and range of indices.
-In this case, the axis indexed with a single index results in an axis size of -1 and is collapased/reduced. This is needed since the dimension of the blocks should match the dimension of the underlying subarrays. The ``BlockArray.r_shape`` attribute stores the shape of non-collapsed/reduced axes. In addition, indexing implictly occurs only over non-collapsed axes. For example, for a ``BlockArray`` ``x`` with shape ``(-1, 2, -1, 4)`` (consisting of a total of 8=2*4 subarrays), ``x[1, 3]`` selects the index 1 from axis 1, and index 3 from axis 3.
+In this case, the axis indexed with a single index results in an axis size of -1 and is collapsed/reduced. This is needed since the dimension of the blocks should match the dimension of the underlying subarrays. The ``BlockArray.r_shape`` attribute stores the shape of non-collapsed/reduced axes. Indexing implictly occurs only over non-collapsed axes. For example, for a ``BlockArray`` ``x`` with shape ``(-1, 2, -1, 4)`` (consisting of a total of 8=2*4 subarrays), ``x[1, 3]`` selects the index 1 from axis 1, and index 3 from axis 3.
 
-Lastly, multidimensional are also automatically expanded to all indices similar to numpy. To illustrate this, consider a ``BlockArray`` ``x`` with ``shape`` ``(1, 2, 3, 4)``:
+Lastly, missing axis indices are also automatically expanded, similar to ``numpy``. To illustrate this, consider a ``BlockArray`` ``x`` with ``shape`` ``(1, 2, 3, 4)``:
     * provide fewer indices than the number of dimensions
         * ``x[0, 0]`` is equivalent to ``x[0, 0, :, :]``
         * ``x[0, 0:1, :]`` is equivalent to ``x[0, 0:1, :, :]``
     * use a single ellipsis to expand dimensions
         * ``x[0, ..., 0]`` is equivalent to ``x[0, :, :, 0]``
         * ``x[..., 0, 0]`` is equivalent to ``x[:, :, 0, 0]``
- 
