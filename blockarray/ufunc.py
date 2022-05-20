@@ -5,7 +5,7 @@ Module implementing `ufunc` logic
 import operator
 from numbers import Number
 import itertools
-from typing import Tuple, List, Mapping, Optional
+from typing import Tuple, List, Mapping, Optional, TypeVar
 import numpy as np
 
 from . import blockarray as ba
@@ -15,6 +15,7 @@ Signature = Tuple[str, ...]
 Signatures = List[Signature]
 
 Shapes = List[typing.Shape]
+T = TypeVar('T')
 
 def parse_ufunc_signature(
         sig: str
@@ -131,7 +132,6 @@ def split_shapes_by_signatures(
     ]
     return loop_shapes, core_shapes
 
-
 def calculate_output_shapes(
         loop_shape_ins: Shapes,
         core_shape_ins: Shapes,
@@ -199,27 +199,9 @@ def make_gen_in_multi_index(
 
     return gen_in_multi_index
 
-def recursive_concatenate(arrays: typing.FlatArray, shape: typing.Shape, axes: typing.StdIndices):
+def apply_permutation(arg: List[T], perm: List[int]) -> List[T]:
     """
-    Recursively concatenate logically nested list of arrays
-    """
-    assert len(arrays) == np.prod(shape)
-    N = len(arrays)
-
-    ret_arrays = arrays
-    for ax_size, axis in zip(shape[::-1], axes[::-1]):
-        concat_arrays = [
-            ret_arrays[n*ax_size:(n+1)*ax_size]
-            for n in range(len(ret_arrays)//ax_size)
-        ]
-        ret_arrays = [np.concatenate(arrays, axis) for arrays in concat_arrays]
-
-    assert len(ret_arrays) == 1
-    return ret_arrays[0]
-
-def apply_permutation(arg, perm: List[int]):
-    """
-    Apply a permutation to supplied lists
+    Return a permutation of a list
     """
     # check the permutation is valid
     assert max(perm) == len(perm) - 1
@@ -230,10 +212,14 @@ def apply_permutation(arg, perm: List[int]):
     return type(arg)([arg[ii] for ii in perm])
 
 def conv_neg(n, size):
+    """
+    Convert a negative integer index to the equivalent positive one
+    """
     if n < 0:
         return size+n
     else:
         return n
+
 
 def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
@@ -369,10 +355,7 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
                 input[midx_in] for input, midx_in in zip(inputs, midx_ins)
             ]
             subarray_ins = [
-                recursive_concatenate(
-                    subarray.subarrays_flat,
-                    subarray.r_shape,
-                    subarray.r_dims)
+                subarray.to_mono_ndarray()
                 if isinstance(subarray, ba.BlockArray)
                 else subarray
                 for subarray in subarray_ins
