@@ -273,7 +273,6 @@ class BlockArray(Generic[T]):
             return ret
 
     ## Dict-like interface over the first dimension
-    @property
     def keys(self):
         """Return the first axis' labels"""
         return self.larray.labels[0]
