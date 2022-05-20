@@ -43,11 +43,11 @@ def parse_ufunc_signature(
 
     # Change the signatures into tuples of symbols
     sig_inputs = [
-        tuple() if sig_input == '' else tuple(sig_input.split(',')) 
+        tuple() if sig_input == '' else tuple(sig_input.split(','))
         for sig_input in sig_inputs
     ]
     sig_outputs = [
-        tuple() if sig_output == '' else tuple(sig_output.split(',')) 
+        tuple() if sig_output == '' else tuple(sig_output.split(','))
         for sig_output in sig_outputs
     ]
     return sig_inputs, sig_outputs
@@ -121,7 +121,7 @@ def split_shapes_by_signatures(
     """
     Splits a list of shapes into lists of elementwise dims and core dims
     """
-    ewise_shapes = [
+    loop_shapes = [
         shape[:-len(sig)] if len(sig) != 0 else shape[:]
         for shape, sig in zip(shapes, sigs)
     ]
@@ -129,12 +129,12 @@ def split_shapes_by_signatures(
         shape[-len(sig):] if len(sig) != 0 else ()
         for shape, sig in zip(shapes, sigs)
     ]
-    return ewise_shapes, core_shapes
+    return loop_shapes, core_shapes
 
 
 def calculate_output_shapes(
-        e_shape_ins: Shapes,
-        c_shape_ins: Shapes,
+        loop_shape_ins: Shapes,
+        core_shape_ins: Shapes,
         sig_ins: Signatures,
         sig_outs: Signatures,
         free_name_to_in : Optional[Mapping[str, Tuple[int, int]]]=None
@@ -144,27 +144,27 @@ def calculate_output_shapes(
     """
     # Check that the element wise dims of all inputs are the same
     # TODO: support broadcasting?
-    for shapea, shapeb in zip(e_shape_ins[:-1], e_shape_ins[1:]):
+    for shapea, shapeb in zip(loop_shape_ins[:-1], loop_shape_ins[1:]):
         assert shapea == shapeb
 
     if free_name_to_in is None:
         free_name_to_in, _ = interpret_ufunc_signature(sig_ins, sig_outs)
 
-    eshape_out = e_shape_ins[0]
-    eshape_outs = [eshape_out] * len(sig_outs)
+    loop_shape_out = loop_shape_ins[0]
+    loop_shape_outs = [loop_shape_out] * len(sig_outs)
 
-    cshape_outs = [
+    core_shape_outs = [
         tuple([
-            c_shape_ins[free_name_to_in[label][0]][free_name_to_in[label][1]]
+            core_shape_ins[free_name_to_in[label][0]][free_name_to_in[label][1]]
             for label in sig
         ])
         for sig in sig_outs
     ]
 
-    return eshape_outs, cshape_outs
+    return loop_shape_outs, core_shape_outs
 
 def make_gen_in_multi_index(
-        e_ndim_ins: List[int],
+        loop_ndim_ins: List[int],
         sig_ins: Signatures,
         sig_out: Signature
     ):
@@ -175,13 +175,13 @@ def make_gen_in_multi_index(
 
     def gen_in_multi_index(out_multi_idx):
         if len(sig_out) == 0:
-            e_midx_outs = out_multi_idx
+            l_midx_outs = out_multi_idx
             c_midx_outs = ()
         else:
-            e_midx_outs = out_multi_idx[:-len(sig_out)]
+            l_midx_outs = out_multi_idx[:-len(sig_out)]
             c_midx_outs = out_multi_idx[-len(sig_out):]
 
-        e_midx_ins = [e_midx_outs[-n:] for n in e_ndim_ins]
+        l_midx_ins = [l_midx_outs[-n:] for n in loop_ndim_ins]
         c_midx_ins = [
             tuple([
                 c_midx_outs[free_name_to_output[label]]
@@ -193,7 +193,7 @@ def make_gen_in_multi_index(
         ]
 
         midx_ins = [
-            ewise+core for ewise, core in zip(e_midx_ins, c_midx_ins)
+            loop+core for loop, core in zip(l_midx_ins, c_midx_ins)
         ]
         return midx_ins
 
@@ -242,7 +242,7 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     ## Validate inputs
     # Check input types
     if not all([
-            isinstance(input, (Number, ba.BlockArray)) 
+            isinstance(input, (Number, ba.BlockArray))
             for input in inputs
         ]):
         input_types = [type(x) for x in inputs]
@@ -270,29 +270,28 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     # This permutation shifts core dimensions to the 'standard' location as
     # the final dimensions
     ndim_ins = [input.ndim for input in inputs]
-    _ndim_ewise_ins = [ndim-len(sig) for ndim, sig in zip(ndim_ins, sig_ins)]
-    ndim_outs = [max(_ndim_ewise_ins)+len(sig) for sig in sig_outs]
+    _loop_ndim_ins = [ndim-len(sig) for ndim, sig in zip(ndim_ins, sig_ins)]
+    ndim_outs = [max(_loop_ndim_ins)+len(sig) for sig in sig_outs]
     ndims = ndim_ins + ndim_outs
 
     if 'axes' in kwargs:
         axes = kwargs['axes']
         axes = [
-            tuple([conv_neg(ii, ndim) for ii in axs]) 
+            tuple([conv_neg(ii, ndim) for ii in axs])
             for ndim, axs in zip(ndim_ins+ndim_outs, axes)
         ]
     else:
         axes = [
             tuple([
                 ndim-ii for ii in range(len(sig), 0, -1)
-            ]) 
+            ])
             for ndim, sig in zip(ndim_ins+ndim_outs, sig_ins+sig_outs)
         ]
     # Remove any axes for scalar inputs
     axes_ins = axes[:-ufunc.nout]
     axes_outs = axes[-ufunc.nout:]
-    axes_ins = [axs for x, axs in zip(inputs, axes_ins) if not isinstance(x, Number)]   
+    axes_ins = [axs for x, axs in zip(inputs, axes_ins) if not isinstance(x, Number)]
     axes = axes_ins + axes_outs
-    
 
     # Compute the shape permutation from axes
     # This permutes the axis sizes in shape so the core dimensions are at the end
@@ -308,39 +307,45 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     # the _ prefix means the permuted shape-type tuple with core dimensions at
     # the end
     _shape_ins = [
-        apply_permutation(input.shape, perm) 
+        apply_permutation(input.shape, perm)
         for input, perm in zip(inputs, permut_ins)
     ]
     _labels_ins = [
-        apply_permutation(input.labels, perm) 
+        apply_permutation(input.labels, perm)
         for input, perm in zip(inputs, permut_ins)
     ]
-    _eshape_ins, _cshape_ins = split_shapes_by_signatures(_shape_ins, sig_ins)
-    e_ndim_ins = [len(eshape) for eshape in _eshape_ins]
+    _loops_shape_ins, _core_shape_ins = split_shapes_by_signatures(_shape_ins, sig_ins)
+    loop_ndim_ins = [len(loop_shape) for loop_shape in _loops_shape_ins]
 
-    _eshape_outs, _cshape_outs = calculate_output_shapes(
-        _eshape_ins, _cshape_ins, sig_ins, sig_outs, free_name_to_in
+    _loop_shape_outs, _core_shape_outs = calculate_output_shapes(
+        _loops_shape_ins, _core_shape_ins, sig_ins, sig_outs, free_name_to_in
     )
 
-    elabels_ins = [_labels[:-len(sig_in)] if len(sig_in) != 0 else _labels for _labels, sig_in in zip(_labels_ins, sig_ins)]
-    clabels_ins = [_labels[-len(sig_in):] if len(sig_in) != 0 else () for _labels, sig_in in zip(_labels_ins, sig_ins)]
-    clabels_outs = [
+    loop_labels_ins = [
+        _labels[:-len(sig_in)] if len(sig_in) != 0 else _labels
+        for _labels, sig_in in zip(_labels_ins, sig_ins)
+    ]
+    core_labels_ins = [
+        _labels[-len(sig_in):] if len(sig_in) != 0 else ()
+        for _labels, sig_in in zip(_labels_ins, sig_ins)
+    ]
+    core_labels_outs = [
         tuple([
-            clabels_ins[free_name_to_in[name][0]][free_name_to_in[name][1]]
+            core_labels_ins[free_name_to_in[name][0]][free_name_to_in[name][1]]
             for name in sig_out
         ])
         for sig_out in sig_outs
     ]
-    
-    _labels_outs = [elabels_ins[0] + clabels_out for clabels_out in clabels_outs]
-    _shape_outs = [eshape+cshape for eshape, cshape in zip(_eshape_outs, _cshape_outs)]
+
+    _labels_outs = [loop_labels_ins[0] + clabels_out for clabels_out in core_labels_outs]
+    _shape_outs = [eshape+cshape for eshape, cshape in zip(_loop_shape_outs, _core_shape_outs)]
 
     labels_outs = [
-        apply_permutation(labels, perm) 
+        apply_permutation(labels, perm)
         for labels, perm in zip(_labels_outs, permut_outs)
     ]
     shape_outs = [
-        apply_permutation(shape, perm) 
+        apply_permutation(shape, perm)
         for shape, perm in zip(_shape_outs, permut_outs)
     ]
     assert len(shape_outs) == len(sig_outs)
@@ -348,7 +353,7 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     ## Compute the outputs block wise by looping over inputs
     outputs = []
     for shape_out, labels_out, sig_out, perm_out in zip(shape_outs, labels_outs, sig_outs, permut_outs):
-        gen_in_midx = make_gen_in_multi_index(e_ndim_ins, sig_ins, sig_out)
+        gen_in_midx = make_gen_in_multi_index(loop_ndim_ins, sig_ins, sig_out)
 
         subarrays_out = []
         for midx_out in itertools.product(
@@ -389,10 +394,10 @@ def apply_ufunc_mat_vec(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
     A function to apply a limited set of ufuncs for BlockMatrix and BlockVector
     """
-    # Convert any numpy scalar inputs to floats so that you don't trigger the 
+    # Convert any numpy scalar inputs to floats so that you don't trigger the
     # __array_ufunc__ interface again
     inputs = [
-        float(input) if isinstance(input, Number) else input 
+        float(input) if isinstance(input, Number) else input
         for input in inputs
     ]
 
