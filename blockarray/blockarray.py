@@ -49,7 +49,7 @@ class BlockArray(Generic[T]):
         with 2 row blocks and 2 column blocks has shape `(2, 2)`.
     bshape :
         The 'block shape' of the block array. This stores the axis sizes of
-        subarrays along each axis. For example, a block shape 
+        subarrays along each axis. For example, a block shape
         `((120, 6), (5, 4))` represents a 2-by-2 block matrix with entries:
             - (0, 0) is a 120x5 matrix
             - (0, 1) is a 120x4 matrix
@@ -79,19 +79,19 @@ class BlockArray(Generic[T]):
         A nested tuple of the contained subarrays
 
     larray : larr.LabelledArray
-        The `LabelledArray` instance used to store the subtensors in a block 
+        The `LabelledArray` instance used to store the subtensors in a block
         format
     """
     def __init__(
         self,
-        array: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
+        subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
         shape: Optional[Shape] = None,
         labels: Optional[MultiLabels] = None):
 
-        if isinstance(array, larr.LabelledArray):
-            self._larray = array
-        else:
-            flat_array, _shape = larr.flatten_array(array)
+        if isinstance(subarrays, larr.LabelledArray):
+            self._larray = subarrays
+        elif isinstance(subarrays, (list, tuple)):
+            flat_array, _shape = larr.flatten_array(subarrays)
             if shape is None:
                 # If a shape is not provided, assume `array` is a nested
                 # array representation
@@ -103,8 +103,12 @@ class BlockArray(Generic[T]):
                     raise ValueError(
                         "Nested array shape {_shape} and provided shape {shape}"
                         "are not compatible")
-
             self._larray = larr.LabelledArray(flat_array, shape, labels)
+        else:
+            raise TypeError(
+                "Expected `subarrays` to be of type `LabelledArray`, `list`, or `tuple`"
+                f" not {type(subarrays)}."
+            )
 
         self._bshape = _block_shape(self._larray)
 
