@@ -33,10 +33,10 @@ def mult_mat_vec(mat: bm.BlockMatrix[T], vec: bv.BlockVector[T]) -> bv.BlockVect
     """
     ret_subvecs = []
     for submat_row in mat:
-        vec = reduce(
+        ret_subvec = reduce(
             lambda a, b: a+b,
             [gops.mult_mat_vec(submat, subvec) for submat, subvec in zip(submat_row, vec)])
-        ret_subvecs.append(vec)
+        ret_subvecs.append(ret_subvec)
     return bv.BlockVector(ret_subvecs, labels=mat.labels[0:1])
 
 def mult_mat_mat(mat_a: bm.BlockMatrix[T], mat_b: bm.BlockMatrix[T]) -> bm.BlockMatrix[T]:
