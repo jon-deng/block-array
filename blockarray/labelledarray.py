@@ -33,22 +33,7 @@ from .typing import (
 )
 
 
-def block_array(array: NestedArray[T], labels: MultiLabels):
-    """
-    Return a BlockArray from nested lists/tuples
-
-    Parameters
-    ----------
-    array : nested tuple/lists
-        Nested list representation of an nd array
-    labels : AxisBlockLabels
-        list of labels for each axis index. The number of labels along each axis
-        should match the size of that axis
-    """
-    flat_array, shape = flatten_array(array)
-    return LabelledArray(flat_array, shape, labels)
-
-def flatten_array(array: NestedArray[T]):
+def flatten_array(array: NestedArray[T]) -> Tuple[FlatArray[T], Shape]:
     """
     Flattens and return the shape of a nested array
     """
@@ -75,7 +60,7 @@ def flatten_array(array: NestedArray[T]):
 
     return flat_array, tuple(shape)
 
-def nest_array(array: FlatArray[T], strides: Strides):
+def nest_array(array: FlatArray[T], strides: Strides) -> NestedArray[T]:
     """
     Convert a flat array into a nested array from given strides
 
