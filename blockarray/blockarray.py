@@ -19,11 +19,12 @@ class BlockArray(Generic[T]):
     """
     An n-dimensional block array
 
-    `BlockArray` represents a nested or block array by storing subarrays.
+    `BlockArray` represents a block (or nested) array by storing sub-arrays 
+    correspondings to each block.
 
     Parameters
     ----------
-    array :
+    subarrays :
         The subarray elements. Depending on the type of array, the remaining parameters
         are interpreted differently:
             - If `array` is a `LabelledArray`, `shape` and `labels` parameters are
@@ -42,7 +43,7 @@ class BlockArray(Generic[T]):
 
     Attributes
     ----------
-    size :
+    size : 
         The total number of subarrays contained in the block array.
     shape :
         The number of blocks (subarrays) along each axis. For example, a matrix
@@ -56,8 +57,7 @@ class BlockArray(Generic[T]):
             - (1, 0) is a 6x5 matrix
             - (1, 1) is a 6x4 matrix
     mshape :
-        The monolithic shape of the block array. This is the shape of the
-        equivalent monolithic array.
+        The shape of the block array's monolithic equivalent.
     r_shape, r_bshape :
         Reduced version of `shape` and `bshape` respectively. These
         have the same format as their correponding attributes but do not
@@ -83,10 +83,11 @@ class BlockArray(Generic[T]):
         format
     """
     def __init__(
-        self,
-        subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
-        shape: Optional[Shape] = None,
-        labels: Optional[MultiLabels] = None):
+            self,
+            subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
+            shape: Optional[Shape]=None,
+            labels: Optional[MultiLabels]=None
+        ):
 
         if isinstance(subarrays, larr.LabelledArray):
             self._larray = subarrays
@@ -364,7 +365,10 @@ def _block_shape_from_larray(array: larr.LabelledArray[T]) -> BlockShape:
         ret_bshape.append(tuple(axis_sizes))
     return tuple(ret_bshape)
 
-def _validate_subarray_shapes_from_larray(array: larr.LabelledArray[T], bshape: BlockShape):
+def _validate_subarray_shapes_from_larray(
+        array: larr.LabelledArray[T], 
+        bshape: BlockShape
+    ):
     """
     Validate sub-arrays in a `LabelledArray` have consistent shapes
 
