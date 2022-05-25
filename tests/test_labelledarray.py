@@ -1,50 +1,60 @@
 """
-Test the functionality of the array.py module
+Test the functionality of the lablleledarray.py module
 """
-
-from ast import Slice
+import math
 from itertools import accumulate, product
 import string
 
+import pytest 
+
 from blockarray import labelledarray as la
-from blockarray.labelledarray import LabelledArray, flatten_array, nest_array
+from blockarray.labelledarray import LabelledArray, flatten_array
 
-import math
+@pytest.fixture()
+def setup_labelledarray():
+    """
+    Return a pre-defined `LabelledArray` and reference data 
+    """
+    l, m, n = 2, 3, 4
+    shape = (l, m, n)
+    labels = (('a', 'b'), ('a', 'b', 'c'), ('a', 'b', 'c', 'd'))
 
-l, m, n = 2, 3, 4
-SHAPE = (l, m, n)
-LABELS = (('a', 'b'), ('a', 'b', 'c'), ('a', 'b', 'c', 'd'))
-SIZE = math.prod(SHAPE)
+    strides = [
+        stride for stride
+        in accumulate(shape[-1:0:-1], lambda a, b: a*b, initial=1)]
+    strides = tuple(strides)[::-1]
 
-CSTRIDES = [
-    stride for stride
-    in accumulate(SHAPE[-1:0:-1], lambda a, b: a*b, initial=1)]
-CSTRIDES = tuple(CSTRIDES)[::-1]
+    elements = string.ascii_lowercase[:math.prod(shape)]
 
-ARRAY = string.ascii_lowercase[:SIZE]
+    return LabelledArray(elements, shape, labels), (elements, shape, labels, strides)
 
-array = LabelledArray(ARRAY, SHAPE, LABELS)
 
 def _flat(midx, strides):
     return sum([idx*stride for idx, stride in zip(midx, strides)])
 
-def test_shape():
+def test_shape(setup_labelledarray):
+    """
+    Test the LabelledArray has the correct shape
+    """
+    array, (_, shape, *_) = setup_labelledarray
     print(f"test has shape {array.shape} and vals {array.flat}")
-    assert math.prod(array.shape) == SIZE
+    assert array.shape == shape
 
-def test_single_index():
+def test_single_index(setup_labelledarray):
     """Test that indexing a single element produces the correct result"""
+    array, (ARRAY, *_, CSTRIDES) = setup_labelledarray
     # loop through each single index and check that the right element is selected
     all_axis_int_indices = [range(axis_size) for axis_size in array.shape]
-    all_axis_str_indices = [axis_labels for axis_labels in LABELS]
+    all_axis_str_indices = [axis_labels for axis_labels in array.labels]
     for mindex_int, mindex_str in zip(
         product(*all_axis_int_indices), product(*all_axis_str_indices)):
 
         assert array[mindex_int] == ARRAY[_flat(mindex_int, CSTRIDES)]
         assert array[mindex_str] == ARRAY[_flat(mindex_int, CSTRIDES)]
 
-def test_array_index():
+def test_array_index(setup_labelledarray):
     """Test that indexing a sub-array produces the correct result"""
+    array, _ = setup_labelledarray
     assert array[:].shape == array.shape
     assert array[:].flat == array.flat
 
@@ -72,75 +82,88 @@ def test_array_index():
 
 
 ## Tests for indexing internals
-def test_multi_to_flat_idx():
-    # shape and strides input by inspection
-    shape = (1, 2, 3, 4)
-    strides = (24, 12, 4, 1)
-    midx = (
-        [0, 1, 2, 3],
-        [4],
-        [1, 2]
-    )
-
-    flat_idxs = _flat(midx, strides)
-    assert la.multi_to_flat_idx(flat_idxs, strides) == flat_idxs
-
 def test_expand_multidx():
+    """
+    Test that multi-index with ellipses/missing axes are expanded correctly
+    """
     multidx = (..., slice(None))
     assert la.expand_multidx(multidx, (1, 1, 1, 1)) == (slice(None),)*4
 
     multidx = (slice(None),)
     assert la.expand_multidx(multidx, (1, 1, 1, 1)) == (slice(None),)*4
 
-# Test for the converion of a single general index to a standard on
+# Tests for lists (and/or single) indexes along a single axis
 def test_conv_gen_to_std_idx():
+    """
+    Test conversion of general to standard indices for a single axis
+    """
+    # Set the test case of a size 10 1-dimensional array
     N = 10
-    label_to_idx = {label: idx for idx, label in enumerate(string.ascii_lowercase[:N])}
+    LABEL_TO_IDX = {label: idx for idx, label in enumerate(string.ascii_lowercase[:N])}
 
-    idx = ['a', 'b', 4, -5]
-    _idx =  [0, 1, 4, 10-5]
-    assert la.conv_gen_to_std_idx(idx, label_to_idx, N) == _idx
+    # In each case below, `std_idx` is the correct output standard index based 
+    # on the known array size of 10
+    gen_idx = ['a', 'b', 4, -5]
+    std_idx =  [0, 1, 4, 10-5]
+    assert la.conv_gen_to_std_idx(gen_idx, LABEL_TO_IDX, N) == std_idx
 
-    idx = slice(1, 10)
-    _idx =  list(range(1, 10))
-    assert la.conv_gen_to_std_idx(idx, label_to_idx, N) == _idx
+    gen_idx = slice(1, 10)
+    std_idx =  list(range(1, 10))
+    assert la.conv_gen_to_std_idx(gen_idx, LABEL_TO_IDX, N) == std_idx
 
-    idx = 5
-    _idx =  5
-    assert la.conv_gen_to_std_idx(idx, label_to_idx, N) == _idx
+    gen_idx = 5
+    std_idx =  5
+    assert la.conv_gen_to_std_idx(gen_idx, LABEL_TO_IDX, N) == std_idx
 
-    idx = 'a'
-    _idx =  0
-    assert la.conv_gen_to_std_idx(idx, label_to_idx, N) == _idx
+    gen_idx = 'a'
+    std_idx =  0
+    assert la.conv_gen_to_std_idx(gen_idx, LABEL_TO_IDX, N) == std_idx
 
-# Tests for converting a sequence of indices
 def test_conv_list_to_std_idx():
+    """
+    Test conversion of a list of general indices to standard indices for a single axis
+    """
+    # Set the test case of a size 10 1-dimensional array
     N = 10
-    label_to_idx = {label: idx for idx, label in enumerate(string.ascii_lowercase[:N])}
+    LABEL_TO_IDX = {label: idx for idx, label in enumerate(string.ascii_lowercase[:N])}
 
-    idx = ['a', 'b', 4, -5]
-    _idx =  [0, 1, 4, 10-5]
-    assert la.conv_list_to_std_idx(idx, label_to_idx, N) == _idx
+    gen_idx = ['a', 'b', 4, -5]
+    std_idx =  [0, 1, 4, 10-5]
+    assert la.conv_list_to_std_idx(gen_idx, LABEL_TO_IDX, N) == std_idx
 
 def test_conv_slice_to_std_idx():
+    """
+    Test conversion of a slice to standard indices for a single axis
+    """
     N = 10
 
-    for IDX in [slice(2, 5), slice(2, 6, 2), slice(None)]:
-        assert la.conv_slice_to_std_idx(IDX, N) == list(range(N))[IDX]
+    for idx in [slice(2, 5), slice(2, 6, 2), slice(None)]:
+        assert la.conv_slice_to_std_idx(idx, N) == list(range(N))[idx]
 
-# Tests for converting a single index
+# Tests for single indexes along a single axis
 def test_conv_label_to_std_idx():
+    """
+    Test conversion of a label index to an integer index
+    """
     N = 10
     label_to_idx = {label: idx for idx, label in enumerate(string.ascii_lowercase[:N])}
-    n = N-1
-    assert la.conv_label_to_std_idx(string.ascii_lowercase[n], label_to_idx, N) == n
+
+    std_idx = N-1
+    gen_idx = string.ascii_lowercase[std_idx]
+    assert la.conv_label_to_std_idx(gen_idx, label_to_idx, N) == std_idx
 
 def test_conv_neg_to_std_idx():
+    """
+    Test conversion of a negative index to an integer index
+    """
     N = 10
     assert la.conv_neg_to_std_idx(5, N) == 5
     assert la.conv_neg_to_std_idx(-5, N) == 5
 
 def test_conv_slice_start_to_idx():
+    """
+    Test conversion of a slice start index to an integer index
+    """
     N = 10
     assert la.conv_slice_start_to_idx(None, N) == 0
 
@@ -151,6 +174,9 @@ def test_conv_slice_start_to_idx():
     assert la.conv_slice_start_to_idx(start, N) == N - 2
 
 def test_conv_slice_stop_to_idx():
+    """
+    Test conversion of a slice stop index to an integer index
+    """
     N = 10
     assert la.conv_slice_stop_to_idx(None, N) == N
 
@@ -162,9 +188,9 @@ def test_conv_slice_stop_to_idx():
 
 
 if __name__ == '__main__':
-    test_shape()
-    test_single_index()
-    test_array_index()
+    test_shape(setup_labelledarray())
+    test_single_index(setup_labelledarray())
+    test_array_index(setup_labelledarray())
 
     test_expand_multidx()
 
