@@ -2,6 +2,7 @@
 Module implementing `ufunc` logic
 """
 
+from multiprocessing.sharedctypes import Value
 import operator
 from numbers import Number
 import itertools
@@ -255,11 +256,9 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     inputs = [x for x in inputs if not isinstance(x, Number)]
     sig_ins = [sig for x, sig in zip(inputs, sig_ins) if not isinstance(x, Number)]
 
-    free_name_to_in, redu_name_to_in = interpret_ufunc_signature(sig_ins, sig_outs)
-
     ## Compute a permutation of the shape from the axes kwargs
     # This permutation shifts core dimensions to the 'standard' location as
-    # the final dimensions
+    # the final dimensions of the array
     ndim_ins = [input.ndim for input in inputs]
     _loop_ndim_ins = [ndim-len(sig) for ndim, sig in zip(ndim_ins, sig_ins)]
     ndim_outs = [max(_loop_ndim_ins)+len(sig) for sig in sig_outs]
@@ -294,6 +293,11 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     permut_ins = permuts[:-ufunc.nout]
     permut_outs = permuts[-ufunc.nout:]
 
+    ## Interpret the ufunc signature in order to compute the shape of the output 
+    free_name_to_in, redu_name_to_in = interpret_ufunc_signature(sig_ins, sig_outs)
+
+    # Check if reduced dimensions have compatible bshapes
+
     ## Compute the output shape from the input shape and signature
     # the _ prefix means the permuted shape-type tuple with core dimensions at
     # the end
@@ -301,6 +305,17 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
         apply_permutation(input.shape, perm)
         for input, perm in zip(inputs, permut_ins)
     ]
+
+    # Check that reduced dimensions have compatible bshapes
+    _bshape_ins = [apply_permutation(input.bshape, perm) for input, perm in zip(inputs, permut_ins)]
+    for redu_dim_name, redu_dim_info in redu_name_to_in.items():
+        redu_bshapes = [_bshape_ins[ii_in][ii_dim] for ii_in, ii_dim in redu_dim_info]
+        if not (redu_bshapes[:-1] == redu_bshapes[1:]):
+            raise ValueError(
+                f"Core dimension {redu_dim_name} has incompatible block shapes"
+                f"of {redu_bshapes}."
+            )
+
     _labels_ins = [
         apply_permutation(input.labels, perm)
         for input, perm in zip(inputs, permut_ins)
