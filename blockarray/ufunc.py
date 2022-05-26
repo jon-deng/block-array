@@ -18,7 +18,7 @@ Shapes = List[typing.Shape]
 T = TypeVar('T')
 
 def parse_ufunc_signature(
-        sig: str
+        sig_str: str
     ) -> Tuple[Signatures, Signatures]:
     """
     Parse a ufunc signature into a nicer format
@@ -29,16 +29,16 @@ def parse_ufunc_signature(
     `('i', 'j') ('j', 'k') ('i', 'k')`
     """
     # split into input and output signatures
-    sig = sig.replace(' ', '')
-    sig_inputs, sig_outputs = sig.split('->')
+    sig_str = sig_str.replace(' ', '')
+    sig_str_inputs, sig_str_outputs = sig_str.split('->')
 
     # further split the input/output signatures into signatures for each
     # input/output
-    sig_inputs = sig_inputs.split('),(')
+    sig_inputs = sig_str_inputs.split('),(')
     sig_inputs[0] = sig_inputs[0].replace('(', '')
     sig_inputs[-1] = sig_inputs[-1].replace(')', '')
 
-    sig_outputs = sig_outputs.split('),(')
+    sig_outputs = sig_str_outputs.split('),(')
     sig_outputs[0] = sig_outputs[0].replace('(', '')
     sig_outputs[-1] = sig_outputs[-1].replace(')', '')
 
