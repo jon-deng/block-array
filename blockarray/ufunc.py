@@ -63,6 +63,11 @@ def interpret_ufunc_signature(
     """
     Interprets a ufunc signature
 
+    This returns dictionaries containing information on the 'free' and 
+    'reduced' axes/dimensions. 'free' dimensions correspond to labels that occur
+    in output (and usually inputs too) signatures while 'reduced' dimensions 
+    correspond to labels that occur only in the inputs.
+
     Parameters
     ----------
     sig_ins, sig_outs:
