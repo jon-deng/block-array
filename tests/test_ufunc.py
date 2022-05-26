@@ -54,14 +54,14 @@ def test_gen_in_multi_index():
 
     print(gen_input_midx(out_midx))
 
-def test_recursive_concatenate():
-    a = np.ones((4, 4))
-    b = np.ones((4, 2))
-    c = np.ones((2, 4))
-    d = np.ones((2, 2))
-    A = btensor.BlockArray([[a, b], [c, d]])
+# def test_recursive_concatenate():
+#     a = np.ones((4, 4))
+#     b = np.ones((4, 2))
+#     c = np.ones((2, 4))
+#     d = np.ones((2, 2))
+#     A = btensor.BlockArray([[a, b], [c, d]])
 
-    ufunc.recursive_concatenate(A.subarrays_flat, A.shape, A.dims)
+#     ufunc.recursive_concatenate(A.subarrays_flat, A.shape, A.dims)
 
 def test_apply_ufunc():
     a = np.random.random_sample((4, 4))
@@ -126,5 +126,5 @@ if __name__ == '__main__':
     test_split_shapes_by_signatures()
     test_calculate_output_shapes()
     test_gen_in_multi_index()
-    test_recursive_concatenate()
+    # test_recursive_concatenate()
     test_apply_ufunc()
