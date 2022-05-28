@@ -1,6 +1,7 @@
 import numpy as np
 import petsc4py.PETSc as PETSc
 
+from blockarray import subops
 from blockarray import blockmat as bmat
 from blockarray import linalg as bla
 
@@ -75,10 +76,10 @@ def test_add():
     print(f"A+B: {BMAT3[:, :].to_mono_petsc()[:, :]}")
 
 def test_zero_mat():
-    print(bmat.zero_mat(5, 6)[:, :])
+    print(subops.zero_mat(5, 6)[:, :])
 
 def test_ident_mat():
-    print(bmat.ident_mat(5)[:, :])
+    print(subops.ident_mat(5)[:, :])
 
 def test_concatenate_mat():
     cbmat = bmat.concatenate_mat([[BMAT1], [BMAT2]], labels=[['a', 'b', 'c', 'd'], ['a', 'b']])
