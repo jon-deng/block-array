@@ -401,3 +401,39 @@ def convert_vec_to_colmat(vec, comm=None):
         raise TypeError(f"Unknown convertion for vector type {type(vec)}")
 
     return convert_mat_to_petsc(vec.reshape(vec.size, 1), comm)
+
+## Specialized PETSc.Mat routines
+
+# Utilities for making specific types of matrices
+def zero_mat(n: int, m: int, comm=None) -> PETSc.Mat:
+    """
+    Return a null matrix
+    """
+    mat = PETSc.Mat().create(comm=comm)
+    mat.setSizes([n, m])
+    mat.setUp()
+    mat.assemble()
+    return mat
+
+def diag_mat(n: int, diag: float=1.0, comm=None) -> PETSc.Mat:
+    """
+    Return a diagonal matrix
+    """
+    diag_vec = PETSc.Vec().create(comm=comm)
+    diag_vec.setSizes(n)
+    diag_vec.setUp()
+    diag_vec.array[:] = diag
+    diag_vec.assemble()
+
+    mat = PETSc.Mat().create(comm=comm)
+    mat.setSizes([n, n])
+    mat.setUp()
+    mat.setDiagonal(diag_vec)
+    mat.assemble()
+    return mat
+
+def ident_mat(n, comm=None) -> PETSc.Mat:
+    """
+    Return an identity matrix
+    """
+    return diag_mat(n, diag=1.0, comm=comm)

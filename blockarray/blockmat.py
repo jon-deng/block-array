@@ -337,31 +337,6 @@ def reorder_mat_cols(mat, cols_in, cols_out, n_out, finalize=True):
 
     return mat_out
 
-# Utilities for making specific types of matrices
-def zero_mat(n, m, comm=None):
-    mat = PETSc.Mat().create(comm=comm)
-    mat.setSizes([n, m])
-    mat.setUp()
-    mat.assemble()
-    return mat
-
-def diag_mat(n, diag=1.0, comm=None):
-    diag_vec = PETSc.Vec().create(comm=comm)
-    diag_vec.setSizes(n)
-    diag_vec.setUp()
-    diag_vec.array[:] = diag
-    diag_vec.assemble()
-
-    mat = PETSc.Mat().create(comm=comm)
-    mat.setSizes([n, n])
-    mat.setUp()
-    mat.setDiagonal(diag_vec)
-    mat.assemble()
-    return mat
-
-def ident_mat(n, comm=None):
-    return diag_mat(n, diag=1.0, comm=comm)
-
 ## Basic BlockMatrix operations
 def norm(A: BlockMatrix[T]):
     """
