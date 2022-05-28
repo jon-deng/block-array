@@ -19,7 +19,7 @@ class BlockArray(Generic[T]):
     """
     An n-dimensional block array
 
-    `BlockArray` represents a block (or nested) array by storing sub-arrays 
+    `BlockArray` represents a block (or nested) array by storing sub-arrays
     correspondings to each block.
 
     Parameters
@@ -43,7 +43,7 @@ class BlockArray(Generic[T]):
 
     Attributes
     ----------
-    size : 
+    size :
         The total number of subarrays contained in the block array.
     shape :
         The number of blocks (subarrays) along each axis. For example, a matrix
@@ -366,7 +366,7 @@ def _block_shape_from_larray(array: larr.LabelledArray[T]) -> BlockShape:
     return tuple(ret_bshape)
 
 def _validate_subarray_shapes_from_larray(
-        array: larr.LabelledArray[T], 
+        array: larr.LabelledArray[T],
         bshape: BlockShape
     ):
     """
