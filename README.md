@@ -2,7 +2,7 @@
 <img src="docs/source/logo/blockarray_logo.svg" width="300">
 </h1><br>
 
-BlockArray is a package for working with arrays logically partitioned into blocks (or subarrays) in a nested format (also called block tensors or nested matrices, etc.). The main object is a `BlockArray` which can be created and indexed as shown:
+BlockArray is a package for working with arrays logically partitioned into blocks (or subarrays) in a nested format (also called nested arrays, nested matrices, block matrices, etc.). The main object is a `BlockArray` which can be created and indexed as shown:
 ```python
 from blockarray.blockarray import BlockArray
 from blockarray.linalg import mult_mat_vec
@@ -61,15 +61,14 @@ A[0:1, :]
 A[:, 0:1] 
 ```
 
-In addition, basic math operations can be applied on `BlockArray`s. A numpy ufunc interface currently works for simple operations but is likely buggy and needs to be further tested.
+In addition, basic math operations can be applied on `BlockArray` arrays (addition, subtraction, multiplication, etc.) as well as most `numpy.ufunc` operations.
 ```python
 ## Basic math operations
 # Basic math operations (add, sub, scalar mul, etc) are defined
-# A numpy ufunc interface also works for simple examples but needs to be tested 
-# more thoroughly
 y = mult_mat_vec(2*A, x)
 z = x+y
 
+# There is limited support for numpy ufuncs
 y = np.matmul(A, x)
 ```
 
