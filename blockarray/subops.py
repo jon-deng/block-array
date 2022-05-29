@@ -309,13 +309,13 @@ def convert_vec_to_petsc(vec: V, comm=None) -> PETSc.Vec:
     """
     Return a `PETSc.Vec` representation of `vec`
     """
-    size = _size_vec(vec)
+    n = size(vec)
     if isinstance(vec, PETSc.Vec):
         out = vec
     elif isinstance(vec, dfn.PETScVector):
         out = vec.vec()
     elif isinstance(vec, NDARRAY_TYPES):
-        out = PETSc.Vec().createSeq(size, comm=comm)
+        out = PETSc.Vec().createSeq(n, comm=comm)
         out.setUp()
         out.array[:] = vec
         out.assemble()
