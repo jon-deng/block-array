@@ -1,5 +1,27 @@
 """
-Module implementing `ufunc` logic
+Module implementing `numpy.ufunc` logic
+
+
+To explain how `numpy.ufunc` logic is extended to block arrays, note that each 
+dimension of an nd-array is classified into two types (see np.ufunc 
+documentation for more details):
+    loop :
+        these are dimensions over which a ufunc is applied elementwise
+    core :
+        these are dimensions of 'core' array that a ufunc operates on
+
+The core dimensions are also associated with a signature which explains the 
+relation between core shapes of the inputs/outputs. To extend the ufunc 
+logic to block arrays, further divide core dimensions into 
+    reduced : 
+        dimensions with labels that only appear in input signatures.
+        These dimensions 'dissapear' from the output shape
+    free : 
+        dimensions with labels that appear in both input and output signatures
+
+Applying a ufunc on block arrays, applies the ufunc on each block over all 
+loop dimensions and all free dimensions. As a result, the ufunc is applied on
+block arrays containing only the reduced dimensions.
 """
 
 from multiprocessing.sharedctypes import Value
