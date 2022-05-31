@@ -64,9 +64,9 @@ def interpret_ufunc_signature(
     """
     Interprets a ufunc signature
 
-    This returns dictionaries containing information on the 'free' and 
+    This returns dictionaries containing information on the 'free' and
     'reduced' axes/dimensions. 'free' dimensions correspond to labels that occur
-    in output (and usually inputs too) signatures while 'reduced' dimensions 
+    in output (and usually inputs too) signatures while 'reduced' dimensions
     correspond to labels that occur only in the inputs.
 
     Parameters
@@ -240,8 +240,29 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
         input_types = [type(x) for x in inputs]
         raise TypeError(f"Inputs must be of type `scalar` or `BlockArray`, not {input_types}")
 
-    if method != '__call__':
+    if method == '__call__':
+        return _apply_ufunc_call(ufunc, *inputs, **kwargs)
+    elif method == 'reduce':
+        return _apply_ufunc_reduce(ufunc, *inputs, **kwargs)
+    elif method == 'outer':
+        return _apply_ufunc_outer(ufunc, *inputs, **kwargs)
+    elif method == 'accumulate':
+        return _apply_ufunc_accumulate(ufunc, *inputs, **kwargs)
+    else:
         return NotImplemented
+
+def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
+    """
+    Apply a ufunc on a sequence of BlockArray inputs with `__call__`
+    """
+    ## Validate inputs
+    # Check input types
+    if not all([
+            isinstance(input, (Number, ba.BlockArray))
+            for input in inputs
+        ]):
+        input_types = [type(x) for x in inputs]
+        raise TypeError(f"Inputs must be of type `scalar` or `BlockArray`, not {input_types}")
 
     ## Parse signature into nice/standard format
     if ufunc.signature is None:
@@ -293,7 +314,7 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     permut_ins = permuts[:-ufunc.nout]
     permut_outs = permuts[-ufunc.nout:]
 
-    ## Interpret the ufunc signature in order to compute the shape of the output 
+    ## Interpret the ufunc signature in order to compute the shape of the output
     free_name_to_in, redu_name_to_in = interpret_ufunc_signature(sig_ins, sig_outs)
 
     # Check if reduced dimensions have compatible bshapes
@@ -392,6 +413,16 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
         return outputs[0]
     else:
         return tuple(outputs)
+
+def _apply_ufunc_reduce(ufunc: np.ufunc, *inputs, **kwargs):
+    return NotImplemented
+
+def _apply_ufunc_accumulate(ufunc: np.ufunc, *inputs, **kwargs):
+    return NotImplemented
+
+def _apply_ufunc_outer(ufunc: np.ufunc, *inputs, **kwargs):
+    return NotImplemented
+
 
 def apply_ufunc_mat_vec(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
