@@ -23,8 +23,6 @@ Applying a ufunc on block arrays, applies the ufunc on each block over all
 loop dimensions and all free dimensions. As a result, the ufunc is applied on
 block arrays containing only the reduced dimensions.
 """
-
-from multiprocessing.sharedctypes import Value
 import operator
 from numbers import Number
 import itertools
