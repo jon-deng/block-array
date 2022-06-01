@@ -402,33 +402,7 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
     ## Compute the outputs block wise by looping over inputs
     outputs = []
     for shape_out, labels_out, sig_out, perm_out in zip(shape_outs, labels_outs, sig_outs, permut_outs):
-        gen_in_midx = make_gen_in_multi_index(_shape_ins, sig_ins, sig_out)
-
-        subarrays_out = []
-        for midx_out in itertools.product(
-                *[range(ax_size) for ax_size in shape_out]
-            ):
-            _midx_out = apply_permutation(midx_out, perm_out)
-            _midx_ins = gen_in_midx(_midx_out)
-            midx_ins = [
-                apply_permutation(_idx, perm)
-                for _idx, perm in zip(_midx_ins, permut_ins)
-            ]
-            subarray_ins = [
-                input[midx_in] for input, midx_in in zip(inputs, midx_ins)
-            ]
-            subarray_ins = [
-                subarray.to_mono_ndarray()
-                if isinstance(subarray, ba.BlockArray)
-                else subarray
-                for subarray in subarray_ins
-            ]
-            # Put any scalar inputs back into subarray_ins
-            for ii, scalar in scalar_descr_inputs:
-                subarray_ins.insert(ii, scalar)
-
-            subarrays_out.append(ufunc(*subarray_ins, **kwargs))
-
+        subarrays_out = _apply_op_blockwise(ufunc, inputs, scalar_descr_inputs, _shape_ins, sig_ins, sig_out, shape_out, perm_out, permut_ins, op_kwargs=kwargs)
         outputs.append(type(inputs[0])(subarrays_out, shape_out, labels_out))
 
     if len(outputs) == 1:
@@ -445,8 +419,39 @@ def _apply_ufunc_accumulate(ufunc: np.ufunc, *inputs, **kwargs):
 def _apply_ufunc_outer(ufunc: np.ufunc, *inputs, **kwargs):
     return NotImplemented
 
+def _apply_op_blockwise(op, inputs, scalar_descr_inputs, _shape_ins, sig_ins, sig_out, shape_out, perm_out, permut_ins, op_kwargs=None):
+    """
+    Return the subarrays from applying an operation over blocks of `BlockArray`s
+    """
+    gen_in_midx = make_gen_in_multi_index(_shape_ins, sig_ins, sig_out)
 
-def apply_ufunc_mat_vec(ufunc: np.ufunc, method: str, *inputs, **kwargs):
+    subarrays_out = []
+    for midx_out in itertools.product(
+            *[range(ax_size) for ax_size in shape_out]
+        ):
+        _midx_out = apply_permutation(midx_out, perm_out)
+        _midx_ins = gen_in_midx(_midx_out)
+        midx_ins = [
+            apply_permutation(_idx, perm)
+            for _idx, perm in zip(_midx_ins, permut_ins)
+        ]
+        subarray_ins = [
+            input[midx_in] for input, midx_in in zip(inputs, midx_ins)
+        ]
+        subarray_ins = [
+            subarray.to_mono_ndarray()
+            if isinstance(subarray, ba.BlockArray)
+            else subarray
+            for subarray in subarray_ins
+        ]
+        # Put any scalar inputs back into subarray_ins
+        for ii, scalar in scalar_descr_inputs:
+            subarray_ins.insert(ii, scalar)
+
+        subarrays_out.append(op(*subarray_ins, **op_kwargs))
+    return subarrays_out
+
+def apply_ufunc_mat_vec(ufunc: np.ufunc, method: str, *inputs, **op_kwargs):
     """
     A function to apply a limited set of ufuncs for BlockMatrix and BlockVector
     """
