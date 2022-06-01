@@ -190,7 +190,7 @@ def calculate_output_shapes(
     return loop_shape_outs, core_shape_outs
 
 def make_gen_in_multi_index(
-        loop_ndim_ins: List[int],
+        shape_ins: List[int],
         sig_ins: Signatures,
         sig_out: Signature
     ):
@@ -198,6 +198,8 @@ def make_gen_in_multi_index(
     Make a function that generates indices for inputs given an output index
     """
     free_name_to_output = {label: ii for ii, label in enumerate(sig_out)}
+
+    loop_ndim_ins = [len(shape_in)-len(sig_in) for shape_in, sig_in in zip(shape_ins, sig_ins)]
 
     def gen_in_multi_index(out_multi_idx):
         if len(sig_out) == 0:
@@ -400,7 +402,7 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
     ## Compute the outputs block wise by looping over inputs
     outputs = []
     for shape_out, labels_out, sig_out, perm_out in zip(shape_outs, labels_outs, sig_outs, permut_outs):
-        gen_in_midx = make_gen_in_multi_index(loop_ndim_ins, sig_ins, sig_out)
+        gen_in_midx = make_gen_in_multi_index(_shape_ins, sig_ins, sig_out)
 
         subarrays_out = []
         for midx_out in itertools.product(

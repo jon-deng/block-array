@@ -49,7 +49,7 @@ def test_gen_in_multi_index():
     out_midx = (9, 2)
 
     gen_input_midx = ufunc.make_gen_in_multi_index(
-        ewise_input_ndims, sig_inputs, sig_outputs[0]
+        shape_inputs, sig_inputs, sig_outputs[0]
     )
 
     print(gen_input_midx(out_midx))
