@@ -2,12 +2,17 @@
 Utilities for reading/writing BlockArray objects to hdf5
 """
 
-import h5py
+from . import _HAS_H5PY, require_h5py
+if _HAS_H5PY:
+    import h5py
+else:
+    h5py = None
 
 from blockarray import blockvec as bvec
 
+@require_h5py
 def create_resizable_block_vector_group(
-    f: h5py.Group, blocklabels, blockshape, dataset_kwargs=None):
+    f: 'h5py.Group', blocklabels, blockshape, dataset_kwargs=None):
     """
     Create a resizable datasets in a group to store the vector
     """
@@ -27,7 +32,8 @@ def create_resizable_block_vector_group(
             subvec_label, (0, subvec_size), maxshape=(None, subvec_size),
             **dataset_kwargs)
 
-def append_block_vector_to_group(f: h5py.Group, vec: bvec.BlockVector):
+@require_h5py
+def append_block_vector_to_group(f: 'h5py.Group', vec: bvec.BlockVector):
     """
     Append block vector data to a resizable dataset
     """
@@ -42,7 +48,8 @@ def append_block_vector_to_group(f: h5py.Group, vec: bvec.BlockVector):
         f[subvec_label].resize(axis0_size, axis=0)
         f[subvec_label][-1, :] = subvec
 
-def read_block_vector_from_group(f: h5py.Group, nvec=0):
+@require_h5py
+def read_block_vector_from_group(f: 'h5py.Group', nvec=0):
     """
     Reads block vector data from a resizable dataset
 
