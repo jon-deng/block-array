@@ -171,13 +171,14 @@ def calculate_output_shapes(
     """
     # Check that the element wise dims of all inputs are the same
     # TODO: support broadcasting?
-    for shapea, shapeb in zip(loop_shape_ins[:-1], loop_shape_ins[1:]):
-        assert shapea == shapeb
+    loop_shape_out = np.broadcast_shapes(*loop_shape_ins)
+    # for shapea, shapeb in zip(loop_shape_ins[:-1], loop_shape_ins[1:]):
+    #     assert shapea == shapeb
 
     if free_name_to_in is None:
         free_name_to_in, _ = interpret_ufunc_signature(sig_ins, sig_outs)
 
-    loop_shape_out = loop_shape_ins[0]
+    # loop_shape_out = loop_shape_ins[0]
     loop_shape_outs = [loop_shape_out] * len(sig_outs)
 
     core_shape_outs = [
@@ -254,6 +255,14 @@ def conv_neg(n, size):
     else:
         return n
 
+
+def broadcast_labels(*labels):
+    """
+    Return labels corresponding to the broadcast output
+    """
+    axis_lengths = [len(_labels) for _labels in labels]
+    ii = axis_lengths.index(max(axis_lengths))
+    return labels[ii]
 
 def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
@@ -401,7 +410,8 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
         for sig_out in sig_outs
     ]
 
-    _labels_outs = [loop_labels_ins[0] + clabels_out for clabels_out in core_labels_outs]
+    loop_labels_out = broadcast_labels(*loop_labels_ins)
+    _labels_outs = [loop_labels_out + clabels_out for clabels_out in core_labels_outs]
     _shape_outs = [eshape+cshape for eshape, cshape in zip(_loop_shape_outs, _core_shape_outs)]
 
     labels_outs = [
