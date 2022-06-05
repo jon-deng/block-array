@@ -2,27 +2,28 @@
 Module implementing `numpy.ufunc` logic
 
 
-To explain how `numpy.ufunc` logic is extended to block arrays, note that each 
-dimension of an nd-array is classified into two types (see np.ufunc 
+To explain how `numpy.ufunc` logic is extended to block arrays, note that each
+dimension of an nd-array is classified into two types (see np.ufunc
 documentation for more details):
     loop :
         these are dimensions over which a ufunc is applied elementwise
     core :
         these are dimensions of 'core' array that a ufunc operates on
 
-The core dimensions are also associated with a signature which explains the 
-relation between core shapes of the inputs/outputs. To extend the ufunc 
-logic to block arrays, further divide core dimensions into 
-    reduced : 
+The core dimensions are also associated with a signature which explains the
+relation between core shapes of the inputs/outputs. To extend the ufunc
+logic to block arrays, further divide core dimensions into
+    reduced :
         dimensions with labels that only appear in input signatures.
         These dimensions 'dissapear' from the output shape
-    free : 
+    free :
         dimensions with labels that appear in both input and output signatures
 
-Applying a ufunc on block arrays, applies the ufunc on each block over all 
+Applying a ufunc on block arrays, applies the ufunc on each block over all
 loop dimensions and all free dimensions. As a result, the ufunc is applied on
 block arrays containing only the reduced dimensions.
 """
+from ast import Num
 import operator
 from numbers import Number
 import itertools
@@ -231,13 +232,18 @@ def apply_permutation(arg: List[T], perm: List[int]) -> List[T]:
     """
     Return a permutation of a list
     """
-    # check the permutation is valid
-    assert max(perm) == len(perm) - 1
-
     # check the list to permute is valid
     assert len(arg) == len(perm)
 
-    return type(arg)([arg[ii] for ii in perm])
+    # Check if permuting an empty argument
+    if len(arg) == 0:
+        return arg
+    else:
+        # check the permutation is valid
+        if max(perm) != len(perm) - 1:
+            raise ValueError(f"The permutation {perm} is not valid for an array of size {len(arg)}")
+
+        return type(arg)([arg[ii] for ii in perm])
 
 def conv_neg(n, size):
     """
@@ -293,12 +299,6 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
         signature = ufunc.signature
     sig_ins, sig_outs = parse_ufunc_signature(signature)
 
-    ## Remove any scalar inputs from the list of inputs/signatures
-    # These should be put back in when the ufunc is computed on subarrays
-    scalar_descr_inputs = [(ii, x) for ii, x in enumerate(inputs) if isinstance(x, Number)]
-    inputs = [x for x in inputs if not isinstance(x, Number)]
-    sig_ins = [sig for x, sig in zip(inputs, sig_ins) if not isinstance(x, Number)]
-
     ## Compute a permutation of the shape from the axes kwargs
     # This permutation shifts core dimensions to the 'standard' location as
     # the final dimensions of the array
@@ -323,7 +323,7 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
     # Remove any axes for scalar inputs
     axes_ins = axes[:-ufunc.nout]
     axes_outs = axes[-ufunc.nout:]
-    axes_ins = [axs for x, axs in zip(inputs, axes_ins) if not isinstance(x, Number)]
+    axes_ins = [axs for x, axs in zip(inputs, axes_ins)]
     axes = axes_ins + axes_outs
 
     # Compute the shape permutation from axes
@@ -350,7 +350,22 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
     ]
 
     # Check that reduced dimensions have compatible bshapes
-    _bshape_ins = [apply_permutation(input.bshape, perm) for input, perm in zip(inputs, permut_ins)]
+    def _bshape(array):
+        if isinstance(array, Number):
+            return ()
+        else:
+            return array.bshape
+
+    def _labels(array):
+        if isinstance(array, Number):
+            return ()
+        else:
+            return array.labels
+
+    _bshape_ins = [
+        apply_permutation(_bshape(input), perm)
+        for input, perm in zip(inputs, permut_ins)
+    ]
     for redu_dim_name, redu_dim_info in redu_name_to_in.items():
         redu_bshapes = [_bshape_ins[ii_in][ii_dim] for ii_in, ii_dim in redu_dim_info]
         if not (redu_bshapes[:-1] == redu_bshapes[1:]):
@@ -360,7 +375,7 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
             )
 
     _labels_ins = [
-        apply_permutation(input.labels, perm)
+        apply_permutation(_labels(input), perm)
         for input, perm in zip(inputs, permut_ins)
     ]
     _loops_shape_ins, _core_shape_ins = split_shapes_by_signatures(_shape_ins, sig_ins)
@@ -402,7 +417,7 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
     ## Compute the outputs block wise by looping over inputs
     outputs = []
     for shape_out, labels_out, sig_out, perm_out in zip(shape_outs, labels_outs, sig_outs, permut_outs):
-        subarrays_out = _apply_op_blockwise(ufunc, inputs, scalar_descr_inputs, _shape_ins, sig_ins, sig_out, shape_out, perm_out, permut_ins, op_kwargs=kwargs)
+        subarrays_out = _apply_op_blockwise(ufunc, inputs, _shape_ins, sig_ins, sig_out, shape_out, perm_out, permut_ins, op_kwargs=kwargs)
         outputs.append(type(inputs[0])(subarrays_out, shape_out, labels_out))
 
     if len(outputs) == 1:
@@ -419,10 +434,26 @@ def _apply_ufunc_accumulate(ufunc: np.ufunc, *inputs, **kwargs):
 def _apply_ufunc_outer(ufunc: np.ufunc, *inputs, **kwargs):
     return NotImplemented
 
-def _apply_op_blockwise(op, inputs, scalar_descr_inputs, _shape_ins, sig_ins, sig_out, shape_out, perm_out, permut_ins, op_kwargs=None):
+def _apply_op_blockwise(
+        op,
+        inputs,
+        _shape_ins,
+        sig_ins,
+        sig_out,
+        shape_out,
+        perm_out,
+        permut_ins,
+        op_kwargs=None
+    ):
     """
     Return the subarrays from applying an operation over blocks of `BlockArray`s
     """
+    ## Remove any scalar inputs from the list of inputs/signatures
+    # These should be put back in when the ufunc is computed on subarrays
+    scalar_descr_inputs = [(ii, x) for ii, x in enumerate(inputs) if isinstance(x, Number)]
+    inputs = [x for x in inputs if not isinstance(x, Number)]
+    sig_ins = [sig for x, sig in zip(inputs, sig_ins) if not isinstance(x, Number)]
+
     gen_in_midx = make_gen_in_multi_index(_shape_ins, sig_ins, sig_out)
 
     subarrays_out = []
