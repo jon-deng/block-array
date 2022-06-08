@@ -4,6 +4,7 @@ This module contains the block vector definition
 
 from typing import TypeVar
 import functools as ftls
+import pprint as pp
 
 import numpy as np
 
@@ -37,14 +38,19 @@ class BlockVector(BlockArray[T]):
         return self.subarrays_flat
 
     ## Basic string representation functions
-    def print_summary(self):
-        summary_strings = [
-            f"{key}: ({np.min(vec[:])}/{np.max(vec[:])}/{np.mean(vec[:])})"
-            for key, vec in self.items()]
+    def stats(self, stats):
+        """
+        Return a dictionary of summary statistics for each subvector
+        """
+        return {
+            key: tuple([stat(subvec[:]) for stat in stats])
+            for key, subvec in self.items()
+        }
 
-        summary_message = ", ".join(["block: (min/max/mean)"] + summary_strings)
-        print(summary_message)
-        return summary_message
+    def print_summary(self):
+        summary_dict = self.stats((np.min, np.max, np.mean))
+        print('(min/max/mean):')
+        pp.pprint(summary_dict)
 
     def __setitem__(self, key, value):
         """
@@ -170,7 +176,7 @@ def convert_subtype_to_petsc(bvec):
     return BlockVector(vecs, labels=bvec.labels)
 
 # Converting to monolithic vectors
-@require_petsc    
+@require_petsc
 def to_mono_petsc(bvec, comm=None, finalize=True):
     raise NotImplementedError()
 
