@@ -11,7 +11,6 @@ from petsc4py import PETSc
 from . import subops as gops
 from .blockarray import BlockArray
 from .blockmat import BlockMatrix
-from .ufunc import apply_ufunc_mat_vec
 
 ## pylint: disable=no-member
 
@@ -111,8 +110,10 @@ class BlockVector(BlockArray[T]):
         return dot(self, self)**0.5
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        # Define __array_ufunc__ only for the basic arithmetic operations
-        return apply_ufunc_mat_vec(ufunc, method, *inputs, **kwargs)
+        # Import this here to avoid ciruclar import errors
+        # TODO: Fix bad module layout?
+        from . import ufunc as _ufunc
+        return _ufunc.apply_ufunc_mat_vec(ufunc, method, *inputs, **kwargs)
 
 def validate_blockvec_size(*args):
     """

@@ -5,13 +5,12 @@ This module contains the block matrix definition
 from typing import Tuple, List, TypeVar
 import itertools
 import numpy as np
-from blockarray.blockarray import BlockArray
+import blockarray.blockarray as ba
 from petsc4py import PETSc
 
 from . import subops as gops
 from .labelledarray import LabelledArray, flatten_array
 from .typing import (Shape, BlockShape, MultiLabels)
-from .ufunc import apply_ufunc_mat_vec
 
 # pylint: disable=no-member, abstract-method
 #
@@ -22,7 +21,7 @@ Vcsr = List[float]
 CSR = Tuple[Icsr, Jcsr, Vcsr]
 
 T = TypeVar('T')
-class BlockMatrix(BlockArray[T]):
+class BlockMatrix(ba.BlockArray[T]):
     """
     Represents a block matrix with blocks indexed by keys
     """
@@ -62,10 +61,13 @@ class BlockMatrix(BlockArray[T]):
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         # Define __array_ufunc__ only for the basic arithmetic operations
-        return apply_ufunc_mat_vec(ufunc, method, *inputs, **kwargs)
+        # Import this here to avoid ciruclar import errors
+        # TODO: Fix bad module layout?
+        from . import ufunc as _ufunc
+        return _ufunc.apply_ufunc_mat_vec(ufunc, method, *inputs, **kwargs)
 
 # Utilies for constructing monolithic PETSc matrix
-def to_mono_petsc(bmat: BlockArray[PETSc.Mat], comm=None, finalize: bool=True) -> PETSc.Mat:
+def to_mono_petsc(bmat: ba.BlockArray[PETSc.Mat], comm=None, finalize: bool=True) -> PETSc.Mat:
     """
     Form a monolithic block matrix by combining matrices in `blocks`
 
@@ -105,7 +107,7 @@ def to_mono_petsc(bmat: BlockArray[PETSc.Mat], comm=None, finalize: bool=True) -
 
     return ret_mat
 
-def get_blocks_csr(bmat: BlockArray[PETSc.Mat]) -> Tuple[List[List[Icsr]], List[List[Jcsr]], List[List[Vcsr]]]:
+def get_blocks_csr(bmat: ba.BlockArray[PETSc.Mat]) -> Tuple[List[List[Icsr]], List[List[Jcsr]], List[List[Vcsr]]]:
     """
     Return the CSR format data for each block in a block matrix form
 

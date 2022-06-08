@@ -30,7 +30,7 @@ import itertools
 from typing import Tuple, List, Mapping, Optional, TypeVar
 import numpy as np
 
-from . import blockarray as ba
+from . import blockarray as ba, blockmat as bm, blockvec as bv
 from . import typing
 
 Signature = Tuple[str, ...]
@@ -201,8 +201,10 @@ def make_gen_in_multi_index(
     """
     free_name_to_output = {label: ii for ii, label in enumerate(sig_out)}
 
-    loop_ndim_ins = [len(shape_in)-len(sig_in) for shape_in, sig_in in zip(shape_ins, sig_ins)]
-
+    loop_ndim_ins = [
+        len(shape_in)-len(sig_in)
+        for shape_in, sig_in in zip(shape_ins, sig_ins)
+    ]
     def gen_in_multi_index(out_multi_idx):
         if len(sig_out) == 0:
             l_midx_outs = out_multi_idx
@@ -211,7 +213,10 @@ def make_gen_in_multi_index(
             l_midx_outs = out_multi_idx[:-len(sig_out)]
             c_midx_outs = out_multi_idx[-len(sig_out):]
 
-        l_midx_ins = [l_midx_outs[-n:] for n in loop_ndim_ins]
+        l_midx_ins = [
+            l_midx_outs[-n:] if n != 0 else ()
+            for n in loop_ndim_ins
+        ]
         c_midx_ins = [
             tuple([
                 c_midx_outs[free_name_to_output[label]]
@@ -425,10 +430,23 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
     assert len(shape_outs) == len(sig_outs)
 
     ## Compute the outputs block wise by looping over inputs
+    # determine the input type
+    # TODO: Should replace this with a function and move to a common spot for all
+    # ufunc methods
+    input_types = {type(input) for input in inputs}
+    if ba.BlockArray in input_types:
+        output_type = ba.BlockArray
+    elif bm.BlockMatrix in input_types:
+        output_type = bm.BlockMatrix
+    elif bv.BlockVector in input_types:
+        output_type = bv.BlockVector
+    else:
+        assert False
+
     outputs = []
     for shape_out, labels_out, sig_out, perm_out in zip(shape_outs, labels_outs, sig_outs, permut_outs):
         subarrays_out = _apply_op_blockwise(ufunc, inputs, _shape_ins, sig_ins, sig_out, shape_out, perm_out, permut_ins, op_kwargs=kwargs)
-        outputs.append(type(inputs[0])(subarrays_out, shape_out, labels_out))
+        outputs.append(output_type(subarrays_out, shape_out, labels_out))
 
     if len(outputs) == 1:
         return outputs[0]
@@ -460,9 +478,11 @@ def _apply_op_blockwise(
     """
     ## Remove any scalar inputs from the list of inputs/signatures
     # These should be put back in when the ufunc is computed on subarrays
-    scalar_descr_inputs = [(ii, x) for ii, x in enumerate(inputs) if isinstance(x, Number)]
-    inputs = [x for x in inputs if not isinstance(x, Number)]
-    sig_ins = [sig for x, sig in zip(inputs, sig_ins) if not isinstance(x, Number)]
+    # scalar_descr_inputs = [(ii, x) for ii, x in enumerate(inputs) if isinstance(x, Number)]
+    # inputs = [x for x in inputs if not isinstance(x, Number)]
+    # sig_ins = [sig for x, sig in zip(inputs, sig_ins) if not isinstance(x, Number)]
+    # inputs = [x for x in inputs if not isinstance(x, Number)]
+    sig_ins = [sig for x, sig in zip(inputs, sig_ins)]
 
     gen_in_midx = make_gen_in_multi_index(_shape_ins, sig_ins, sig_out)
 
@@ -486,8 +506,8 @@ def _apply_op_blockwise(
             for subarray in subarray_ins
         ]
         # Put any scalar inputs back into subarray_ins
-        for ii, scalar in scalar_descr_inputs:
-            subarray_ins.insert(ii, scalar)
+        # for ii, scalar in scalar_descr_inputs:
+        #     subarray_ins.insert(ii, scalar)
 
         subarrays_out.append(op(*subarray_ins, **op_kwargs))
     return subarrays_out

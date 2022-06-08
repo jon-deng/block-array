@@ -11,8 +11,8 @@ from typing import TypeVar, Union, Tuple, Optional
 import math
 
 import dolfin as dfn
-import numpy as np
 from jax import numpy as jnp
+import numpy as np
 from petsc4py import PETSc
 
 from .typing import Shape
