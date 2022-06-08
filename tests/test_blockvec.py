@@ -26,6 +26,7 @@ def test_size_shape():
     print(VEC1.shape)
     print(VEC1.mshape)
     print(VEC1.bshape)
+    VEC1.print_summary()
     assert VEC1.size == 3
     assert VEC1.shape == (3,)
     assert VEC1.mshape == (2+3+4, )
