@@ -5,12 +5,14 @@ This module contains the block matrix definition
 from typing import Tuple, List, TypeVar
 import itertools
 import numpy as np
-import blockarray.blockarray as ba
-from petsc4py import PETSc
+from blockarray import blockarray as ba
+from . import require_petsc, _HAS_PETSC
+if _HAS_PETSC:
+    from petsc4py import PETSc
 
 from . import subops as gops
 from .labelledarray import LabelledArray, flatten_array
-from .typing import (Shape, BlockShape, MultiLabels)
+from .typing import (Shape, BlockShape, MultiLabels, PETScMat)
 
 # pylint: disable=no-member, abstract-method
 #
@@ -66,14 +68,70 @@ class BlockMatrix(ba.BlockArray[T]):
         from . import ufunc as _ufunc
         return _ufunc.apply_ufunc_mat_vec(ufunc, method, *inputs, **kwargs)
 
-# Utilies for constructing monolithic PETSc matrix
-def to_mono_petsc(bmat: ba.BlockArray[PETSc.Mat], comm=None, finalize: bool=True) -> PETSc.Mat:
+## Basic BlockMatrix operations
+def norm(A: BlockMatrix[T]):
+    """
+    Return the Frobenius norm of A
+
+    Parameters
+    ----------
+    A : BlockMatrix
+    """
+    frobenius_norm = np.sum([
+        gops.norm_mat(A[mm, nn])**2
+        for nn in range(A.shape[1])
+        for mm in range(A.shape[0])])**0.5
+    return frobenius_norm
+
+## More utilities
+def concatenate_mat(bmats: List[List[BlockMatrix[T]]], labels: MultiLabels=None):
+    """
+    Form a block matrix by joining other block matrices
+
+    Parameters
+    ----------
+    bmats : tuple(tupe(BlockMatrix))
+    """
+    # check the array is 2D by checking that the number of columns in each row
+    # are equal, pairwise
+    _, (NUM_BROW, NUM_BCOL) = flatten_array(bmats)
+
+    mats = []
+    for brow in range(NUM_BROW):
+        for row in range(bmats[brow][0].shape[0]):
+            mats_row = []
+            for bcol in range(NUM_BCOL):
+                mats_row.extend(bmats[brow][bcol][row, :])
+            mats.append(mats_row)
+
+    if labels is None:
+        row_labels = [key for ii in range(NUM_BROW) for key in bmats[ii][0].labels[0]]
+        col_labels = [key for jj in range(NUM_BCOL) for key in bmats[0][jj].labels[1]]
+        labels = (tuple(row_labels), tuple(col_labels))
+    return BlockMatrix(mats, labels=labels)
+
+## Converting subtypes
+def convert_subtype_to_petsc(bmat: BlockMatrix[T]):
+    """
+    Converts a block matrix from one submatrix type to the PETSc submatrix type
+
+    Parameters
+    ----------
+    bmat: BlockMatrix
+    """
+    mats = [gops.convert_mat_to_petsc(mat) for mat in bmat.subarrays_flat]
+    barray = LabelledArray(mats, bmat.shape, bmat.labels)
+    return BlockMatrix(barray)
+
+## Utilies for constructing monolithic PETSc matrix
+@require_petsc
+def to_mono_petsc(bmat: ba.BlockArray[PETScMat], comm=None, finalize: bool=True) -> PETScMat:
     """
     Form a monolithic block matrix by combining matrices in `blocks`
 
     Parameters
     ----------
-    blocks : [[Petsc.Mat, ...]]
+    blocks : [[PETScMat, ...]]
         A list of lists containing the matrices forming the blocks of the desired block matrix.
         These are organized as:
             [[mat00, ..., mat0n],
@@ -107,13 +165,14 @@ def to_mono_petsc(bmat: ba.BlockArray[PETSc.Mat], comm=None, finalize: bool=True
 
     return ret_mat
 
-def get_blocks_csr(bmat: ba.BlockArray[PETSc.Mat]) -> Tuple[List[List[Icsr]], List[List[Jcsr]], List[List[Vcsr]]]:
+@require_petsc
+def get_blocks_csr(bmat: ba.BlockArray[PETScMat]) -> Tuple[List[List[Icsr]], List[List[Jcsr]], List[List[Vcsr]]]:
     """
     Return the CSR format data for each block in a block matrix form
 
     Parameters
     ----------
-    blocks : [[Petsc.Mat, ...]]
+    blocks : [[PETScMat, ...]]
         A list of lists containing the matrices forming the blocks of the desired block matrix.
         These are organized as:
             [[mat00, ..., mat0n],
@@ -157,7 +216,7 @@ def get_block_matrix_csr(blocks_csr: CSR, blocks_shape: Shape, blocks_sizes: Blo
 
     Parameters
     ----------
-    blocks : [[Petsc.Mat, ...]]
+    blocks : [[PETScMat, ...]]
         A list of lists containing the matrices forming the blocks of the desired block matrix.
         These are organized as:
             [[mat00, ..., mat0n],
@@ -219,6 +278,7 @@ def get_block_matrix_csr(blocks_csr: CSR, blocks_shape: Shape, blocks_sizes: Blo
     v_mono = np.array(v_mono, dtype=np.float64)
     return i_mono, j_mono, v_mono
 
+@require_petsc
 def reorder_mat_rows(mat, rows_in, rows_out, m_out, finalize=True):
     """
     Reorder rows of a matrix to a new matrix with a possibly different number of rows
@@ -274,13 +334,14 @@ def reorder_mat_rows(mat, rows_in, rows_out, m_out, finalize=True):
 
     return mat_out
 
+@require_petsc
 def reorder_mat_cols(mat, cols_in, cols_out, n_out, finalize=True):
     """
     Reorder columns of a matrix to a new one with a possibly different number of columns
 
     Parameters
     ----------
-    mat : Petsc.Mat
+    mat : PETScMat
     cols_in : array[]
         columns indices of input matrix
     cols_out : array
@@ -338,58 +399,3 @@ def reorder_mat_cols(mat, cols_in, cols_out, n_out, finalize=True):
         mat_out.assemble()
 
     return mat_out
-
-## Basic BlockMatrix operations
-def norm(A: BlockMatrix[T]):
-    """
-    Return the Frobenius norm of A
-
-    Parameters
-    ----------
-    A : BlockMatrix
-    """
-    frobenius_norm = np.sum([
-        gops.norm_mat(A[mm, nn])**2
-        for nn in range(A.shape[1])
-        for mm in range(A.shape[0])])**0.5
-    return frobenius_norm
-
-## More utilities
-def concatenate_mat(bmats: List[List[BlockMatrix[T]]], labels: MultiLabels=None):
-    """
-    Form a block matrix by joining other block matrices
-
-    Parameters
-    ----------
-    bmats : tuple(tupe(BlockMatrix))
-    """
-    # check the array is 2D by checking that the number of columns in each row
-    # are equal, pairwise
-    _, (NUM_BROW, NUM_BCOL) = flatten_array(bmats)
-
-    mats = []
-    for brow in range(NUM_BROW):
-        for row in range(bmats[brow][0].shape[0]):
-            mats_row = []
-            for bcol in range(NUM_BCOL):
-                mats_row.extend(bmats[brow][bcol][row, :])
-            mats.append(mats_row)
-
-    if labels is None:
-        row_labels = [key for ii in range(NUM_BROW) for key in bmats[ii][0].labels[0]]
-        col_labels = [key for jj in range(NUM_BCOL) for key in bmats[0][jj].labels[1]]
-        labels = (tuple(row_labels), tuple(col_labels))
-    return BlockMatrix(mats, labels=labels)
-
-## Converting subtypes
-def convert_subtype_to_petsc(bmat: BlockMatrix[T]):
-    """
-    Converts a block matrix from one submatrix type to the PETSc submatrix type
-
-    Parameters
-    ----------
-    bmat: BlockMatrix
-    """
-    mats = [gops.convert_mat_to_petsc(mat) for mat in bmat.subarrays_flat]
-    barray = LabelledArray(mats, bmat.shape, bmat.labels)
-    return BlockMatrix(barray)

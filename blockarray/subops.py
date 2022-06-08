@@ -10,26 +10,50 @@ from multiprocessing.sharedctypes import Value
 from typing import TypeVar, Union, Tuple, Optional
 import math
 
-import dolfin as dfn
-from jax import numpy as jnp
 import numpy as np
-from petsc4py import PETSc
+from . import _HAS_PETSC, _HAS_FENICS, _HAS_JAX, require_petsc, require_fenics
+if _HAS_JAX:
+    from jax import numpy as jnp
+if _HAS_PETSC:
+    from petsc4py import PETSc
+if _HAS_FENICS:
+    import dolfin as dfn
 
-from .typing import Shape
+from .typing import (Shape, DfnMat, DfnVec, PETScMat, PETScVec, JaxArray)
 
 # pylint: disable=no-member
 
-NDARRAY_TYPES = (np.ndarray, jnp.ndarray)
-VECTOR_TYPES = (dfn.PETScVector, PETSc.Vec)
-MATRIX_TYPES = (dfn.PETScMatrix, PETSc.Mat)
+NDARRAY_TYPES = (np.ndarray,)
+VECTOR_TYPES = ()
+MATRIX_TYPES = ()
+if _HAS_PETSC:
+    VECTOR_TYPES += (PETScVec,)
+    MATRIX_TYPES += (PETScMat,)
+if _HAS_FENICS:
+    VECTOR_TYPES += (DfnVec,)
+    MATRIX_TYPES += (DfnMat,)
+if _HAS_JAX:
+    NDARRAY_TYPES += (JaxArray,)
+
 # VECTOR_TYPES = NDARRAY_LIKE_TYPES + PETSC_VECTOR_TYPES
 
 ALL_TYPES = NDARRAY_TYPES+VECTOR_TYPES+MATRIX_TYPES
+ALL_VECTOR_TYPES = NDARRAY_TYPES+VECTOR_TYPES
+ALL_MATRIX_TYPES = NDARRAY_TYPES+MATRIX_TYPES
+if len(ALL_TYPES) == 1:
+    T = TypeVar('T', bound=ALL_TYPES[0])
+else:
+    T = TypeVar('T', *ALL_TYPES)
 
-T = TypeVar('T', *(NDARRAY_TYPES+VECTOR_TYPES+MATRIX_TYPES))
+if len(ALL_VECTOR_TYPES) == 1:
+    V = TypeVar('V', bound=ALL_VECTOR_TYPES[0])
+else:
+    V = TypeVar('V', *ALL_VECTOR_TYPES)
 
-M = TypeVar('M', *(NDARRAY_TYPES+MATRIX_TYPES))
-V = TypeVar('V', *(NDARRAY_TYPES+VECTOR_TYPES))
+if len(ALL_MATRIX_TYPES) == 1:
+    M = TypeVar('M', bound=ALL_MATRIX_TYPES[0])
+else:
+    M = TypeVar('M', *ALL_MATRIX_TYPES)
 
 ## Core operations for computing size and shape of the various array types
 
@@ -54,32 +78,36 @@ def size(array: T) -> int:
     else:
         raise TypeError(f"Unknown size for array of type {type(array)}")
 
-def _size_vec(vec: Union[dfn.PETScVector, PETSc.Vec]) -> int:
+@require_fenics
+@require_petsc
+def _size_vec(vec: Union[DfnVec, PETScVec]) -> int:
     """
     Return the vector size (total number of elements)
 
     Parameters
     ----------
-    vec : dolfin.PETScVector, PETSc.Mat
+    vec : dolfin.PETScVector, PETScMat
 
     Returns
     -------
     int
     """
-    if isinstance(vec, PETSc.Vec):
+    if isinstance(vec, PETScVec):
         return vec.size
-    elif isinstance(vec, dfn.PETScVector):
+    elif isinstance(vec, DfnVec):
         return vec.size()
     else:
         raise TypeError(f"Unknown vector of type {type(vec)}")
 
-def _size_mat(mat: Union[dfn.PETScMatrix, PETSc.Mat]) -> int:
+@require_fenics
+@require_petsc
+def _size_mat(mat: Union[DfnMat, PETScMat]) -> int:
     """
     Return the matrix size (total number of elements)
 
     Parameters
     ----------
-    mat : dfn.PETScMatrix, PETSc.Mat
+    mat : DfnMat, PETScMat
 
     Returns
     -------
@@ -108,7 +136,9 @@ def shape(array: T) -> Shape:
     else:
         raise TypeError(f"Unknown shape for array of type {type(array)}")
 
-def _shape_vec(vec: Union[dfn.PETScVector, PETSc.Vec]) -> Tuple[int]:
+@require_fenics
+@require_petsc
+def _shape_vec(vec: Union[DfnVec, PETScVec]) -> Tuple[int]:
     """
     Return the vector shape
 
@@ -116,7 +146,7 @@ def _shape_vec(vec: Union[dfn.PETScVector, PETSc.Vec]) -> Tuple[int]:
 
     Parameters
     ----------
-    vec : dolfin.PETScVector, PETSc.Mat or np.ndarray
+    vec : dolfin.PETScVector, PETScMat or np.ndarray
 
     Returns
     -------
@@ -124,28 +154,30 @@ def _shape_vec(vec: Union[dfn.PETScVector, PETSc.Vec]) -> Tuple[int]:
     """
     return (_size_vec(vec),)
 
-def _shape_mat(mat: Union[dfn.PETScMatrix, PETSc.Mat]) -> Tuple[int, int]:
+@require_fenics
+@require_petsc
+def _shape_mat(mat: Union[DfnMat, PETScMat]) -> Tuple[int, int]:
     """
     Return the matrix shape
 
     Parameters
     ----------
-    generic_mat : PETSc.Mat or np.ndarray
+    generic_mat : PETScMat or np.ndarray
 
     Returns
     -------
     Tuple[int, int]
     """
-    if isinstance(mat, PETSc.Mat):
+    if isinstance(mat, PETScMat):
         return mat.getSize()
-    elif isinstance(mat, dfn.PETScMatrix):
+    elif isinstance(mat, DfnMat):
         return tuple([mat.size(i) for i in range(2)])
     else:
         raise TypeError(f"Unknown shape for matrix of type {type(mat)}")
 
 ## Specialized matrix/vector operations
 
-def set_vec(veca: V, vecb: Union[dfn.PETScVector, PETSc.Vec, np.ndarray, jnp.ndarray]):
+def set_vec(veca: V, vecb: Union[DfnVec, PETScVec, np.ndarray, JaxArray]):
     """
     Set the specified values to a vector
 
@@ -155,16 +187,16 @@ def set_vec(veca: V, vecb: Union[dfn.PETScVector, PETSc.Vec, np.ndarray, jnp.nda
     Parameters
     ----------
     veca : V
-    vecb : dolfin.PETScVector, PETSc.Vec, np.ndarray
+    vecb : dolfin.PETScVector, PETScVec, np.ndarray
     """
     if isinstance(veca, NDARRAY_TYPES):
         # TODO: Raise a value error?
         # if len(veca.shape) != 1:
         #     raise ValueError(f"`veca` with shape {veca.shape} is not a vector")
         veca[:] = vecb
-    elif isinstance(veca, PETSc.Vec):
+    elif isinstance(veca, PETScVec):
         veca.array[:] = vecb
-    elif isinstance(veca, dfn.PETScVector):
+    elif isinstance(veca, DfnVec):
         veca[:] = vecb
     else:
         raise TypeError(f"Unknown vector of type {type(veca)}")
@@ -172,12 +204,13 @@ def set_vec(veca: V, vecb: Union[dfn.PETScVector, PETSc.Vec, np.ndarray, jnp.nda
 # no `set_mat` is provided as setting matrix values is very specialized for
 # sparse matrices
 
+@require_petsc
 def solve_petsc_lu(
-        mat: PETSc.Mat,
-        b: PETSc.Vec,
-        out: Optional[PETSc.Vec]=None,
-        ksp: Optional[PETSc.KSP]=None
-    ) -> Tuple[PETSc.Vec, PETSc.KSP]:
+        mat: PETScMat,
+        b: PETScVec,
+        out: Optional[PETScVec]=None,
+        ksp: Optional['PETSc.KSP']=None
+    ) -> Tuple[PETScVec, 'PETSc.KSP']:
     """
     Solve Ax=b using PETSc's LU solver
     """
@@ -201,22 +234,22 @@ def mult_mat_vec(mat: M, vec: V, out: Optional[V]=None) -> V:
 
     Parameters
     ----------
-    mat : Union[dolfin.PETScMatrix, PETSc.Mat, np.ndarray]
-    vec : Union[dolfin.PETScVector, PETsc.Vec, np.ndarray]
+    mat : Union[dolfin.PETScMatrix, PETScMat, np.ndarray]
+    vec : Union[dolfin.PETScVector, PETScVec, np.ndarray]
 
     Returns
     -------
-    out : Union[dolfin.PETScVector, PETsc.Vec, np.ndarray]
+    out : Union[dolfin.PETScVector, PETScVec, np.ndarray]
     """
     if isinstance(mat, NDARRAY_TYPES) and isinstance(vec, NDARRAY_TYPES):
         if out is None:
             out = np.dot(mat, vec)
         else:
             np.dot(mat, vec, out=out)
-    elif isinstance(mat, PETSc.Mat) and isinstance(vec, PETSc.Vec):
+    elif isinstance(mat, PETScMat) and isinstance(vec, PETScVec):
         out = mat.createVecLeft() if out is None else out
         mat.mult(vec, out)
-    elif isinstance(mat, dfn.PETScMatrix) and isinstance(vec, dfn.PETScVector):
+    elif isinstance(mat, DfnMat) and isinstance(vec, DfnVec):
         out = mat*vec
     else:
         raise TypeError(f"Unknown matrix-vector product between types {type(mat)} and {type(vec)}")
@@ -228,20 +261,20 @@ def mult_mat_mat(mata: M, matb: M, out: Optional[M]=None) -> M:
 
     Parameters
     ----------
-    mata, matb : Union[dolfin.PETScMatrix, PETSc.Mat, np.ndarray]
+    mata, matb : Union[dolfin.PETScMatrix, PETScMat, np.ndarray]
 
     Returns
     -------
-    out : Union[dolfin.PETScMatrix, PETSc.Mat, np.ndarray]
+    out : Union[dolfin.PETScMatrix, PETScMat, np.ndarray]
     """
     if isinstance(mata, NDARRAY_TYPES) and isinstance(matb, NDARRAY_TYPES):
         if out is None:
             out = mata@matb
         else:
             np.matmul(mata, matb, out=out)
-    elif isinstance(mata, PETSc.Mat) and isinstance(matb, PETSc.Mat):
+    elif isinstance(mata, PETScMat) and isinstance(matb, PETScMat):
         out = mata*matb
-    elif isinstance(mata, PETSc.Mat) and isinstance(matb, PETSc.Mat):
+    elif isinstance(mata, PETScMat) and isinstance(matb, PETScMat):
         out = mata*matb
     else:
         raise TypeError(f"Unknown matrix-matrix product between types {type(mata)} and {type(matb)}")
@@ -253,15 +286,15 @@ def norm_vec(vec: V) -> float:
 
     Parameters
     ----------
-    vec : Union[dolfin.PETScVector, PETSc.Vec, np.ndarray]
+    vec : Union[dolfin.PETScVector, PETScVec, np.ndarray]
 
     Returns
     -------
     float
     """
-    if isinstance(vec, PETSc.Vec):
+    if isinstance(vec, PETScVec):
         return vec.norm()
-    elif isinstance(vec, dfn.PETScVector):
+    elif isinstance(vec, DfnVec):
         return vec.norm('l2')
     elif isinstance(vec, NDARRAY_TYPES):
         return np.linalg.norm(vec)
@@ -274,15 +307,15 @@ def norm_mat(mat: M) -> float:
 
     Parameters
     ----------
-    vec : Union[dolfin.PETScMatrix, PETSc.Mat, np.ndarray]
+    vec : Union[dolfin.PETScMatrix, PETScMat, np.ndarray]
 
     Returns
     -------
     float
     """
-    if isinstance(mat, PETSc.Mat):
+    if isinstance(mat, PETScMat):
         return mat.norm(norm_type=PETSc.NormType.FROBENIUS)
-    elif isinstance(mat, dfn.PETScMatrix):
+    elif isinstance(mat, DfnMat):
         return mat.mat().norm(norm_type=PETSc.NormType.FROBENIUS)
     elif isinstance(mat, NDARRAY_TYPES):
         return np.linalg.norm(mat)
@@ -290,40 +323,43 @@ def norm_mat(mat: M) -> float:
         raise TypeError(f"Unknown norm for matrix type {type(mat)}")
 
 ## Convert matrix/vector types
-def convert_mat_to_petsc(mat: M, comm=None, keep_diagonal: bool=True) -> PETSc.Mat:
+@require_petsc
+def convert_mat_to_petsc(mat: M, comm=None, keep_diagonal: bool=True) -> PETScMat:
     """
-    Return a `PETSc.Mat` representation of `mat`
+    Return a `PETScMat` representation of `mat`
     """
-    if isinstance(mat, PETSc.Mat):
+    if isinstance(mat, PETScMat):
         out = mat
-    elif isinstance(mat, dfn.PETScMatrix):
+    elif isinstance(mat, DfnMat):
         out = mat.mat()
     elif isinstance(mat, NDARRAY_TYPES):
         out = _numpy_mat_to_petsc_mat_via_csr(mat, comm=comm, keep_diagonal=keep_diagonal)
     else:
-        raise TypeError(f"Can't convert matrix of type {type(mat)} to PETSc.Mat")
+        raise TypeError(f"Can't convert matrix of type {type(mat)} to PETScMat")
 
     return out
 
-def convert_vec_to_petsc(vec: V, comm=None) -> PETSc.Vec:
+@require_petsc
+def convert_vec_to_petsc(vec: V, comm=None) -> PETScVec:
     """
-    Return a `PETSc.Vec` representation of `vec`
+    Return a `PETScVec` representation of `vec`
     """
     n = size(vec)
-    if isinstance(vec, PETSc.Vec):
+    if isinstance(vec, PETScVec):
         out = vec
-    elif isinstance(vec, dfn.PETScVector):
+    elif isinstance(vec, DfnVec):
         out = vec.vec()
     elif isinstance(vec, NDARRAY_TYPES):
-        out = PETSc.Vec().createSeq(n, comm=comm)
+        out = PETScVec().createSeq(n, comm=comm)
         out.setUp()
         out.array[:] = vec
         out.assemble()
     else:
-        raise TypeError(f"Can't convert vector of type {type(vec)} to PETSc.Vec")
+        raise TypeError(f"Can't convert vector of type {type(vec)} to PETScVec")
 
     return out
 
+@require_petsc
 def _numpy_mat_to_petsc_mat_via_csr(mat: np.ndarray, comm=None, keep_diagonal: bool=True):
     # converting mat to a numpy array seems to signifcantly affect speed
     mat = np.array(mat)
@@ -343,10 +379,11 @@ def _numpy_mat_to_petsc_mat_via_csr(mat: np.ndarray, comm=None, keep_diagonal: b
     J = np.concatenate(Js, dtype=np.int32)
     V = np.concatenate(Vs)
 
-    out = PETSc.Mat().createAIJ(mat_shape, comm=comm, csr=(I, J, V))
+    out = PETScMat().createAIJ(mat_shape, comm=comm, csr=(I, J, V))
     out.assemble()
     return out
 
+@require_petsc
 def _numpy_mat_to_petsc_mat_via_setvalues(mat: np.ndarray, comm=None, keep_diagonal=True):
     # Converting mat to a numpy array seems to signifcantly affect speed
     mat = np.array(mat)
@@ -354,7 +391,7 @@ def _numpy_mat_to_petsc_mat_via_setvalues(mat: np.ndarray, comm=None, keep_diago
     is_square = mat_shape[0] == mat_shape[1]
 
     COL_IDXS = np.arange(mat_shape[1], dtype=np.int32)
-    out = PETSc.Mat().createAIJ(mat_shape, comm=comm)
+    out = PETScMat().createAIJ(mat_shape, comm=comm)
     out.setUp()
     for ii in range(mat_shape[0]):
         current_row = mat[ii, :]
@@ -371,14 +408,15 @@ def _numpy_mat_to_petsc_mat_via_setvalues(mat: np.ndarray, comm=None, keep_diago
     out.assemble()
     return out
 
-## Convert vectors to row/column matrices
-def convert_vec_to_rowmat(vec: Union[PETSc.Vec, PETSc.Vec, np.ndarray], comm=None) -> PETSc.Vec:
+## Convert vectors to row/column PETScMat
+@require_petsc
+def convert_vec_to_rowmat(vec: Union[PETScVec, np.ndarray], comm=None) -> PETScMat:
     """
-    Return a row `PETSc.Mat` representation of `vec`
+    Return a row `PETScMat` representation of `vec`
     """
-    if isinstance(vec, dfn.PETScVector):
+    if isinstance(vec, DfnVec):
         vec = np.array(vec.vec().array)
-    elif isinstance(vec, PETSc.Vec):
+    elif isinstance(vec, PETScVec):
         vec = np.array(vec.array)
     elif isinstance(vec, NDARRAY_TYPES):
         pass
@@ -387,13 +425,14 @@ def convert_vec_to_rowmat(vec: Union[PETSc.Vec, PETSc.Vec, np.ndarray], comm=Non
 
     return convert_mat_to_petsc(vec.reshape(1, vec.size), comm)
 
+@require_petsc
 def convert_vec_to_colmat(vec, comm=None):
     """
-    Return a column `PETSc.Mat` representation of `vec`
+    Return a column `PETScMat` representation of `vec`
     """
-    if isinstance(vec, dfn.PETScVector):
+    if isinstance(vec, DfnVec):
         vec = np.array(vec.vec().array)
-    elif isinstance(vec, PETSc.Vec):
+    elif isinstance(vec, PETScVec):
         vec = np.array(vec.array)
     elif isinstance(vec, NDARRAY_TYPES):
         pass
@@ -402,20 +441,22 @@ def convert_vec_to_colmat(vec, comm=None):
 
     return convert_mat_to_petsc(vec.reshape(vec.size, 1), comm)
 
-## Specialized PETSc.Mat routines
+## Specialized PETScMat routines
 
 # Utilities for making specific types of matrices
-def zero_mat(n: int, m: int, comm=None) -> PETSc.Mat:
+@require_petsc
+def zero_mat(n: int, m: int, comm=None) -> PETScMat:
     """
     Return a null matrix
     """
-    mat = PETSc.Mat().create(comm=comm)
+    mat = PETScMat().create(comm=comm)
     mat.setSizes([n, m])
     mat.setUp()
     mat.assemble()
     return mat
 
-def diag_mat(n: int, diag: float=1.0, comm=None) -> PETSc.Mat:
+@require_petsc
+def diag_mat(n: int, diag: float=1.0, comm=None) -> PETScMat:
     """
     Return a diagonal matrix
     """
@@ -425,14 +466,15 @@ def diag_mat(n: int, diag: float=1.0, comm=None) -> PETSc.Mat:
     diag_vec.array[:] = diag
     diag_vec.assemble()
 
-    mat = PETSc.Mat().create(comm=comm)
+    mat = PETScMat().create(comm=comm)
     mat.setSizes([n, n])
     mat.setUp()
     mat.setDiagonal(diag_vec)
     mat.assemble()
     return mat
 
-def ident_mat(n, comm=None) -> PETSc.Mat:
+@require_petsc
+def ident_mat(n, comm=None) -> PETScMat:
     """
     Return an identity matrix
     """

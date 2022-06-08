@@ -6,11 +6,14 @@ from typing import TypeVar
 import functools as ftls
 
 import numpy as np
-from petsc4py import PETSc
 
 from . import subops as gops
 from .blockarray import BlockArray
 from .blockmat import BlockMatrix
+
+from . import require_petsc, _HAS_PETSC
+if _HAS_PETSC:
+    from petsc4py import PETSc
 
 ## pylint: disable=no-member
 
@@ -88,6 +91,7 @@ class BlockVector(BlockArray[T]):
         ndarray_vecs = [np.array(vec) for vec in self]
         return np.concatenate(ndarray_vecs, axis=0)
 
+    @require_petsc
     def to_mono_petsc_seq(self, comm=None):
         total_size = np.sum(self.mshape)
         vec = PETSc.Vec().createSeq(total_size, comm=comm)
@@ -96,6 +100,7 @@ class BlockVector(BlockArray[T]):
         vec.assemble()
         return vec
 
+    @require_petsc
     def to_mono_petsc(self, comm=None):
         total_size = np.sum(self.mshape)
         vec = PETSc.Vec().create(comm=comm)
@@ -152,6 +157,7 @@ def concatenate_vec(args, labels=None):
     return BlockVector(vecs, labels=labels)
 
 # Converting subtypes
+@require_petsc
 def convert_subtype_to_petsc(bvec):
     """
     Converts a block matrix from one submatrix type to the PETSc submatrix type
@@ -164,16 +170,19 @@ def convert_subtype_to_petsc(bvec):
     return BlockVector(vecs, labels=bvec.labels)
 
 # Converting to monolithic vectors
+@require_petsc    
 def to_mono_petsc(bvec, comm=None, finalize=True):
     raise NotImplementedError()
 
 # Converting to block matrix formats
+@require_petsc
 def to_block_rowmat(bvec):
     mats = tuple([
         tuple([gops.convert_vec_to_rowmat(vec) for vec in bvec.subarrays_flat])
         ])
     return BlockMatrix(mats)
 
+@require_petsc
 def to_block_colmat(bvec):
     mats = tuple([
         tuple([gops.convert_vec_to_colmat(vec)]) for vec in bvec.subarrays_flat
