@@ -279,7 +279,7 @@ def _labels(array):
         return ()
     else:
         return array.labels
-        
+
 def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
     Apply a ufunc on sequence of BlockArray inputs
@@ -364,17 +364,6 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
     ## Interpret the ufunc signature in order to compute the shape of the output
     free_name_to_in, redu_name_to_in = interpret_ufunc_signature(sig_ins, sig_outs)
 
-    # Check if reduced dimensions have compatible bshapes
-
-    ## Compute the output shape from the input shape and signature
-    # the _ prefix means the permuted shape-type tuple with core dimensions at
-    # the end
-    shape_ins = [input.shape for input in inputs]
-    _shape_ins = [
-        apply_permutation(shape, perm)
-        for shape, perm in zip(shape_ins, permut_ins)
-    ]
-
     # Check that reduced dimensions have compatible bshapes
     _bshape_ins = [
         apply_permutation(_bshape(input), perm)
@@ -388,46 +377,14 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
                 f"of {redu_bshapes}."
             )
 
-    _labels_ins = [
-        apply_permutation(_labels(input), perm)
-        for input, perm in zip(inputs, permut_ins)
-    ]
-    _loops_shape_ins, _core_shape_ins = split_shapes_by_signatures(_shape_ins, sig_ins)
-    loop_ndim_ins = [len(loop_shape) for loop_shape in _loops_shape_ins]
+    ## Compute the output shape from the input shape and signature
+    # the _ prefix means the permuted shape-type tuple with core dimensions at
+    # the end
+    shape_ins = [input.shape for input in inputs]
 
-    _loop_shape_outs, _core_shape_outs = calculate_output_shapes(
-        _loops_shape_ins, _core_shape_ins, sig_ins, sig_outs, free_name_to_in
+    shape_outs, labels_outs = _compute_output_shapes(
+        inputs, shape_ins, sig_ins, sig_outs, permut_ins, permut_outs, free_name_to_in, 
     )
-
-    loop_labels_ins = [
-        _labels[:-len(sig_in)] if len(sig_in) != 0 else _labels
-        for _labels, sig_in in zip(_labels_ins, sig_ins)
-    ]
-    core_labels_ins = [
-        _labels[-len(sig_in):] if len(sig_in) != 0 else ()
-        for _labels, sig_in in zip(_labels_ins, sig_ins)
-    ]
-    core_labels_outs = [
-        tuple([
-            core_labels_ins[free_name_to_in[name][0]][free_name_to_in[name][1]]
-            for name in sig_out
-        ])
-        for sig_out in sig_outs
-    ]
-
-    loop_labels_out = broadcast_labels(*loop_labels_ins)
-    _labels_outs = [loop_labels_out + clabels_out for clabels_out in core_labels_outs]
-    _shape_outs = [eshape+cshape for eshape, cshape in zip(_loop_shape_outs, _core_shape_outs)]
-
-    labels_outs = [
-        apply_permutation(labels, perm)
-        for labels, perm in zip(_labels_outs, permut_outs)
-    ]
-    shape_outs = [
-        apply_permutation(shape, perm)
-        for shape, perm in zip(_shape_outs, permut_outs)
-    ]
-    assert len(shape_outs) == len(sig_outs)
 
     ## Compute the outputs block wise by looping over inputs
     # determine the input type
@@ -577,6 +534,62 @@ def _apply_op_blockwise(
 
         subarrays_out.append(op(*subarray_ins, **op_kwargs))
     return subarrays_out
+
+def _compute_output_shapes(
+        inputs,
+        shape_ins, 
+        sig_ins, 
+        sig_outs, 
+        permut_ins, 
+        permut_outs,
+        free_name_to_in
+    ):
+    _shape_ins = [
+        apply_permutation(shape, perm)
+        for shape, perm in zip(shape_ins, permut_ins)
+    ]
+    _labels_ins = [
+        apply_permutation(_labels(input), perm)
+        for input, perm in zip(inputs, permut_ins)
+    ]
+    _loops_shape_ins, _core_shape_ins = split_shapes_by_signatures(_shape_ins, sig_ins)
+    loop_ndim_ins = [len(loop_shape) for loop_shape in _loops_shape_ins]
+
+    _loop_shape_outs, _core_shape_outs = calculate_output_shapes(
+        _loops_shape_ins, _core_shape_ins, sig_ins, sig_outs, free_name_to_in
+    )
+
+    loop_labels_ins = [
+        _labels[:-len(sig_in)] if len(sig_in) != 0 else _labels
+        for _labels, sig_in in zip(_labels_ins, sig_ins)
+    ]
+    core_labels_ins = [
+        _labels[-len(sig_in):] if len(sig_in) != 0 else ()
+        for _labels, sig_in in zip(_labels_ins, sig_ins)
+    ]
+    core_labels_outs = [
+        tuple([
+            core_labels_ins[free_name_to_in[name][0]][free_name_to_in[name][1]]
+            for name in sig_out
+        ])
+        for sig_out in sig_outs
+    ]
+
+    loop_labels_out = broadcast_labels(*loop_labels_ins)
+    _labels_outs = [loop_labels_out + clabels_out for clabels_out in core_labels_outs]
+    _shape_outs = [eshape+cshape for eshape, cshape in zip(_loop_shape_outs, _core_shape_outs)]
+
+    labels_outs = [
+        apply_permutation(labels, perm)
+        for labels, perm in zip(_labels_outs, permut_outs)
+    ]
+    shape_outs = [
+        apply_permutation(shape, perm)
+        for shape, perm in zip(_shape_outs, permut_outs)
+    ]
+    assert len(shape_outs) == len(sig_outs)
+    return shape_outs, labels_outs
+
 
 def apply_ufunc_mat_vec(ufunc: np.ufunc, method: str, *inputs, **op_kwargs):
     """
