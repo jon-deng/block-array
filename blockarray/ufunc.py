@@ -294,15 +294,26 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
         raise TypeError(f"Inputs must be of type `scalar` or `BlockArray`, not {input_types}")
 
     if method == '__call__':
-        return _apply_ufunc_call(ufunc, *inputs, **kwargs)
+        outputs = _apply_ufunc_call(ufunc, *inputs, **kwargs)
     elif method == 'reduce':
-        return _apply_ufunc_reduce(ufunc, *inputs, **kwargs)
+        outputs = _apply_ufunc_reduce(ufunc, *inputs, **kwargs)
     elif method == 'outer':
-        return _apply_ufunc_outer(ufunc, *inputs, **kwargs)
+        outputs = _apply_ufunc_outer(ufunc, *inputs, **kwargs)
     elif method == 'accumulate':
-        return _apply_ufunc_accumulate(ufunc, *inputs, **kwargs)
+        outputs = _apply_ufunc_accumulate(ufunc, *inputs, **kwargs)
     else:
         return NotImplemented
+
+    # In the first case a single output tuple of subarrays, shape and labels 
+    # is returned
+    if len(outputs) == 1:
+        subarrays_out, shape_out, labels_out = outputs[0]
+        return ba.BlockArray(subarrays_out, shape_out, labels_out)
+    else:
+        return [
+            ba.BlockArray(subarrays_out, shape_out, labels_out)
+            for subarrays_out, shape_out, labels_out in outputs
+        ]
 
 def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
     """
@@ -387,29 +398,13 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
     )
 
     ## Compute the outputs block wise by looping over inputs
-    # determine the input type
-    # TODO: Should replace this with a function and move to a common spot for all
-    # ufunc methods
-    input_types = {type(input) for input in inputs}
-    if ba.BlockArray in input_types:
-        output_type = ba.BlockArray
-    elif bm.BlockMatrix in input_types:
-        output_type = bm.BlockMatrix
-    elif bv.BlockVector in input_types:
-        output_type = bv.BlockVector
-    else:
-        assert False
-
     outputs = []
     for shape_out, labels_out, sig_out, perm_out in zip(shape_outs, labels_outs, sig_outs, permut_outs):
         subarrays_out = _apply_op_blockwise(
             ufunc, inputs, shape_ins, sig_ins, sig_out, shape_out, perm_out, permut_ins, op_kwargs=kwargs)
-        outputs.append(output_type(subarrays_out, shape_out, labels_out))
+        outputs.append((subarrays_out, shape_out, labels_out))
 
-    if len(outputs) == 1:
-        return outputs[0]
-    else:
-        return tuple(outputs)
+    return outputs
 
 def _apply_ufunc_reduce(ufunc: np.ufunc, *inputs, **kwargs):
     assert len(inputs) == 1
@@ -438,14 +433,9 @@ def _apply_ufunc_reduce(ufunc: np.ufunc, *inputs, **kwargs):
     for sig_out, shape_out, perm_out, labels_out in zip(sig_outs, shape_outs, perm_outs, labels_outs):
         subarrays_out = _apply_op_blockwise(
                 ufunc.reduce, inputs, shape_ins, sig_ins, sig_out, shape_out, perm_out, perm_ins, op_kwargs=kwargs)
-        output = ba.BlockArray(subarrays_out, shape_out, labels_out)
-        outputs.append(output)
+        outputs.append((subarrays_out, shape_out, labels_out))
 
-
-    if len(outputs) == 1:
-        return outputs[0]
-    else:
-        return tuple(outputs)
+    return outputs
 
 def _apply_ufunc_accumulate(ufunc: np.ufunc, *inputs, **kwargs):
     assert len(inputs) == 1
@@ -474,13 +464,9 @@ def _apply_ufunc_accumulate(ufunc: np.ufunc, *inputs, **kwargs):
     for sig_out, shape_out, perm_out, labels_out in zip(sig_outs, shape_outs, perm_outs, labels_outs):
         subarrays_out = _apply_op_blockwise(
                 ufunc.accumulate, inputs, shape_ins, sig_ins, sig_out, shape_out, perm_out, perm_ins, op_kwargs=kwargs)
-        output = ba.BlockArray(subarrays_out, shape_out, labels_out)
-        outputs.append(output)
+        outputs.append((subarrays_out, shape_out, labels_out))
 
-    if len(outputs) == 1:
-        return outputs[0]
-    else:
-        return tuple(outputs)
+    return outputs
 
 def _apply_ufunc_outer(ufunc: np.ufunc, *inputs, **kwargs):
     return NotImplemented
