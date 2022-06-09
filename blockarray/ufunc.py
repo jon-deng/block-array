@@ -455,7 +455,41 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
         return tuple(outputs)
 
 def _apply_ufunc_reduce(ufunc: np.ufunc, *inputs, **kwargs):
-    return NotImplemented
+    assert len(inputs) == 1
+
+    kwargs['axis'] = -1
+
+    # The signature for reduce type calls is always the below
+    signature = '(i)->()'
+    sig_ins, sig_outs = parse_ufunc_signature(signature)
+    # don't need this as can hardcode removing the last axis of the shape
+    # free_name_to_in, redu_name_to_in = interpret_ufunc_signature(sig_ins, sig_outs)
+
+    shape_ins = [input.shape for input in inputs]
+    labels_ins = [input.labels for input in inputs]
+    perm_ins = [tuple(range(len(shape))) for shape in shape_ins]
+    _shape_ins = [apply_permutation(shape, perm) for shape, perm in zip(shape_ins, perm_ins)]
+    _labels_ins = [apply_permutation(shape, perm) for shape, perm in zip(labels_ins, perm_ins)]
+
+    _shape_outs = [shape_in[:-1] for shape_in in _shape_ins]
+    _labels_outs = [labels_in[:-1] for labels_in in _labels_ins]
+    perm_outs = [tuple(range(len(shape))) for shape in _shape_outs]
+    shape_outs = [apply_permutation(shape, perm) for shape, perm in zip(_shape_outs, perm_outs)]
+    labels_outs = [apply_permutation(labels, perm) for labels, perm in zip(_labels_outs, perm_outs)]
+
+    outputs = []
+    for sig_out, shape_out, perm_out, labels_out in zip(sig_outs, shape_outs, perm_outs, labels_outs):
+        breakpoint()
+        subarrays_out = _apply_op_blockwise(
+                ufunc.reduce, inputs, shape_ins, sig_ins, sig_out, shape_out, perm_out, perm_ins, op_kwargs=kwargs)
+        output = ba.BlockArray(subarrays_out, shape_out, labels_out)
+        outputs.append(output)
+
+
+    if len(outputs) == 1:
+        return outputs[0]
+    else:
+        return tuple(outputs)
 
 def _apply_ufunc_accumulate(ufunc: np.ufunc, *inputs, **kwargs):
     return NotImplemented

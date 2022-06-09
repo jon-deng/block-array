@@ -120,6 +120,24 @@ def test_apply_ufunc():
     # D_ = np.inner1d(A.to_mono_ndarray(), B.to_mono_ndarray(), axes=[(1,), (0,), ()])
     # assert np.all(np.isclose(D.to_mono_ndarray(), D_))
 
+def test_apply_ufunc_reduce():
+    a = np.random.random_sample((4, 4))
+    b = np.random.random_sample((4, 2))
+    c = np.random.random_sample((2, 4))
+    d = np.random.random_sample((2, 2))
+    A = btensor.BlockArray([[a, b], [c, d]])
+
+    a = np.random.random_sample((4, 4))
+    b = np.random.random_sample((4, 2))
+    c = np.random.random_sample((2, 4))
+    d = np.random.random_sample((2, 2))
+    B = btensor.BlockArray([[a, b], [c, d]])
+
+    D = np.add.reduce(A)
+    D_ = np.add.reduce(A.to_mono_ndarray())
+    np.all(np.isclose(D.to_mono_ndarray(), D_))
+
+
 if __name__ == '__main__':
     test_parse_ufunc_signature()
     test_interpret_ufunc_signature()
@@ -128,3 +146,4 @@ if __name__ == '__main__':
     test_gen_in_multi_index()
     # test_recursive_concatenate()
     test_apply_ufunc()
+    test_apply_ufunc_reduce()
