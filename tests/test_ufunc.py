@@ -137,6 +137,23 @@ def test_apply_ufunc_reduce():
     D_ = np.add.reduce(A.to_mono_ndarray())
     np.all(np.isclose(D.to_mono_ndarray(), D_))
 
+def test_apply_ufunc_accumulate():
+    a = np.random.random_sample((4, 4))
+    b = np.random.random_sample((4, 2))
+    c = np.random.random_sample((2, 4))
+    d = np.random.random_sample((2, 2))
+    A = btensor.BlockArray([[a, b], [c, d]])
+
+    a = np.random.random_sample((4, 4))
+    b = np.random.random_sample((4, 2))
+    c = np.random.random_sample((2, 4))
+    d = np.random.random_sample((2, 2))
+    B = btensor.BlockArray([[a, b], [c, d]])
+
+    D = np.add.accumulate(A)
+    D_ = np.add.accumulate(A.to_mono_ndarray())
+    np.all(np.isclose(D.to_mono_ndarray(), D_))
+
 
 if __name__ == '__main__':
     test_parse_ufunc_signature()
@@ -147,3 +164,4 @@ if __name__ == '__main__':
     # test_recursive_concatenate()
     test_apply_ufunc()
     test_apply_ufunc_reduce()
+    test_apply_ufunc_accumulate()
