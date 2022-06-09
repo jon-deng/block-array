@@ -23,7 +23,6 @@ Applying a ufunc on block arrays, applies the ufunc on each block over all
 loop dimensions and all free dimensions. As a result, the ufunc is applied on
 block arrays containing only the reduced dimensions.
 """
-from ast import Num
 import operator
 from numbers import Number
 import itertools
@@ -358,9 +357,10 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
     ## Compute the output shape from the input shape and signature
     # the _ prefix means the permuted shape-type tuple with core dimensions at
     # the end
+    shape_ins = [input.shape for input in inputs]
     _shape_ins = [
-        apply_permutation(input.shape, perm)
-        for input, perm in zip(inputs, permut_ins)
+        apply_permutation(shape, perm)
+        for shape, perm in zip(shape_ins, permut_ins)
     ]
 
     # Check that reduced dimensions have compatible bshapes
@@ -445,7 +445,8 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
 
     outputs = []
     for shape_out, labels_out, sig_out, perm_out in zip(shape_outs, labels_outs, sig_outs, permut_outs):
-        subarrays_out = _apply_op_blockwise(ufunc, inputs, _shape_ins, sig_ins, sig_out, shape_out, perm_out, permut_ins, op_kwargs=kwargs)
+        subarrays_out = _apply_op_blockwise(
+            ufunc, inputs, shape_ins, sig_ins, sig_out, shape_out, perm_out, permut_ins, op_kwargs=kwargs)
         outputs.append(output_type(subarrays_out, shape_out, labels_out))
 
     if len(outputs) == 1:
