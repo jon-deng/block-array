@@ -393,9 +393,19 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
     # the end
     shape_ins = [input.shape for input in inputs]
 
-    shape_outs, labels_outs = _compute_output_shapes(
-        inputs, shape_ins, sig_ins, sig_outs, permut_ins, permut_outs, free_name_to_in, 
+    _shape_outs, _labels_outs = _compute_output_shapes(
+        inputs, shape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in, 
     )
+
+    # perm_outs = [tuple(range(len(shape))) for shape in _shape_outs]
+    labels_outs = [
+        apply_permutation(labels, perm)
+        for labels, perm in zip(_labels_outs, permut_outs)
+    ]
+    shape_outs = [
+        apply_permutation(shape, perm)
+        for shape, perm in zip(_shape_outs, permut_outs)
+    ]
 
     ## Compute the outputs block wise by looping over inputs
     outputs = []
@@ -414,20 +424,25 @@ def _apply_ufunc_reduce(ufunc: np.ufunc, *inputs, **kwargs):
     # The signature for reduce type calls is always the below
     signature = '(i)->()'
     sig_ins, sig_outs = parse_ufunc_signature(signature)
-    # don't need this as can hardcode removing the last axis of the shape
-    # free_name_to_in, redu_name_to_in = interpret_ufunc_signature(sig_ins, sig_outs)
+    free_name_to_in, redu_name_to_in = interpret_ufunc_signature(sig_ins, sig_outs)
 
     shape_ins = [input.shape for input in inputs]
-    labels_ins = [input.labels for input in inputs]
+    # labels_ins = [input.labels for input in inputs]
     perm_ins = [tuple(range(len(shape))) for shape in shape_ins]
-    _shape_ins = [apply_permutation(shape, perm) for shape, perm in zip(shape_ins, perm_ins)]
-    _labels_ins = [apply_permutation(shape, perm) for shape, perm in zip(labels_ins, perm_ins)]
 
-    _shape_outs = [shape_in[:-1] for shape_in in _shape_ins]
-    _labels_outs = [labels_in[:-1] for labels_in in _labels_ins]
+    _shape_outs, _labels_outs = _compute_output_shapes(
+        inputs, shape_ins, sig_ins, sig_outs, perm_ins, free_name_to_in, 
+    )
+
     perm_outs = [tuple(range(len(shape))) for shape in _shape_outs]
-    shape_outs = [apply_permutation(shape, perm) for shape, perm in zip(_shape_outs, perm_outs)]
-    labels_outs = [apply_permutation(labels, perm) for labels, perm in zip(_labels_outs, perm_outs)]
+    labels_outs = [
+        apply_permutation(labels, perm)
+        for labels, perm in zip(_labels_outs, perm_outs)
+    ]
+    shape_outs = [
+        apply_permutation(shape, perm)
+        for shape, perm in zip(_shape_outs, perm_outs)
+    ]
 
     outputs = []
     for sig_out, shape_out, perm_out, labels_out in zip(sig_outs, shape_outs, perm_outs, labels_outs):
@@ -526,8 +541,7 @@ def _compute_output_shapes(
         shape_ins, 
         sig_ins, 
         sig_outs, 
-        permut_ins, 
-        permut_outs,
+        permut_ins,
         free_name_to_in
     ):
     _shape_ins = [
@@ -565,16 +579,7 @@ def _compute_output_shapes(
     _labels_outs = [loop_labels_out + clabels_out for clabels_out in core_labels_outs]
     _shape_outs = [eshape+cshape for eshape, cshape in zip(_loop_shape_outs, _core_shape_outs)]
 
-    labels_outs = [
-        apply_permutation(labels, perm)
-        for labels, perm in zip(_labels_outs, permut_outs)
-    ]
-    shape_outs = [
-        apply_permutation(shape, perm)
-        for shape, perm in zip(_shape_outs, permut_outs)
-    ]
-    assert len(shape_outs) == len(sig_outs)
-    return shape_outs, labels_outs
+    return _shape_outs, _labels_outs
 
 
 def apply_ufunc_mat_vec(ufunc: np.ufunc, method: str, *inputs, **op_kwargs):
