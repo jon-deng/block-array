@@ -268,6 +268,18 @@ def broadcast_labels(*labels):
     ii = axis_lengths.index(max(axis_lengths))
     return labels[ii]
 
+def _bshape(array):
+        if isinstance(array, Number):
+            return ()
+        else:
+            return array.bshape
+
+def _labels(array):
+    if isinstance(array, Number):
+        return ()
+    else:
+        return array.labels
+        
 def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
     Apply a ufunc on sequence of BlockArray inputs
@@ -364,18 +376,6 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
     ]
 
     # Check that reduced dimensions have compatible bshapes
-    def _bshape(array):
-        if isinstance(array, Number):
-            return ()
-        else:
-            return array.bshape
-
-    def _labels(array):
-        if isinstance(array, Number):
-            return ()
-        else:
-            return array.labels
-
     _bshape_ins = [
         apply_permutation(_bshape(input), perm)
         for input, perm in zip(inputs, permut_ins)
