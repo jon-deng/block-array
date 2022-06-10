@@ -304,7 +304,7 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
     else:
         return NotImplemented
 
-    # In the first case a single output tuple of subarrays, shape and labels 
+    # In the first case a single output tuple of subarrays, shape and labels
     # is returned
     if len(outputs) == 1:
         subarrays_out, shape_out, labels_out = outputs[0]
@@ -333,88 +333,8 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
         signature = ','.join(['()']*ufunc.nin) + '->' + ','.join(['()']*ufunc.nout)
     else:
         signature = ufunc.signature
-    sig_ins, sig_outs = parse_ufunc_signature(signature)
 
-    ## Compute a permutation of the shape from the axes kwargs
-    # This permutation shifts core dimensions to the 'standard' location as
-    # the final dimensions of the array
-    ndim_ins = [input.ndim for input in inputs]
-    _loop_ndim_ins = [ndim-len(sig) for ndim, sig in zip(ndim_ins, sig_ins)]
-    ndim_outs = [max(_loop_ndim_ins)+len(sig) for sig in sig_outs]
-    ndims = ndim_ins + ndim_outs
-
-    if 'axes' in kwargs:
-        axes = kwargs['axes']
-        axes = [
-            tuple([conv_neg(ii, ndim) for ii in axs])
-            for ndim, axs in zip(ndim_ins+ndim_outs, axes)
-        ]
-    else:
-        axes = [
-            tuple([
-                ndim-ii for ii in range(len(sig), 0, -1)
-            ])
-            for ndim, sig in zip(ndim_ins+ndim_outs, sig_ins+sig_outs)
-        ]
-    # Remove any axes for scalar inputs
-    axes_ins = axes[:-ufunc.nout]
-    axes_outs = axes[-ufunc.nout:]
-    axes_ins = [axs for x, axs in zip(inputs, axes_ins)]
-    axes = axes_ins + axes_outs
-
-    # Compute the shape permutation from axes
-    # This permutes the axis sizes in shape so the core dimensions are at the end
-    # and elementwise dimensions are at the beginning
-    permuts = [
-        tuple([ii for ii in range(ndim) if ii not in set(axs)]) + axs
-        for axs, ndim in zip(axes, ndims)
-    ]
-    permut_ins = permuts[:-ufunc.nout]
-    permut_outs = permuts[-ufunc.nout:]
-
-    ## Interpret the ufunc signature in order to compute the shape of the output
-    free_name_to_in, redu_name_to_in = interpret_ufunc_signature(sig_ins, sig_outs)
-
-    # Check that reduced dimensions have compatible bshapes
-    _bshape_ins = [
-        apply_permutation(_bshape(input), perm)
-        for input, perm in zip(inputs, permut_ins)
-    ]
-    for redu_dim_name, redu_dim_info in redu_name_to_in.items():
-        redu_bshapes = [_bshape_ins[ii_in][ii_dim] for ii_in, ii_dim in redu_dim_info]
-        if not (redu_bshapes[:-1] == redu_bshapes[1:]):
-            raise ValueError(
-                f"Core dimension {redu_dim_name} has incompatible block shapes"
-                f"of {redu_bshapes}."
-            )
-
-    ## Compute the output shape from the input shape and signature
-    # the _ prefix means the permuted shape-type tuple with core dimensions at
-    # the end
-    shape_ins = [input.shape for input in inputs]
-
-    _shape_outs, _labels_outs = _compute_output_shapes(
-        inputs, shape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in, 
-    )
-
-    # perm_outs = [tuple(range(len(shape))) for shape in _shape_outs]
-    labels_outs = [
-        apply_permutation(labels, perm)
-        for labels, perm in zip(_labels_outs, permut_outs)
-    ]
-    shape_outs = [
-        apply_permutation(shape, perm)
-        for shape, perm in zip(_shape_outs, permut_outs)
-    ]
-
-    ## Compute the outputs block wise by looping over inputs
-    outputs = []
-    for shape_out, labels_out, sig_out, perm_out in zip(shape_outs, labels_outs, sig_outs, permut_outs):
-        subarrays_out = _apply_op_blockwise(
-            ufunc, inputs, shape_ins, sig_ins, sig_out, shape_out, perm_out, permut_ins, op_kwargs=kwargs)
-        outputs.append((subarrays_out, shape_out, labels_out))
-
-    return outputs
+    return _apply_ufunc_core(ufunc, signature, *inputs, **kwargs)
 
 def _apply_ufunc_reduce(ufunc: np.ufunc, *inputs, **kwargs):
     assert len(inputs) == 1
@@ -423,34 +343,8 @@ def _apply_ufunc_reduce(ufunc: np.ufunc, *inputs, **kwargs):
 
     # The signature for reduce type calls is always the below
     signature = '(i)->()'
-    sig_ins, sig_outs = parse_ufunc_signature(signature)
-    free_name_to_in, redu_name_to_in = interpret_ufunc_signature(sig_ins, sig_outs)
 
-    shape_ins = [input.shape for input in inputs]
-    # labels_ins = [input.labels for input in inputs]
-    perm_ins = [tuple(range(len(shape))) for shape in shape_ins]
-
-    _shape_outs, _labels_outs = _compute_output_shapes(
-        inputs, shape_ins, sig_ins, sig_outs, perm_ins, free_name_to_in, 
-    )
-
-    perm_outs = [tuple(range(len(shape))) for shape in _shape_outs]
-    labels_outs = [
-        apply_permutation(labels, perm)
-        for labels, perm in zip(_labels_outs, perm_outs)
-    ]
-    shape_outs = [
-        apply_permutation(shape, perm)
-        for shape, perm in zip(_shape_outs, perm_outs)
-    ]
-
-    outputs = []
-    for sig_out, shape_out, perm_out, labels_out in zip(sig_outs, shape_outs, perm_outs, labels_outs):
-        subarrays_out = _apply_op_blockwise(
-                ufunc.reduce, inputs, shape_ins, sig_ins, sig_out, shape_out, perm_out, perm_ins, op_kwargs=kwargs)
-        outputs.append((subarrays_out, shape_out, labels_out))
-
-    return outputs
+    return _apply_ufunc_core(ufunc.reduce, signature, *inputs, **kwargs)
 
 def _apply_ufunc_accumulate(ufunc: np.ufunc, *inputs, **kwargs):
     assert len(inputs) == 1
@@ -485,6 +379,90 @@ def _apply_ufunc_accumulate(ufunc: np.ufunc, *inputs, **kwargs):
 
 def _apply_ufunc_outer(ufunc: np.ufunc, *inputs, **kwargs):
     return NotImplemented
+
+def _apply_ufunc_core(ufunc: np.ufunc, signature, *inputs, **kwargs):
+    sig_ins, sig_outs = parse_ufunc_signature(signature)
+    nout = len(sig_outs)
+
+    ## Compute a permutation of the shape from the axes kwargs
+    # This permutation shifts core dimensions to the 'standard' location as
+    # the final dimensions of the array
+    ndim_ins = [input.ndim for input in inputs]
+    _loop_ndim_ins = [ndim-len(sig) for ndim, sig in zip(ndim_ins, sig_ins)]
+    ndim_outs = [max(_loop_ndim_ins)+len(sig) for sig in sig_outs]
+    ndims = ndim_ins + ndim_outs
+
+    if 'axes' in kwargs:
+        axes = kwargs['axes']
+        axes = [
+            tuple([conv_neg(ii, ndim) for ii in axs])
+            for ndim, axs in zip(ndim_ins+ndim_outs, axes)
+        ]
+    else:
+        axes = [
+            tuple([
+                ndim-ii for ii in range(len(sig), 0, -1)
+            ])
+            for ndim, sig in zip(ndim_ins+ndim_outs, sig_ins+sig_outs)
+        ]
+    axes_ins = axes[:-nout]
+    axes_outs = axes[-nout:]
+    axes_ins = [axs for x, axs in zip(inputs, axes_ins)]
+    axes = axes_ins + axes_outs
+
+    # Compute the shape permutation from axes
+    # This permutes the axis sizes in shape so the core dimensions are at the end
+    # and elementwise dimensions are at the beginning
+    permuts = [
+        tuple([ii for ii in range(ndim) if ii not in set(axs)]) + axs
+        for axs, ndim in zip(axes, ndims)
+    ]
+    permut_ins = permuts[:-nout]
+    permut_outs = permuts[-nout:]
+
+    ## Interpret the ufunc signature in order to compute the shape of the output
+    free_name_to_in, redu_name_to_in = interpret_ufunc_signature(sig_ins, sig_outs)
+
+    # Check that reduced dimensions have compatible bshapes
+    _bshape_ins = [
+        apply_permutation(_bshape(input), perm)
+        for input, perm in zip(inputs, permut_ins)
+    ]
+    for redu_dim_name, redu_dim_info in redu_name_to_in.items():
+        redu_bshapes = [_bshape_ins[ii_in][ii_dim] for ii_in, ii_dim in redu_dim_info]
+        if not (redu_bshapes[:-1] == redu_bshapes[1:]):
+            raise ValueError(
+                f"Core dimension {redu_dim_name} has incompatible block shapes"
+                f"of {redu_bshapes}."
+            )
+
+    ## Compute the output shape from the input shape and signature
+    # the _ prefix means the permuted shape-type tuple with core dimensions at
+    # the end
+    shape_ins = [input.shape for input in inputs]
+
+    _shape_outs, _labels_outs = _compute_output_shapes(
+        inputs, shape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in,
+    )
+
+    # perm_outs = [tuple(range(len(shape))) for shape in _shape_outs]
+    labels_outs = [
+        apply_permutation(labels, perm)
+        for labels, perm in zip(_labels_outs, permut_outs)
+    ]
+    shape_outs = [
+        apply_permutation(shape, perm)
+        for shape, perm in zip(_shape_outs, permut_outs)
+    ]
+
+    ## Compute the outputs block wise by looping over inputs
+    outputs = []
+    for shape_out, labels_out, sig_out, perm_out in zip(shape_outs, labels_outs, sig_outs, permut_outs):
+        subarrays_out = _apply_op_blockwise(
+            ufunc, inputs, shape_ins, sig_ins, sig_out, shape_out, perm_out, permut_ins, op_kwargs=kwargs)
+        outputs.append((subarrays_out, shape_out, labels_out))
+
+    return outputs
 
 def _apply_op_blockwise(
         op,
@@ -538,9 +516,9 @@ def _apply_op_blockwise(
 
 def _compute_output_shapes(
         inputs,
-        shape_ins, 
-        sig_ins, 
-        sig_outs, 
+        shape_ins,
+        sig_ins,
+        sig_outs,
         permut_ins,
         free_name_to_in
     ):
