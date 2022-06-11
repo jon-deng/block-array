@@ -40,10 +40,10 @@ def append_block_vector_to_group(f: 'h5py.Group', vec: bvec.BlockVector):
     # Loop through each block of the block vector to see if the dataset represents it
     _valid_blocks = [
         (subvec_label in f) and (subvec_size == f[subvec_label].shape[-1])
-        for subvec_label, subvec_size in zip(vec.labels[0], vec.bshape[0])]
+        for subvec_label, subvec_size in zip(vec.f_labels[0], vec.f_bshape[0])]
     assert all(_valid_blocks)
 
-    for subvec_label, subvec_size, subvec in zip(vec.labels[0], vec.bshape[0], vec):
+    for subvec_label, subvec_size, subvec in zip(vec.f_labels[0], vec.f_bshape[0], vec):
         axis0_size = f[subvec_label].shape[0] + 1
         f[subvec_label].resize(axis0_size, axis=0)
         f[subvec_label][-1, :] = subvec

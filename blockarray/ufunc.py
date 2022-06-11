@@ -279,7 +279,7 @@ def _bshape(array: Input[T]) -> typing.BlockShape:
     if isinstance(array, Number):
         return ()
     else:
-        return array.bshape
+        return array.f_bshape
 
 def _labels(array: Input[T]) -> typing.Labels:
     """
@@ -288,7 +288,7 @@ def _labels(array: Input[T]) -> typing.Labels:
     if isinstance(array, Number):
         return ()
     else:
-        return array.labels
+        return array.f_labels
 
 def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs: Input[T], **kwargs):
     """

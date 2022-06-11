@@ -33,7 +33,7 @@ class BlockMatrix(ba.BlockArray[T]):
         labels=None):
         super().__init__(array, shape, labels)
 
-        if len(self.shape) != 2:
+        if len(self.f_shape) != 2:
             raise ValueError(f"BlockMatrix must have dimension == 2, not {len(self.shape)}")
 
     ## Conversion to monolithic formats

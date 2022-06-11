@@ -65,9 +65,9 @@ print(BMAT3.to_mono_petsc()[:, :])
 
 def test_mat_size_shape():
     print(BMAT1.size)
-    print(BMAT1.shape)
+    print(BMAT1.f_shape)
     print(BMAT1.mshape)
-    print(BMAT1.bshape)
+    print(BMAT1.f_bshape)
 
 def test_add():
     BMAT3 = BMAT1 + BMAT2
@@ -83,17 +83,17 @@ def test_ident_mat():
 
 def test_concatenate_mat():
     cbmat = bmat.concatenate_mat([[BMAT1], [BMAT2]], labels=[['a', 'b', 'c', 'd'], ['a', 'b']])
-    print(cbmat.shape)
-    print(BMAT1.shape)
+    print(cbmat.f_shape)
+    print(BMAT1.f_shape)
     # print(cbmat.to_petsc())
 
 def test_mult_mat():
     out = bla.mult_mat_mat(BMAT1, BMAT2)
-    print(out.shape)
+    print(out.f_shape)
 
 def test_transpose():
 
-    print(BMAT1.shape)
+    print(BMAT1.f_shape)
     D = BMAT1.transpose()
     print(D.to_mono_petsc()[:, :])
     print(BMAT1.to_mono_petsc()[:, :])

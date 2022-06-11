@@ -69,8 +69,8 @@ def test_array_index(setup_labelledarray):
 
 
     axis_idxs = (0, slice(0, 1), slice(0, 1))
-    assert array[axis_idxs].shape == (-1, 1, 1)
-    assert array[axis_idxs].shape == (-1, 1, 1)
+    assert array[axis_idxs].f_shape == (-1, 1, 1)
+    assert array[axis_idxs].f_shape == (-1, 1, 1)
 
     print(f"array[:, :, 0] has shape {array[:, :, 0].shape} and vals {array[:, :, 0].flat}")
     print(f"array[:, :, 1:2] has shape {array[:, :, 1:2].shape} and vals {array[:, :, 1:2].flat}")

@@ -112,14 +112,14 @@ class BlockArray(Generic[T]):
 
         self._bshape = _block_shape_from_larray(self._larray)
 
-        _validate_subarray_shapes_from_larray(self._larray, self.r_bshape)
+        _validate_subarray_shapes_from_larray(self._larray, self.bshape)
 
     ## String representation functions
     def __repr__(self):
-        return f"{self.__class__.__name__}({repr(self.subarrays_flat)}, {self.shape}, {self.labels})"
+        return f"{self.__class__.__name__}({repr(self.subarrays_flat)}, {self.f_shape}, {self.f_labels})"
 
     def __str__(self):
-        return f"{self.__class__.__name__}(bshape={self.bshape} labels={self.labels})"
+        return f"{self.__class__.__name__}(bshape={self.f_bshape} labels={self.f_labels})"
 
     @property
     def subarrays_flat(self):
@@ -143,11 +143,6 @@ class BlockArray(Generic[T]):
         return self._larray
 
     @property
-    def labels(self):
-        """Return the axis labels"""
-        return self.larray.labels
-
-    @property
     def size(self):
         """
         Return the size (total number of blocks/subarrays)
@@ -155,60 +150,84 @@ class BlockArray(Generic[T]):
         return self.larray.size
 
     @property
-    def shape(self):
+    def f_shape(self):
         """
         Return the shape
 
         This is the number of blocks along each axis. The number of blocks along
         a reduced axis is returned as -1.
         """
-        return self.larray.shape
+        return self.larray.f_shape
 
     @property
-    def r_shape(self):
+    def f_bshape(self) -> BlockShape:
         """
-        Return the reduced shape
-
-        This is the number of block along each non-reduced axis.
+        Return the block shape (shape of each block as a tuple)
         """
-        return self.larray.r_shape
+        return self._bshape
 
     @property
-    def ndim(self):
+    def f_labels(self):
+        """Return the axis labels"""
+        return self.larray.f_labels
+
+    @property
+    def f_ndim(self):
         """
         Return the number of dimensions
 
         This is the number of axes in the block array, which matches the number
         of axes in all underlying sub-arrays.
         """
-        return self.larray.ndim
+        return self.larray.f_ndim
 
     @property
-    def r_ndim(self):
-        """
-        Return the number of non-reduced dimensions
-
-        This is the number of non-reduced axes.
-        """
-        return self.larray.r_ndim
-
-    @property
-    def dims(self):
+    def f_dims(self):
         """
         Return a tuple of dimension indices
 
         This is simply a range from 0 to the number of dimensions.
         """
-        return self.larray.dims
+        return self.larray.f_dims
 
     @property
-    def r_dims(self):
+    def shape(self):
+        """
+        Return the reduced shape
+
+        This is the number of block along each non-reduced axis.
+        """
+        return self.larray.shape
+
+    @property
+    def bshape(self) -> BlockShape:
+        """
+        Return the reduced block shape (number of blocks in each non-reduced axis)
+        """
+        ret_rbshape = [axis_sizes for axis_sizes in self.f_bshape if axis_sizes != ()]
+        return tuple(ret_rbshape)
+
+    @property
+    def labels(self):
+        return self._larray.labels
+
+    @property
+    def ndim(self):
+        """
+        Return the number of non-reduced dimensions
+
+        This is the number of non-reduced axes.
+        """
+        return self.larray.ndim
+
+    @property
+    def dims(self):
         """
         Return a tuple of non-reduced dimension indices
 
         This is simply a tuple of the non-reduced dimensions.
         """
-        return self.larray.r_dims
+        return self.larray.dims
 
     @property
     def mshape(self) -> Shape:
@@ -216,30 +235,7 @@ class BlockArray(Generic[T]):
         Return the shape of the equivalent monolithic array
         """
         _mshape = gops.shape(self.subarrays_flat[0])
-        return tuple([max(sum(axis_sizes), r_size) for r_size, axis_sizes in zip(_mshape, self.bshape)])
-
-    @property
-    def bshape(self) -> BlockShape:
-        """
-        Return the block shape (shape of each block as a tuple)
-        """
-        return self._bshape
-
-    @property
-    def r_bshape(self) -> BlockShape:
-        """
-        Return the reduced block shape (number of blocks in each non-reduced axis)
-        """
-        ret_rbshape = [axis_sizes for axis_sizes in self.bshape if axis_sizes != ()]
-        return tuple(ret_rbshape)
-
-    @property
-    def r_mshape(self) -> Shape:
-        """
-        Return the monolithic shape of non-reduced axes
-        """
-        ret_rbsize = [axis_size for axis_size in self.mshape if axis_size != 0]
-        return ret_rbsize
+        return tuple([max(sum(axis_sizes), r_size) for r_size, axis_sizes in zip(_mshape, self.f_bshape)])
 
     ## Methods for converting to monolithic array
     def to_mono_ndarray(self):
@@ -251,7 +247,7 @@ class BlockArray(Generic[T]):
     ## Copy methods
     def copy(self):
         """Return a copy"""
-        labels = self.labels
+        labels = self.f_labels
         return self.__class__(self.larray.copy(), labels)
 
     def __copy__(self):
@@ -275,7 +271,7 @@ class BlockArray(Generic[T]):
     ## Dict-like interface over the first dimension
     def keys(self):
         """Return the first axis' labels"""
-        return self.larray.labels[0]
+        return self.larray.f_labels[0]
 
     def __contains__(self, key):
         return key in self.larray
@@ -284,11 +280,11 @@ class BlockArray(Generic[T]):
         """
         Return an iterable of label, value pairs along the first axis
         """
-        return zip(self.labels[0], self)
+        return zip(self.f_labels[0], self)
 
     ## Iterable interface over the first non-reduced axis
     def __iter__(self):
-        for ii in range(self.r_shape[0]):
+        for ii in range(self.shape[0]):
             yield self[ii]
 
     ## common operator overloading
@@ -352,15 +348,15 @@ def _block_shape_from_larray(array: larr.LabelledArray[T]) -> BlockShape:
     array of subtensors with shape `(2, 3, 4)` ...
     """
     ret_bshape = []
-    num_axes = len(array.shape)
-    for idx_ax, num_blocks in enumerate(array.shape):
+    num_axes = len(array.f_shape)
+    for idx_ax, num_blocks in enumerate(array.f_shape):
         axis_sizes = []
         for idx_block in range(num_blocks):
             idx = tuple((idx_ax)*[0] + [idx_block] + (num_axes-idx_ax-1)*[0])
             # remove indices along reduced dimensions
             ridx = tuple([
                 idx_ax for nax, idx_ax in enumerate(idx)
-                if array.shape[nax] != -1])
+                if array.f_shape[nax] != -1])
 
             block_axis_size = gops.shape(array[ridx])[idx_ax]
             axis_sizes.append(block_axis_size)
@@ -413,7 +409,7 @@ def _validate_elementwise_binary_op(a: BlockArray[T], b: BlockArray[T]):
     """
     Validates if BlockArray inputs are applicable
     """
-    assert a.bshape == b.bshape
+    assert a.f_bshape == b.f_bshape
 
 def _elementwise_binary_op(
         op: Callable[[T, T], T],
@@ -436,7 +432,7 @@ def _elementwise_binary_op(
     """
     _validate_elementwise_binary_op(a, b)
     array = tuple([op(ai, bi) for ai, bi in zip(a.subarrays_flat, b.subarrays_flat)])
-    larrayay = larr.LabelledArray(array, a.shape, a.labels)
+    larrayay = larr.LabelledArray(array, a.f_shape, a.f_labels)
     return type(a)(larrayay)
 
 add = functools.partial(_elementwise_binary_op, operator.add)
@@ -471,7 +467,7 @@ def _elementwise_unary_op(
     BlockArray
         The resultant block array
     """
-    array = larr.LabelledArray([op(ai) for ai in a.subarrays_flat], a.shape, a.labels)
+    array = larr.LabelledArray([op(ai) for ai in a.subarrays_flat], a.f_shape, a.f_labels)
     return type(a)(array)
 
 neg = functools.partial(_elementwise_unary_op, operator.neg)
@@ -511,18 +507,18 @@ def to_mono_ndarray(barray: BlockArray[T]) -> np.ndarray:
     # individual blocks into the ndarray
     cum_r_bshape = [
         [nn for nn in itertools.accumulate(axis_shape, initial=0)]
-        for axis_shape in barray.r_bshape]
+        for axis_shape in barray.bshape]
 
     # loop through each block and assign its elements to the appropriate
     # part of the monolithic ndarray
-    for block_idx in itertools.product(*[range(axis_size) for axis_size in barray.r_shape]):
+    for block_idx in itertools.product(*[range(axis_size) for axis_size in barray.shape]):
         lbs = [ax_strides[ii] for ii, ax_strides in zip(block_idx, cum_r_bshape)]
         ubs = [ax_strides[ii+1] for ii, ax_strides in zip(block_idx, cum_r_bshape)]
 
         idxs = tuple([slice(lb, ub) for lb, ub in zip(lbs, ubs)])
 
-        midx = [slice(None)]*len(barray.shape)
-        for ii, idx in zip(barray.r_dims, idxs):
+        midx = [slice(None)]*len(barray.f_shape)
+        for ii, idx in zip(barray.dims, idxs):
             midx[ii] = idx
         ret_array[tuple(midx)] = barray[block_idx]
 

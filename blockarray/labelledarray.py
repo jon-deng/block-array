@@ -194,11 +194,11 @@ class LabelledArray(Generic[T]):
         # Compute convenience constants
         _strides = [
             stride for stride
-            in accumulate(self.r_shape[-1:0:-1], lambda a, b: a*b, initial=1)]
+            in accumulate(self.shape[-1:0:-1], lambda a, b: a*b, initial=1)]
         self._STRIDES = tuple(_strides[::-1])
         self._MULTI_LABEL_TO_IDX = tuple([
             {label: ii for label, ii in zip(axis_labels, idxs)}
-            for axis_labels, idxs in zip(self.r_labels, [range(axis_size) for axis_size in self.r_shape])])
+            for axis_labels, idxs in zip(self.labels, [range(axis_size) for axis_size in self.shape])])
 
     @property
     def flat(self) -> FlatArray[T]:
@@ -211,65 +211,65 @@ class LabelledArray(Generic[T]):
         return nest_array(self.flat, self._STRIDES)
 
     @property
-    def shape(self) -> Shape:
+    def f_shape(self) -> Shape:
         """Return the array shape"""
         return self._shape
 
     @property
-    def ndim(self) -> int:
+    def f_ndim(self) -> int:
         """Return the number of dimensions (number of axes)"""
+        return len(self.f_shape)
+
+    @property
+    def ndim(self) -> int:
+        """Return the reduced number of dimensions (number of axes)"""
         return len(self.shape)
 
     @property
-    def r_ndim(self) -> int:
-        """Return the reduced number of dimensions (number of axes)"""
-        return len(self.r_shape)
+    def f_dims(self) -> Tuple[int, ...]:
+        """Return the axis/dimensions indices"""
+        return tuple(range(self.f_ndim))
 
     @property
     def dims(self) -> Tuple[int, ...]:
-        """Return the axis/dimensions indices"""
-        return tuple(range(self.ndim))
-
-    @property
-    def r_dims(self) -> Tuple[int, ...]:
         """Return the reduced axis/dimensions indices"""
-        return tuple([ii for ii, ax_size in zip(self.dims, self.shape) if ax_size != -1])
+        return tuple([ii for ii, ax_size in zip(self.f_dims, self.f_shape) if ax_size != -1])
 
     @property
-    def labels(self) -> MultiLabels:
+    def f_labels(self) -> MultiLabels:
         """Return the array labels"""
         return self._labels
 
     @property
-    def r_shape(self) -> Shape:
+    def shape(self) -> Shape:
         """
         Return the reduced array shape
         """
-        ret_rshape = [axis_size for axis_size in self.shape if axis_size != -1]
+        ret_rshape = [axis_size for axis_size in self.f_shape if axis_size != -1]
         return tuple(ret_rshape)
 
     @property
-    def r_labels(self) -> MultiLabels:
+    def labels(self) -> MultiLabels:
         """
         Return the reduced labels
         """
-        ret_rlabels = [axis_labels for axis_labels in self.labels if axis_labels != ()]
+        ret_rlabels = [axis_labels for axis_labels in self.f_labels if axis_labels != ()]
         return ret_rlabels
 
     @property
     def size(self) -> int:
         """Return the array size"""
-        return math.prod(self.r_shape)
+        return math.prod(self.shape)
 
     def __len__(self):
         return self.size
 
     def __getitem__(self, multi_idx) -> Union[T, 'LabelledArray[T]']:
         multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
-        multi_idx = expand_multidx(multi_idx, self.r_shape)
-        validate_multi_general_idx(tuple(multi_idx), self.r_shape)
+        multi_idx = expand_multidx(multi_idx, self.shape)
+        validate_multi_general_idx(tuple(multi_idx), self.shape)
 
-        multi_idx = conv_gen_to_std_multidx(multi_idx, self.r_shape, self._MULTI_LABEL_TO_IDX)
+        multi_idx = conv_gen_to_std_multidx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
 
         # Find the returned BlockArray's shape and labels
         # -1 represents a reduced dimension,
@@ -282,7 +282,7 @@ class LabelledArray(Generic[T]):
                 tuple([axis_labels[ii] for ii in axis_idx])
                 if isinstance(axis_idx, (list, tuple))
                 else ())
-            for axis_labels, axis_idx in zip(self.labels, multi_idx)
+            for axis_labels, axis_idx in zip(self.f_labels, multi_idx)
         ])
 
         # enclose single ints in a list so it works with itertools
@@ -300,8 +300,8 @@ class LabelledArray(Generic[T]):
     ## Copy methods
     def copy(self):
         """Return a copy of the array"""
-        ret_labels = self.labels
-        ret_shape = self.shape
+        ret_labels = self.f_labels
+        ret_shape = self.f_shape
         ret_array = [elem.copy() for elem in self.flat]
         return self.__class__(ret_array, ret_shape, ret_labels)
 
@@ -313,11 +313,11 @@ class LabelledArray(Generic[T]):
         return key in self._MULTI_LABEL_TO_IDX[0]
 
     def items(self):
-        return zip(self.labels[0], self)
+        return zip(self.f_labels[0], self)
 
     ## Iterable interface over the first axis
     def __iter__(self) -> Union[List['LabelledArray'], List[T]]:
-        for ii in range(self.r_shape[0]):
+        for ii in range(self.shape[0]):
             yield self[ii]
 
 # For the below, the naming convention where applicable is:

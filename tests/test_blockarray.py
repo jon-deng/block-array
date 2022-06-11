@@ -54,11 +54,11 @@ def test_power():
     _test_elementwise_binary_op(lambda x, y: x**y, A, B, ba.power)
 
 def test_bshape():
-    assert A.bshape == ((4, 2), (4, 2))
-    print(f"A.bshape = {A.bshape}")
-    print(f"A[:, :].bshape = {A[:, :].bshape}")
-    print(f"A[:, 0].bshape = {A[:, 0].bshape}")
-    print(f"A[0, :].bshape = {A[0, :].bshape}")
+    assert A.f_bshape == ((4, 2), (4, 2))
+    print(f"A.bshape = {A.f_bshape}")
+    print(f"A[:, :].bshape = {A[:, :].f_bshape}")
+    print(f"A[:, 0].bshape = {A[:, 0].f_bshape}")
+    print(f"A[0, :].bshape = {A[0, :].f_bshape}")
 
 def test_ufunc():
     for op in [np.add, np.multiply, np.divide]:
