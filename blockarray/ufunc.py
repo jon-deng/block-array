@@ -318,48 +318,64 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
 def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
     """
     Apply a ufunc on a sequence of BlockArray inputs with `__call__`
-    """
-    ## Validate inputs
-    # Check input types
-    if not all([
-            isinstance(input, (Number, ba.BlockArray))
-            for input in inputs
-        ]):
-        input_types = [type(x) for x in inputs]
-        raise TypeError(f"Inputs must be of type `scalar` or `BlockArray`, not {input_types}")
 
+    Parameters
+    ----------
+    ufunc: np.ufunc
+        A numpy `ufunc` to apply
+    inputs: 
+        A list of inputs to apply the `ufunc` on
+    kwargs:
+        keyword arguments to supply to the ufunc. These are documented in
+        https://numpy.org/doc/stable/reference/ufuncs.html#optional-keyword-arguments
+    """
     ## Parse signature into nice/standard format
     if ufunc.signature is None:
         signature = ','.join(['()']*ufunc.nin) + '->' + ','.join(['()']*ufunc.nout)
     else:
         signature = ufunc.signature
 
-    return _apply_ufunc_core(ufunc, signature, *inputs, **kwargs)
+    sig_ins, sig_outs = parse_ufunc_signature(signature)
+
+    if 'axes' in kwargs:
+        axes = kwargs['axes']
+    else:
+        axes = [
+            tuple([-ii for ii in range(len(sig), 0, -1)])
+            for sig in sig_ins+sig_outs
+        ]
+
+    return _apply_ufunc_core(ufunc, signature, axes, *inputs, **kwargs)
 
 def _apply_ufunc_reduce(ufunc: np.ufunc, *inputs, **kwargs):
     assert len(inputs) == 1
 
-    kwargs['axis'] = -1
-
     # The signature for reduce type calls is always the below
     signature = '(i)->()'
 
-    return _apply_ufunc_core(ufunc.reduce, signature, *inputs, **kwargs)
+    if 'axis' not in kwargs:
+        kwargs['axis'] = 0
+    axis = kwargs['axis']
+    axes = [(axis,), (axis,), ()]
+
+    return _apply_ufunc_core(ufunc.reduce, signature, axes, *inputs, **kwargs)
 
 def _apply_ufunc_accumulate(ufunc: np.ufunc, *inputs, **kwargs):
     assert len(inputs) == 1
 
-    kwargs['axis'] = -1
-
     # The signature for accumulate type calls is always the below
     signature = '(i)->(i)'
+    if 'axis' not in kwargs:
+        kwargs['axis'] = 0
+    axis = kwargs['axis']
+    axes = [(axis,), (axis,), ()]
 
-    return _apply_ufunc_core(ufunc.accumulate, signature, *inputs, **kwargs)
+    return _apply_ufunc_core(ufunc.accumulate, signature, axes, *inputs, **kwargs)
 
 def _apply_ufunc_outer(ufunc: np.ufunc, *inputs, **kwargs):
     return NotImplemented
 
-def _apply_ufunc_core(ufunc: np.ufunc, signature, *inputs, **kwargs):
+def _apply_ufunc_core(ufunc: np.ufunc, signature, baxes, *inputs, **kwargs):
     sig_ins, sig_outs = parse_ufunc_signature(signature)
     nout = len(sig_outs)
 
@@ -371,23 +387,10 @@ def _apply_ufunc_core(ufunc: np.ufunc, signature, *inputs, **kwargs):
     ndim_outs = [max(_loop_ndim_ins)+len(sig) for sig in sig_outs]
     ndims = ndim_ins + ndim_outs
 
-    if 'axes' in kwargs:
-        axes = kwargs['axes']
-        axes = [
-            tuple([conv_neg(ii, ndim) for ii in axs])
-            for ndim, axs in zip(ndim_ins+ndim_outs, axes)
-        ]
-    else:
-        axes = [
-            tuple([
-                ndim-ii for ii in range(len(sig), 0, -1)
-            ])
-            for ndim, sig in zip(ndim_ins+ndim_outs, sig_ins+sig_outs)
-        ]
-    axes_ins = axes[:-nout]
-    axes_outs = axes[-nout:]
-    axes_ins = [axs for x, axs in zip(inputs, axes_ins)]
-    axes = axes_ins + axes_outs
+    axes = [
+        tuple([conv_neg(ii, ndim) for ii in axs])
+        for ndim, axs in zip(ndim_ins+ndim_outs, baxes)
+    ]
 
     # Compute the shape permutation from axes
     # This permutes the axis sizes in shape so the core dimensions are at the end
