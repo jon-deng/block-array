@@ -355,7 +355,7 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs: Input[T], **kwargs):
             for sig in sig_ins+sig_outs
         ]
 
-    return _apply_ufunc_core(ufunc, signature, axes, *inputs, **kwargs)
+    return _apply_op_core(ufunc, signature, axes, *inputs, **kwargs)
 
 def _apply_ufunc_reduce(ufunc: np.ufunc, *inputs: Input[T], **kwargs):
     assert len(inputs) == 1
@@ -368,7 +368,7 @@ def _apply_ufunc_reduce(ufunc: np.ufunc, *inputs: Input[T], **kwargs):
     axis = kwargs['axis']
     axes = [(axis,), (axis,), ()]
 
-    return _apply_ufunc_core(ufunc.reduce, signature, axes, *inputs, **kwargs)
+    return _apply_op_core(ufunc.reduce, signature, axes, *inputs, **kwargs)
 
 def _apply_ufunc_accumulate(ufunc: np.ufunc, *inputs: Input[T], **kwargs):
     assert len(inputs) == 1
@@ -380,13 +380,13 @@ def _apply_ufunc_accumulate(ufunc: np.ufunc, *inputs: Input[T], **kwargs):
     axis = kwargs['axis']
     axes = [(axis,), (axis,), ()]
 
-    return _apply_ufunc_core(ufunc.accumulate, signature, axes, *inputs, **kwargs)
+    return _apply_op_core(ufunc.accumulate, signature, axes, *inputs, **kwargs)
 
 def _apply_ufunc_outer(ufunc: np.ufunc, *inputs: Input[T], **kwargs):
     return NotImplemented
 
-def _apply_ufunc_core(
-        ufunc: np.ufunc, 
+def _apply_op_core(
+        ufunc, 
         signature: str, 
         baxes: typing.Shape, 
         *inputs: Input[T], 
