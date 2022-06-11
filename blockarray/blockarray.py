@@ -44,10 +44,11 @@ class BlockArray(Generic[T]):
     ----------
     size :
         The total number of subarrays contained in the block array.
-    shape :
+
+    f_shape :
         The number of blocks (subarrays) along each axis. For example, a matrix
         with 2 row blocks and 2 column blocks has shape `(2, 2)`.
-    bshape :
+    f_bshape :
         The 'block shape' (or nested shape) of the block array. This stores the
         axis sizes of subarrays along each axis. For example, a block shape
         `((120, 6), (5, 4))` represents a 2-by-2 block matrix with entries:
@@ -55,22 +56,26 @@ class BlockArray(Generic[T]):
             - (0, 1) is a 120x4 matrix
             - (1, 0) is a 6x5 matrix
             - (1, 1) is a 6x4 matrix
+    f_labels :
+        A tuple of labels for each block along each axis
+    f_ndim :
+        The number of dimensions
+    f_dims :
+        A tuples of indices for each dimension
+
+    shape, bshape :
+        Collapsed versions of `f_shape` and `f_bshape` respectively. These
+        have the same format as their correponding attributes but do not
+        include any collapsed dimensions.
+    labels :
+        Labels for non-collapsed axes
+    ndim :
+        The number of non-collapsed dimensions
+    dims :
+        A tuple of indices for each non-collapsed dimension
+
     mshape :
         The shape of the block array's monolithic equivalent.
-    r_shape, r_bshape :
-        Reduced version of `shape` and `bshape` respectively. These
-        have the same format as their correponding attributes but do not
-        include any reduced/collapsed dimensions.
-    ndim :
-        The number of dimensions
-    r_ndim :
-        The number of non-reduced/collapsed dimensions
-    dims :
-        A tuples of indices for each dimension
-    r_dims :
-        A tuple of indices for each non-reduced/collapsed dimension
-    labels :
-        A tuple of labels for each block along each axis
 
     subarrays_flat :
         A flat tuple of the contained subarrays
