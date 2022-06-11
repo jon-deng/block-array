@@ -26,7 +26,7 @@ block arrays containing only the reduced dimensions.
 import operator
 from numbers import Number
 import itertools
-from typing import Tuple, List, Mapping, Optional, TypeVar
+from typing import Tuple, List, Mapping, Optional, TypeVar, Union
 import numpy as np
 
 from . import blockarray as ba, blockmat as bm, blockvec as bv
@@ -36,7 +36,11 @@ Signature = Tuple[str, ...]
 Signatures = List[Signature]
 
 Shapes = List[typing.Shape]
+
+Perm = List[int]
+
 T = TypeVar('T')
+Input = Union[ba.BlockArray[T], Number]
 
 def parse_ufunc_signature(
         sig_str: str
@@ -146,7 +150,7 @@ def split_shapes_by_signatures(
         sigs: Signatures
     ) -> Tuple[Shapes, Shapes]:
     """
-    Splits a list of shapes into lists of elementwise dims and core dims
+    Split a list of shapes into loop and core shapes
     """
     loop_shapes = [
         shape[:-len(sig)] if len(sig) != 0 else shape[:]
@@ -166,7 +170,7 @@ def calculate_output_shapes(
         free_name_to_in : Optional[Mapping[str, Tuple[int, int]]]=None
     ) -> Tuple[Shapes, Shapes]:
     """
-    Calculate the shape of the output BlockArray
+    Calculate and output shape from input shapes and a signature
     """
     # Check that the element wise dims of all inputs are the same
     # TODO: support broadcasting?
@@ -233,7 +237,7 @@ def make_gen_in_multi_index(
 
     return gen_in_multi_index
 
-def apply_permutation(arg: List[T], perm: List[int]) -> List[T]:
+def apply_permutation(arg: List[T], perm: Perm) -> List[T]:
     """
     Return a permutation of a list
     """
@@ -250,7 +254,7 @@ def apply_permutation(arg: List[T], perm: List[int]) -> List[T]:
 
         return type(arg)([arg[ii] for ii in perm])
 
-def conv_neg(n, size):
+def conv_neg(n: int, size: int) -> int:
     """
     Convert a negative integer index to the equivalent positive one
     """
@@ -260,7 +264,7 @@ def conv_neg(n, size):
         return n
 
 
-def broadcast_labels(*labels):
+def broadcast_labels(*labels: typing.Labels) -> typing.Labels:
     """
     Return labels corresponding to the broadcast output
     """
@@ -268,19 +272,25 @@ def broadcast_labels(*labels):
     ii = axis_lengths.index(max(axis_lengths))
     return labels[ii]
 
-def _bshape(array):
-        if isinstance(array, Number):
-            return ()
-        else:
-            return array.bshape
+def _bshape(array: Input[T]) -> typing.BlockShape:
+    """
+    Return the bshape for BlockArrays and scalar inputs
+    """
+    if isinstance(array, Number):
+        return ()
+    else:
+        return array.bshape
 
-def _labels(array):
+def _labels(array: Input[T]) -> typing.Labels:
+    """
+    Return the labels for BlockArrays and scalar inputs
+    """
     if isinstance(array, Number):
         return ()
     else:
         return array.labels
 
-def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
+def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs: Input[T], **kwargs):
     """
     Apply a ufunc on sequence of BlockArray inputs
     """
@@ -315,7 +325,7 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs, **kwargs):
             for subarrays_out, shape_out, labels_out in outputs
         ]
 
-def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
+def _apply_ufunc_call(ufunc: np.ufunc, *inputs: Input[T], **kwargs):
     """
     Apply a ufunc on a sequence of BlockArray inputs with `__call__`
 
@@ -347,7 +357,7 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs, **kwargs):
 
     return _apply_ufunc_core(ufunc, signature, axes, *inputs, **kwargs)
 
-def _apply_ufunc_reduce(ufunc: np.ufunc, *inputs, **kwargs):
+def _apply_ufunc_reduce(ufunc: np.ufunc, *inputs: Input[T], **kwargs):
     assert len(inputs) == 1
 
     # The signature for reduce type calls is always the below
@@ -360,7 +370,7 @@ def _apply_ufunc_reduce(ufunc: np.ufunc, *inputs, **kwargs):
 
     return _apply_ufunc_core(ufunc.reduce, signature, axes, *inputs, **kwargs)
 
-def _apply_ufunc_accumulate(ufunc: np.ufunc, *inputs, **kwargs):
+def _apply_ufunc_accumulate(ufunc: np.ufunc, *inputs: Input[T], **kwargs):
     assert len(inputs) == 1
 
     # The signature for accumulate type calls is always the below
@@ -372,10 +382,16 @@ def _apply_ufunc_accumulate(ufunc: np.ufunc, *inputs, **kwargs):
 
     return _apply_ufunc_core(ufunc.accumulate, signature, axes, *inputs, **kwargs)
 
-def _apply_ufunc_outer(ufunc: np.ufunc, *inputs, **kwargs):
+def _apply_ufunc_outer(ufunc: np.ufunc, *inputs: Input[T], **kwargs):
     return NotImplemented
 
-def _apply_ufunc_core(ufunc: np.ufunc, signature, baxes, *inputs, **kwargs):
+def _apply_ufunc_core(
+        ufunc: np.ufunc, 
+        signature: str, 
+        baxes: typing.Shape, 
+        *inputs: Input[T], 
+        **kwargs
+    ) -> List[Tuple[List[T], typing.Shape, typing.Labels]]:
     sig_ins, sig_outs = parse_ufunc_signature(signature)
     nout = len(sig_outs)
 
@@ -448,15 +464,15 @@ def _apply_ufunc_core(ufunc: np.ufunc, signature, baxes, *inputs, **kwargs):
 
 def _apply_op_blockwise(
         op,
-        inputs,
-        _shape_ins,
-        sig_ins,
-        sig_out,
-        shape_out,
-        perm_out,
-        permut_ins,
+        inputs: List[Input[T]],
+        _shape_ins: Shapes,
+        sig_ins: Signatures,
+        sig_out: Signatures,
+        shape_out: typing.Shape,
+        perm_out: Perm,
+        permut_ins: List[Perm],
         op_kwargs=None
-    ):
+    ) -> List[T]:
     """
     Return the subarrays from applying an operation over blocks of `BlockArray`s
     """
@@ -496,6 +512,9 @@ def _apply_op_blockwise(
         subarrays_out.append(op(*subarray_ins, **op_kwargs))
     return subarrays_out
 
+# TODO: Should refactor this so that `inputs` doesn't have to be provided
+# The method is probably generic over different types of `shape_ins` like parameters
+# that are broadcast to a `shape_out` like parameter
 def _compute_output_shapes(
         inputs,
         shape_ins,
@@ -542,7 +561,13 @@ def _compute_output_shapes(
     return _shape_outs, _labels_outs
 
 
-def apply_ufunc_mat_vec(ufunc: np.ufunc, method: str, *inputs, **op_kwargs):
+V = Union[Union[bm.BlockMatrix[T], Number], Union[bv.BlockVector[T], Number]]
+def apply_ufunc_mat_vec(
+        ufunc: np.ufunc, 
+        method: str, 
+        *inputs: V[T], 
+        **op_kwargs
+    ) -> List[V[T]]:
     """
     A function to apply a limited set of ufuncs for BlockMatrix and BlockVector
     """
