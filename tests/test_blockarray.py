@@ -19,6 +19,11 @@ c = 2 * np.ones((2, 4))
 d = 2 * np.ones((2, 2))
 B = ba.BlockArray([[a, b], [c, d]])
 
+def test_index():
+    assert np.all(B[0, 0] == a)
+    assert np.all(B[0, 1] == b)
+    assert np.all(B[1, 0] == c)
+    assert np.all(B[1, 1] == d)
 
 def _test_elementwise_binary_op(sub_op, a, b, block_op=None):
     """
@@ -76,6 +81,7 @@ def test_ufunc():
 
 
 if __name__ == '__main__':
+    test_index()
     test_add()
     test_sub()
     test_mul()
