@@ -353,18 +353,15 @@ def _block_shape_from_larray(array: larr.LabelledArray[T]) -> BlockShape:
     array of subtensors with shape `(2, 3, 4)` ...
     """
     ret_bshape = []
-    num_axes = len(array.f_shape)
-    for idx_ax, num_blocks in enumerate(array.f_shape):
-        axis_sizes = []
-        for idx_block in range(num_blocks):
-            idx = tuple((idx_ax)*[0] + [idx_block] + (num_axes-idx_ax-1)*[0])
-            # remove indices along reduced dimensions
-            ridx = tuple([
-                idx_ax for nax, idx_ax in enumerate(idx)
-                if array.f_shape[nax] != -1])
+    for dim, num_ax_blocks in enumerate(array.f_shape):
+        if num_ax_blocks <= 0:
+            axis_sizes = ()
+        else:
+            midx = [0]*num_ax_blocks
+            midx[dim] = slice(None)
+            midx = tuple(midx[ii] for ii in array.dims)
+            axis_sizes = tuple(subarray.shape[dim] for subarray in array[midx])
 
-            block_axis_size = gops.shape(array[ridx])[idx_ax]
-            axis_sizes.append(block_axis_size)
         ret_bshape.append(tuple(axis_sizes))
     return tuple(ret_bshape)
 
