@@ -21,7 +21,7 @@ from .typing import (
 
     GenIndex,
     StdIndex,
-    
+
     StdIndices,
     GenIndices,
 
@@ -282,7 +282,7 @@ class LabelledArray(Generic[T]):
                 tuple([axis_labels[ii] for ii in axis_idx])
                 if isinstance(axis_idx, (list, tuple))
                 else ())
-            for axis_labels, axis_idx in zip(self.f_labels, multi_idx)
+            for axis_labels, axis_idx in zip(self.labels, multi_idx)
         ])
 
         # enclose single ints in a list so it works with itertools
@@ -398,7 +398,7 @@ def conv_gen_to_std_multidx(
     """
     multi_sidx = [
         conv_gen_to_std_idx(index, axis_label_to_idx, axis_size)
-        for index, axis_size, axis_label_to_idx 
+        for index, axis_size, axis_label_to_idx
         in zip(multidx, shape, multi_label_to_idx)
     ]
     return tuple(multi_sidx)
@@ -436,15 +436,15 @@ def conv_gen_to_std_idx(
 # These functions convert general indices (GeneralIndex) to standard indices
 # (StandardIndex)
 def conv_list_to_std_idx(
-        idx: Union[List[Union[str, int]], Tuple[Union[str, int]]], 
-        label_to_idx: LabelToStdIndex, 
+        idx: Union[List[Union[str, int]], Tuple[Union[str, int]]],
+        label_to_idx: LabelToStdIndex,
         size: int
     ) -> StdIndices:
     """
     Convert a sequence of indices so that each index is a integer
     """
     return [
-        conv_label_to_std_idx(ii, label_to_idx, size) 
+        conv_label_to_std_idx(ii, label_to_idx, size)
         if isinstance(ii, str) else conv_neg_to_std_idx(ii, size)
         for ii in idx
     ]
@@ -464,8 +464,8 @@ def conv_slice_to_std_idx(idx: slice, size: int) -> StdIndices:
 # These functions convert a general single index (GeneralIndex)
 # to a standard single index (StandardIndex, specifically StdIndex)
 def conv_label_to_std_idx(
-        idx: str, 
-        label_to_idx: LabelToStdIndex, 
+        idx: str,
+        label_to_idx: LabelToStdIndex,
         size: int
     ) -> StdIndex:
     """
