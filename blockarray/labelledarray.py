@@ -289,6 +289,8 @@ class LabelledArray(Generic[T]):
         for ii, ax_size, ax_labels in zip(self.dims, ret_shape, ret_labels):
             f_shape[ii] = ax_size
             f_labels[ii] = ax_labels
+        f_shape = tuple(f_shape)
+        f_labels = tuple(f_labels)
 
         # enclose single ints in a list so it works with itertools
         multi_idx = [(idx,) if isinstance(idx, int) else idx for idx in multi_idx]
