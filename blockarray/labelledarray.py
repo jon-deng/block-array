@@ -254,7 +254,7 @@ class LabelledArray(Generic[T]):
         Return the reduced labels
         """
         ret_rlabels = [axis_labels for axis_labels in self.f_labels if axis_labels != ()]
-        return ret_rlabels
+        return tuple(ret_rlabels)
 
     @property
     def size(self) -> int:
@@ -276,14 +276,19 @@ class LabelledArray(Generic[T]):
         ret_shape = tuple([
             len(axis_idx) if isinstance(axis_idx, (list, tuple)) else -1
             for axis_idx in multi_idx
-            ])
+        ])
         ret_labels = tuple([
-            (
                 tuple([axis_labels[ii] for ii in axis_idx])
                 if isinstance(axis_idx, (list, tuple))
-                else ())
+                else ()
             for axis_labels, axis_idx in zip(self.labels, multi_idx)
         ])
+
+        f_shape = [-1] * self.f_ndim
+        f_labels = [()] * self.f_ndim
+        for ii, ax_size, ax_labels in zip(self.dims, ret_shape, ret_labels):
+            f_shape[ii] = ax_size
+            f_labels[ii] = ax_labels
 
         # enclose single ints in a list so it works with itertools
         multi_idx = [(idx,) if isinstance(idx, int) else idx for idx in multi_idx]
@@ -291,11 +296,11 @@ class LabelledArray(Generic[T]):
 
         ret_array = tuple([self.flat[flat_idx] for flat_idx in ret_flat_idxs])
 
-        if ret_shape == (-1,) * len(ret_shape):
+        if f_shape == (-1,) * self.f_ndim:
             assert len(ret_array) == 1
             return ret_array[0]
         else:
-            return LabelledArray(ret_array, ret_shape, ret_labels)
+            return LabelledArray(ret_array, f_shape, f_labels)
 
     ## Copy methods
     def copy(self):
