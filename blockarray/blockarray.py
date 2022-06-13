@@ -209,7 +209,7 @@ class BlockArray(Generic[T]):
         """
         Return the reduced block shape (number of blocks in each non-reduced axis)
         """
-        ret_rbshape = [axis_sizes for axis_sizes in self.f_bshape if axis_sizes != ()]
+        ret_rbshape = [axis_sizes for axis_sizes in self.f_bshape if isinstance(axis_sizes, tuple)]
         return tuple(ret_rbshape)
 
     @property
@@ -239,8 +239,7 @@ class BlockArray(Generic[T]):
         """
         Return the shape of the equivalent monolithic array
         """
-        _mshape = gops.shape(self.subarrays_flat[0])
-        return tuple([max(sum(axis_sizes), r_size) for r_size, axis_sizes in zip(_mshape, self.f_bshape)])
+        return tuple([axis_size(asize) for asize in self.f_bshape])
 
     ## Methods for converting to monolithic array
     def to_mono_ndarray(self):
@@ -355,15 +354,23 @@ def _block_shape_from_larray(array: larr.LabelledArray[T]) -> BlockShape:
     ret_bshape = []
     f_ndim = len(array.f_shape)
     for dim, num_ax_blocks in enumerate(array.f_shape):
+        # If there are no blocks along a dimension,
+        # the block axis size is an int
+        # If there are >= 1 blocks along a dimension,
+        # the block axis size is a tuple of ints for
+        # axis size for each block along that dim
         if num_ax_blocks <= 0:
-            axis_sizes = ()
+            axis_sizes = gops.shape(array.flat[0])[dim]
+
+            ret_bshape.append(axis_sizes)
         else:
             midx = [0]*f_ndim
             midx[dim] = slice(None)
             midx = tuple(midx[ii] for ii in array.dims)
-            axis_sizes = tuple(subarray.shape[dim] for subarray in array[midx])
+            axis_sizes = tuple(gops.shape(subarray)[dim] for subarray in array[midx])
 
-        ret_bshape.append(tuple(axis_sizes))
+            ret_bshape.append(tuple(axis_sizes))
+
     return tuple(ret_bshape)
 
 def _validate_subarray_shapes_from_larray(
@@ -514,7 +521,7 @@ def to_mono_ndarray(barray: BlockArray[T]) -> np.ndarray:
 
     # loop through each block and assign its elements to the appropriate
     # part of the monolithic ndarray
-    for block_idx in itertools.product(*[range(axis_size) for axis_size in barray.shape]):
+    for block_idx in itertools.product(*[range(n) for n in barray.shape]):
         lbs = [ax_strides[ii] for ii, ax_strides in zip(block_idx, cum_r_bshape)]
         ubs = [ax_strides[ii+1] for ii, ax_strides in zip(block_idx, cum_r_bshape)]
 
@@ -526,3 +533,15 @@ def to_mono_ndarray(barray: BlockArray[T]) -> np.ndarray:
         ret_array[tuple(midx)] = barray[block_idx]
 
     return ret_array
+
+
+def axis_size(size):
+    """
+    Return a recursive axis size
+    """
+    if isinstance(size, int):
+        return size
+    elif isinstance(size, tuple):
+        return sum([axis_size(sub_size) for sub_size in size])
+    else:
+        raise TypeError(f"`size` must be int or tuple, not {type(size)}")
