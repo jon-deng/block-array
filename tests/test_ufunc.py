@@ -54,6 +54,23 @@ def test_gen_in_multi_index():
 
     print(gen_input_midx(out_midx))
 
+def test_broadcast():
+    a = (     1, 2, 3, (4, 5), (5, 6))
+    b = ((2, 3), 2, 1, (4, 5), (1, 1))
+    c = ufunc.rbroadcast(a, b, ufunc.broadcast_size)
+    assert c == ((2, 3), 2, 3, (4, 5), (5, 6))
+
+    a = ( 1,     2,  3,      1, (5, 6))
+    b = (10, (2, 2), 1, (4, 5),   (1,))
+    c = ufunc.rbroadcast(a, b, ufunc.broadcast_size)
+    assert c == (10, (2, 2), 3, (4, 5), (5, 6))
+
+    a = (1, (1, (1,)))
+    b = (5, (3,    4))
+    c = ufunc.rbroadcast(a, b, ufunc.broadcast_size)
+    assert c == (5, (3, (4,)))
+    print(c)
+
 # def test_recursive_concatenate():
 #     a = np.ones((4, 4))
 #     b = np.ones((4, 2))
@@ -165,3 +182,5 @@ if __name__ == '__main__':
     test_apply_ufunc()
     test_apply_ufunc_reduce()
     test_apply_ufunc_accumulate()
+
+    test_broadcast()

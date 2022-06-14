@@ -264,6 +264,53 @@ def conv_neg(n: int, size: int) -> int:
         return n
 
 
+def broadcast_size(a, b):
+    if a is None:
+        return b
+    elif b is None:
+        return a
+    elif a == 1 and b > 1:
+        return b
+    elif a > 1 and b == 1:
+        return a
+    elif a == b:
+        return a
+    else:
+        raise ValueError(f"{a} and {b} are not broadcastable")
+
+def broadcast_label(a, b):
+    if a is None:
+        return b
+    elif b is None:
+        return a
+    elif a == b:
+        return a
+    else:
+        raise ValueError(f"{a} and {b} are not broadcastable")
+
+def rbroadcast(a, b, broadcast_op=None):
+    if isinstance(a, tuple) or isinstance(b, tuple):
+        if not isinstance(a, tuple):
+            _a = tuple([a])
+        else:
+            _a = a
+
+        if not isinstance(b, tuple):
+            _b = tuple([b])
+        else:
+            _b = b
+
+        if len(_a) == 1 and len(_b) >= 1:
+            return tuple([rbroadcast(_a[0], bb, broadcast_op) for bb in _b])
+        elif len(_a) >= 1 and len(_b) == 1:
+            return tuple([rbroadcast(aa, _b[0], broadcast_op) for aa in _a])
+        elif len(_a) == len(_b):
+            return tuple([rbroadcast(aa, bb, broadcast_op) for aa, bb in zip(_a, _b)])
+        else:
+            raise ValueError(f"{a} and {b} are not broadcastable due to different lengths")
+    else:
+        return broadcast_op(a, b)
+
 def broadcast_labels(*labels: typing.Labels) -> typing.Labels:
     """
     Return labels corresponding to the broadcast output
@@ -333,7 +380,7 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs: Input[T], **kwargs):
     ----------
     ufunc: np.ufunc
         A numpy `ufunc` to apply
-    inputs: 
+    inputs:
         A list of inputs to apply the `ufunc` on
     kwargs:
         keyword arguments to supply to the ufunc. These are documented in
@@ -386,10 +433,10 @@ def _apply_ufunc_outer(ufunc: np.ufunc, *inputs: Input[T], **kwargs):
     return NotImplemented
 
 def _apply_op_core(
-        ufunc, 
-        signature: str, 
-        baxes: typing.Shape, 
-        *inputs: Input[T], 
+        ufunc,
+        signature: str,
+        baxes: typing.Shape,
+        *inputs: Input[T],
         **kwargs
     ) -> List[Tuple[List[T], typing.Shape, typing.Labels]]:
     sig_ins, sig_outs = parse_ufunc_signature(signature)
@@ -563,9 +610,9 @@ def _compute_output_shapes(
 
 V = Union[Union[bm.BlockMatrix[T], Number], Union[bv.BlockVector[T], Number]]
 def apply_ufunc_mat_vec(
-        ufunc: np.ufunc, 
-        method: str, 
-        *inputs: V[T], 
+        ufunc: np.ufunc,
+        method: str,
+        *inputs: V[T],
         **op_kwargs
     ) -> List[V[T]]:
     """
