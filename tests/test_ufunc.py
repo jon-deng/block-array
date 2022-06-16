@@ -82,11 +82,12 @@ def test_broadcast():
     d = ufunc.broadcast(ufunc.broadcast_size, a, b, c)
     print(d)
 
-    a =    ((5, 4),    (2, 2), (1, 4))
-    b = (6, (5, 1), (3, 2, 2), (4, 1))
-    c =                        (4,)
-    d = ufunc.broadcast(ufunc.broadcast_size, a, b, c)
-    print(d)
+    # Expect this case to not work
+    # a =    ((5, 4),    (2, 2), (1, 4))
+    # b = (6, (5, 1), (3, 2, 2), (4, 1))
+    # c =                        (4,)
+    # d = ufunc.broadcast(ufunc.broadcast_size, a, b, c)
+    # print(d)
 
 # def test_recursive_concatenate():
 #     a = np.ones((4, 4))

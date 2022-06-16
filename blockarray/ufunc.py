@@ -496,10 +496,14 @@ def _apply_op_core(
     # the _ prefix means the permuted shape-type tuple with core dimensions at
     # the end
     shape_ins = [input.shape for input in inputs]
+    _shape_outs = broadcast_dims(broadcast_size, shape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
 
-    _shape_outs, _labels_outs = _compute_output_shapes(
-        inputs, shape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in,
-    )
+    label_ins = [input.labels if isinstance(input, ba.BlockArray) else () for input in inputs]
+    _labels_outs = broadcast_dims(broadcast_label, label_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
+
+    # _shape_outs, _labels_outs = _compute_output_shapes(
+    #     inputs, shape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in,
+    # )
 
     # perm_outs = [tuple(range(len(shape))) for shape in _shape_outs]
     labels_outs = [
@@ -617,6 +621,39 @@ def _compute_output_shapes(
     _shape_outs = [eshape+cshape for eshape, cshape in zip(_loop_shape_outs, _core_shape_outs)]
 
     return _shape_outs, _labels_outs
+
+def broadcast_dims(
+        broadcast_op,
+        input_dims,
+        sig_ins,
+        sig_outs,
+        permut_ins,
+        free_name_to_in,
+    ):
+    """
+    Broadcast a set of dimensions to an output dimension
+
+    The dimension is a tuple descriptors describing properties of each axis
+    along the n-dimensional array.
+    A common example is the `.shape` attribute for `numpy.ndarray` which stores
+    the size of each axis as an integer.
+    """
+    _in_dims = [
+        apply_permutation(dims, perm) for dims, perm in zip(input_dims, permut_ins)
+    ]
+    loop_dims = [dims[:len(dims)-len(sig)] for dims, sig in zip(_in_dims, sig_ins)]
+    core_dims = [dims[len(dims)-len(sig):] for dims, sig in zip(_in_dims, sig_ins)]
+    out_loop_dims = broadcast(broadcast_op, *loop_dims)
+
+    out_core_dims = [
+        tuple([
+            core_dims[free_name_to_in[label][0]][free_name_to_in[label][1]]
+            for label in sig
+        ])
+        for sig in sig_outs
+    ]
+
+    return [out_loop_dims+core_dims for core_dims in out_core_dims]
 
 
 V = Union[Union[bm.BlockMatrix[T], Number], Union[bv.BlockVector[T], Number]]
