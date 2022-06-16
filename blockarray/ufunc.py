@@ -26,6 +26,7 @@ block arrays containing only the reduced dimensions.
 import operator
 from numbers import Number
 import itertools
+import functools
 from typing import Tuple, List, Mapping, Optional, TypeVar, Union
 import numpy as np
 
@@ -288,7 +289,7 @@ def broadcast_label(a, b):
     else:
         raise ValueError(f"{a} and {b} are not broadcastable")
 
-def rbroadcast(a, b, broadcast_op=None):
+def rbroadcast(broadcast_op, a, b):
     if isinstance(a, tuple) or isinstance(b, tuple):
         if not isinstance(a, tuple):
             _a = tuple([a])
@@ -301,15 +302,25 @@ def rbroadcast(a, b, broadcast_op=None):
             _b = b
 
         if len(_a) == 1 and len(_b) >= 1:
-            return tuple([rbroadcast(_a[0], bb, broadcast_op) for bb in _b])
+            return tuple([rbroadcast(broadcast_op, _a[0], bb) for bb in _b])
         elif len(_a) >= 1 and len(_b) == 1:
-            return tuple([rbroadcast(aa, _b[0], broadcast_op) for aa in _a])
+            return tuple([rbroadcast(broadcast_op, aa, _b[0]) for aa in _a])
         elif len(_a) == len(_b):
-            return tuple([rbroadcast(aa, bb, broadcast_op) for aa, bb in zip(_a, _b)])
+            return tuple([rbroadcast(broadcast_op, aa, bb) for aa, bb in zip(_a, _b)])
         else:
             raise ValueError(f"{a} and {b} are not broadcastable due to different lengths")
     else:
         return broadcast_op(a, b)
+
+def broadcast(broadcast_op, *inputs):
+    rev_inputs = [input[::-1] for input in inputs]
+    return tuple([
+        functools.reduce(
+            functools.partial(rbroadcast, broadcast_op),
+            axis_inputs
+        )
+        for axis_inputs in itertools.zip_longest(*rev_inputs, fillvalue=None)
+    ])[::-1]
 
 def broadcast_labels(*labels: typing.Labels) -> typing.Labels:
     """

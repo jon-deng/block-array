@@ -57,19 +57,36 @@ def test_gen_in_multi_index():
 def test_broadcast():
     a = (     1, 2, 3, (4, 5), (5, 6))
     b = ((2, 3), 2, 1, (4, 5), (1, 1))
-    c = ufunc.rbroadcast(a, b, ufunc.broadcast_size)
+    c = ufunc.rbroadcast(ufunc.broadcast_size, a, b)
     assert c == ((2, 3), 2, 3, (4, 5), (5, 6))
 
     a = ( 1,     2,  3,      1, (5, 6))
     b = (10, (2, 2), 1, (4, 5),   (1,))
-    c = ufunc.rbroadcast(a, b, ufunc.broadcast_size)
+    c = ufunc.rbroadcast(ufunc.broadcast_size, a, b)
     assert c == (10, (2, 2), 3, (4, 5), (5, 6))
 
     a = (1, (1, (1,)))
     b = (5, (3,    4))
-    c = ufunc.rbroadcast(a, b, ufunc.broadcast_size)
+    c = ufunc.rbroadcast(ufunc.broadcast_size, a, b)
     assert c == (5, (3, (4,)))
-    print(c)
+
+    a =    (1, 1, 2)
+    b = (6, 5, 4, 2)
+    c =       (4, 1)
+    d = ufunc.broadcast(ufunc.broadcast_size, a, b, c)
+    print(d)
+
+    a =    ((5, 4), (2, 2), (1, 4))
+    b = (6, (5, 1), (2, 2), (4, 1))
+    c =                        (4,)
+    d = ufunc.broadcast(ufunc.broadcast_size, a, b, c)
+    print(d)
+
+    a =    ((5, 4),    (2, 2), (1, 4))
+    b = (6, (5, 1), (3, 2, 2), (4, 1))
+    c =                        (4,)
+    d = ufunc.broadcast(ufunc.broadcast_size, a, b, c)
+    print(d)
 
 # def test_recursive_concatenate():
 #     a = np.ones((4, 4))
