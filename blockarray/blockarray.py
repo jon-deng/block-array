@@ -272,6 +272,48 @@ class BlockArray(Generic[T]):
         else:
             return ret
 
+    ## Reshape type methods
+    def squeeze(self, axes=None):
+        """
+        Collapse axes blocks of size 1
+        """
+        if axes is None:
+            axes = [ii for ii, size in enumerate(self.shape) if size == 1]
+        f_axes = [self.dims[ii] for ii in axes]
+
+        new_flabels = list(self.f_labels)
+        new_fshape = list(self.f_shape)
+        for ax in f_axes:
+            if self.f_shape[ax] != 1:
+                raise ValueError(f"Can't squeeze axis {ax:d} for shape {self.f_shape}")
+            else:
+                new_fshape[ax] = -1
+                new_flabels[ax] = ()
+        new_fshape = tuple(new_fshape)
+        new_flabels = tuple(new_flabels)
+
+        return BlockArray(self.subarrays_flat, new_fshape, new_flabels)
+
+    def unsqueeze(self, f_axes=None):
+        """
+        Uncollapse axes blocks to size 1
+        """
+        if f_axes is None:
+            f_axes = [ii for ii, size in enumerate(self.f_shape) if size == -1]
+
+        new_fshape = list(self.f_shape)
+        new_flabels = list(self.f_labels)
+        for ax in f_axes:
+            if self.f_shape[ax] != -1:
+                raise ValueError(f"Can't unsqueeze axis {ax:d} of f_shape {self.f_shape}")
+            else:
+                new_fshape[ax] = 1
+                new_flabels[ax] = ('0')
+        new_fshape = tuple(new_fshape)
+        new_flabels = tuple(new_flabels)
+
+        return BlockArray(self.subarrays_flat, new_fshape, new_flabels)
+
     ## Dict-like interface over the first dimension
     def keys(self):
         """Return the first axis' labels"""

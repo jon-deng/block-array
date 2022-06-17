@@ -65,6 +65,14 @@ def test_bshape():
     print(f"A[:, 0].bshape = {A[:, 0].f_bshape}")
     print(f"A[0, :].bshape = {A[0, :].f_bshape}")
 
+def test_squeeze():
+    dd = A[0, :]
+    assert dd.unsqueeze().f_bshape == ((4,), (4, 2))
+
+    dd = A[0:1, :]
+    assert dd.squeeze().f_bshape == (4, (4, 2))
+
+
 def test_ufunc():
     for op in [np.add, np.multiply, np.divide]:
         D = op(5.0, A)
@@ -87,5 +95,6 @@ if __name__ == '__main__':
     test_mul()
     test_div()
     test_bshape()
+    test_squeeze()
     test_ufunc()
     # test_power()
