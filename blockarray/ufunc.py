@@ -264,7 +264,7 @@ def conv_neg(n: int, size: int) -> int:
     else:
         return n
 
-
+# Broadcasting functions
 def broadcast_size(a, b):
     if a is None:
         return b
@@ -322,31 +322,84 @@ def broadcast(broadcast_op, *inputs):
         for axis_inputs in itertools.zip_longest(*rev_inputs, fillvalue=None)
     ])[::-1]
 
-def broadcast_labels(*labels: typing.Labels) -> typing.Labels:
+def broadcast_dims(
+        broadcast_op,
+        input_dims,
+        sig_ins,
+        sig_outs,
+        permut_ins,
+        free_name_to_in,
+    ):
     """
-    Return labels corresponding to the broadcast output
-    """
-    axis_lengths = [len(_labels) for _labels in labels]
-    ii = axis_lengths.index(max(axis_lengths))
-    return labels[ii]
+    Broadcast a set of dimensions to an output dimension
 
-def _bshape(array: Input[T]) -> typing.BlockShape:
+    The dimension is a tuple descriptors describing properties of each axis
+    along the n-dimensional array.
+    A common example is the `.shape` attribute for `numpy.ndarray` which stores
+    the size of each axis as an integer.
     """
-    Return the bshape for BlockArrays and scalar inputs
+    _in_dims = [
+        apply_permutation(dims, perm) for dims, perm in zip(input_dims, permut_ins)
+    ]
+    loop_dims = [dims[:len(dims)-len(sig)] for dims, sig in zip(_in_dims, sig_ins)]
+    core_dims = [dims[len(dims)-len(sig):] for dims, sig in zip(_in_dims, sig_ins)]
+    out_loop_dims = broadcast(broadcast_op, *loop_dims)
+
+    out_core_dims = [
+        tuple([
+            core_dims[free_name_to_in[label][0]][free_name_to_in[label][1]]
+            for label in sig
+        ])
+        for sig in sig_outs
+    ]
+
+    return [out_loop_dims+core_dims for core_dims in out_core_dims]
+
+# Helper method for getting `BlockArray` attributes from scalars
+def _f_bshape(array: Input[T]) -> typing.BlockShape:
+    """
+    Return the `f_bshape` attribute for BlockArrays and scalar inputs
     """
     if isinstance(array, Number):
         return ()
     else:
         return array.f_bshape
 
-def _labels(array: Input[T]) -> typing.Labels:
+def _f_shape(array):
     """
-    Return the labels for BlockArrays and scalar inputs
+    Return the `f_shape` attribute for BlockArrays and scalar inputs
+    """
+    if isinstance(array, Number):
+        return ()
+    else:
+        return array.f_shape
+
+def _f_labels(array):
+    """
+    Return the `f_bshape` attribute for BlockArrays and scalar inputs
     """
     if isinstance(array, Number):
         return ()
     else:
         return array.f_labels
+
+def _f_ndim(array: Input[T]) -> typing.BlockShape:
+    """
+    Return the `f_ndim` attribute for BlockArrays and scalar inputs
+    """
+    if isinstance(array, Number):
+        return 0
+    else:
+        return array.f_ndim
+
+def unsqueeze(array):
+    """
+    Return the unsqueeze `BlockArray` or scalar
+    """
+    if isinstance(array, Number):
+        return array
+    else:
+        return array.unsqueeze()
 
 def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs: Input[T], **kwargs):
     """
@@ -453,14 +506,17 @@ def _apply_op_core(
     sig_ins, sig_outs = parse_ufunc_signature(signature)
     nout = len(sig_outs)
 
-    ## Compute a permutation of the shape from the axes kwargs
+    free_name_to_in, redu_name_to_in = interpret_ufunc_signature(sig_ins, sig_outs)
+
+    ## Compute a permutation of the `f_shape` from the axes kwargs
     # This permutation shifts core dimensions to the 'standard' location as
     # the final dimensions of the array
-    ndim_ins = [input.ndim for input in inputs]
+    ndim_ins = [_f_ndim(input) for input in inputs]
     _loop_ndim_ins = [ndim-len(sig) for ndim, sig in zip(ndim_ins, sig_ins)]
     ndim_outs = [max(_loop_ndim_ins)+len(sig) for sig in sig_outs]
     ndims = ndim_ins + ndim_outs
 
+    # TODO: be careful to convert `axs` to full axes arguments
     axes = [
         tuple([conv_neg(ii, ndim) for ii in axs])
         for ndim, axs in zip(ndim_ins+ndim_outs, baxes)
@@ -476,12 +532,16 @@ def _apply_op_core(
     permut_ins = permuts[:-nout]
     permut_outs = permuts[-nout:]
 
-    ## Interpret the ufunc signature in order to compute the shape of the output
-    free_name_to_in, redu_name_to_in = interpret_ufunc_signature(sig_ins, sig_outs)
+    ## Determine the output `f_shape` and `f_labels`
+    f_shape_ins = [_f_shape(input) for input in inputs]
+    _f_shape_outs = broadcast_dims(broadcast_size, f_shape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
 
-    # Check that reduced dimensions have compatible bshapes
+    f_label_ins = [_f_labels(input) for input in inputs]
+    _f_labels_outs = broadcast_dims(broadcast_label, f_label_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
+
+    ## Check that reduced dimensions have compatible bshapes
     _bshape_ins = [
-        apply_permutation(_bshape(input), perm)
+        apply_permutation(_f_bshape(input), perm)
         for input, perm in zip(inputs, permut_ins)
     ]
     for redu_dim_name, redu_dim_info in redu_name_to_in.items():
@@ -495,24 +555,19 @@ def _apply_op_core(
     ## Compute the output shape from the input shape and signature
     # the _ prefix means the permuted shape-type tuple with core dimensions at
     # the end
+
+    # Unsqueeze any collapsed axes for the input before applying the op blockwise
+    # ; the blockwise loop only works for non-squeezed axes
+    inputs = [unsqueeze(input) for input in inputs]
     shape_ins = [input.shape for input in inputs]
-    _shape_outs = broadcast_dims(broadcast_size, shape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
 
-    label_ins = [input.labels if isinstance(input, ba.BlockArray) else () for input in inputs]
-    _labels_outs = broadcast_dims(broadcast_label, label_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
-
-    # _shape_outs, _labels_outs = _compute_output_shapes(
-    #     inputs, shape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in,
-    # )
-
-    # perm_outs = [tuple(range(len(shape))) for shape in _shape_outs]
     labels_outs = [
         apply_permutation(labels, perm)
-        for labels, perm in zip(_labels_outs, permut_outs)
+        for labels, perm in zip(_f_labels_outs, permut_outs)
     ]
     shape_outs = [
         apply_permutation(shape, perm)
-        for shape, perm in zip(_shape_outs, permut_outs)
+        for shape, perm in zip(_f_shape_outs, permut_outs)
     ]
 
     ## Compute the outputs block wise by looping over inputs
@@ -527,7 +582,7 @@ def _apply_op_core(
 def _apply_op_blockwise(
         op,
         inputs: List[Input[T]],
-        _shape_ins: Shapes,
+        shape_ins: Shapes,
         sig_ins: Signatures,
         sig_out: Signatures,
         shape_out: typing.Shape,
@@ -546,7 +601,7 @@ def _apply_op_blockwise(
     # inputs = [x for x in inputs if not isinstance(x, Number)]
     sig_ins = [sig for x, sig in zip(inputs, sig_ins)]
 
-    gen_in_midx = make_gen_in_multi_index(_shape_ins, sig_ins, sig_out)
+    gen_in_midx = make_gen_in_multi_index(shape_ins, sig_ins, sig_out)
 
     subarrays_out = []
     for midx_out in itertools.product(
@@ -573,87 +628,6 @@ def _apply_op_blockwise(
 
         subarrays_out.append(op(*subarray_ins, **op_kwargs))
     return subarrays_out
-
-# TODO: Should refactor this so that `inputs` doesn't have to be provided
-# The method is probably generic over different types of `shape_ins` like parameters
-# that are broadcast to a `shape_out` like parameter
-def _compute_output_shapes(
-        inputs,
-        shape_ins,
-        sig_ins,
-        sig_outs,
-        permut_ins,
-        free_name_to_in
-    ):
-    _shape_ins = [
-        apply_permutation(shape, perm)
-        for shape, perm in zip(shape_ins, permut_ins)
-    ]
-    _labels_ins = [
-        apply_permutation(_labels(input), perm)
-        for input, perm in zip(inputs, permut_ins)
-    ]
-    _loops_shape_ins, _core_shape_ins = split_shapes_by_signatures(_shape_ins, sig_ins)
-    loop_ndim_ins = [len(loop_shape) for loop_shape in _loops_shape_ins]
-
-    _loop_shape_outs, _core_shape_outs = calculate_output_shapes(
-        _loops_shape_ins, _core_shape_ins, sig_ins, sig_outs, free_name_to_in
-    )
-
-    loop_labels_ins = [
-        _labels[:-len(sig_in)] if len(sig_in) != 0 else _labels
-        for _labels, sig_in in zip(_labels_ins, sig_ins)
-    ]
-    core_labels_ins = [
-        _labels[-len(sig_in):] if len(sig_in) != 0 else ()
-        for _labels, sig_in in zip(_labels_ins, sig_ins)
-    ]
-    core_labels_outs = [
-        tuple([
-            core_labels_ins[free_name_to_in[name][0]][free_name_to_in[name][1]]
-            for name in sig_out
-        ])
-        for sig_out in sig_outs
-    ]
-
-    loop_labels_out = broadcast_labels(*loop_labels_ins)
-    _labels_outs = [loop_labels_out + clabels_out for clabels_out in core_labels_outs]
-    _shape_outs = [eshape+cshape for eshape, cshape in zip(_loop_shape_outs, _core_shape_outs)]
-
-    return _shape_outs, _labels_outs
-
-def broadcast_dims(
-        broadcast_op,
-        input_dims,
-        sig_ins,
-        sig_outs,
-        permut_ins,
-        free_name_to_in,
-    ):
-    """
-    Broadcast a set of dimensions to an output dimension
-
-    The dimension is a tuple descriptors describing properties of each axis
-    along the n-dimensional array.
-    A common example is the `.shape` attribute for `numpy.ndarray` which stores
-    the size of each axis as an integer.
-    """
-    _in_dims = [
-        apply_permutation(dims, perm) for dims, perm in zip(input_dims, permut_ins)
-    ]
-    loop_dims = [dims[:len(dims)-len(sig)] for dims, sig in zip(_in_dims, sig_ins)]
-    core_dims = [dims[len(dims)-len(sig):] for dims, sig in zip(_in_dims, sig_ins)]
-    out_loop_dims = broadcast(broadcast_op, *loop_dims)
-
-    out_core_dims = [
-        tuple([
-            core_dims[free_name_to_in[label][0]][free_name_to_in[label][1]]
-            for label in sig
-        ])
-        for sig in sig_outs
-    ]
-
-    return [out_loop_dims+core_dims for core_dims in out_core_dims]
 
 
 V = Union[Union[bm.BlockMatrix[T], Number], Union[bv.BlockVector[T], Number]]
