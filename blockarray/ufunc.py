@@ -478,7 +478,7 @@ def _apply_ufunc_reduce(ufunc: np.ufunc, *inputs: Input[T], **kwargs):
     if 'axis' not in kwargs:
         kwargs['axis'] = 0
     axis = kwargs['axis']
-    axes = [(axis,), (axis,), ()]
+    axes = [(axis,), ()]
 
     return _apply_op_core(ufunc.reduce, signature, axes, *inputs, **kwargs)
 
@@ -607,9 +607,8 @@ def _apply_op_blockwise(
     gen_in_midx = make_gen_in_multi_index(shape_ins, sig_ins, sig_out)
 
     subarrays_out = []
-    for midx_out in itertools.product(
-            *[range(ax_size) for ax_size in shape_out]
-        ):
+
+    def _apply_output_op(inputs, midx_out, permut_ins, perm_out, **op_kwargs):
         _midx_out = apply_permutation(midx_out, perm_out)
         _midx_ins = gen_in_midx(_midx_out)
         midx_ins = [
@@ -625,11 +624,20 @@ def _apply_op_blockwise(
             else subarray
             for subarray in subarray_ins
         ]
-        # Put any scalar inputs back into subarray_ins
-        # for ii, scalar in scalar_descr_inputs:
-        #     subarray_ins.insert(ii, scalar)
 
-        subarrays_out.append(op(*subarray_ins, **op_kwargs))
+        return op(*subarray_ins, **op_kwargs)
+
+    if shape_out == ():
+        subarrays_out = [
+            _apply_output_op(inputs, (), permut_ins, perm_out, **op_kwargs)
+        ]
+    else:
+        subarrays_out = [
+            _apply_output_op(inputs, midx_out, permut_ins, perm_out, **op_kwargs)
+            for midx_out in itertools.product(
+                *[range(ax_size) for ax_size in shape_out]
+            )
+        ]
     return subarrays_out
 
 

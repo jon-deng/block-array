@@ -176,9 +176,16 @@ def test_apply_ufunc_reduce():
     d = np.random.random_sample((2, 2))
     B = btensor.BlockArray([[a, b], [c, d]])
 
+    # Reducing the 2d array gives a 1d array
     D = np.add.reduce(A)
     D_ = np.add.reduce(A.to_mono_ndarray())
     np.all(np.isclose(D.to_mono_ndarray(), D_))
+
+    # Reducing the 1d array should give a 0d array (scalar)
+    E = np.add.reduce(D)
+    E_ = np.add.reduce(D.to_mono_ndarray())
+    np.all(np.isclose(E.to_mono_ndarray(), E_))
+    breakpoint()
 
 def test_apply_ufunc_accumulate():
     a = np.random.random_sample((4, 4))
