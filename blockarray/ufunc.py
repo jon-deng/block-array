@@ -401,6 +401,7 @@ def unsqueeze(array):
     else:
         return array.unsqueeze()
 
+# Ufunc routines
 def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs: Input[T], **kwargs):
     """
     Apply a ufunc on sequence of BlockArray inputs
@@ -572,10 +573,12 @@ def _apply_op_core(
 
     ## Compute the outputs block wise by looping over inputs
     outputs = []
-    for shape_out, labels_out, sig_out, perm_out in zip(shape_outs, labels_outs, sig_outs, permut_outs):
+    for f_shape_out, labels_out, sig_out, perm_out in zip(shape_outs, labels_outs, sig_outs, permut_outs):
+        # Unsqueeze the output shape as well
+        _shape_out = tuple(ax_size if ax_size != -1 else 1 for ax_size in f_shape_out)
         subarrays_out = _apply_op_blockwise(
-            ufunc, inputs, shape_ins, sig_ins, sig_out, shape_out, perm_out, permut_ins, op_kwargs=kwargs)
-        outputs.append((subarrays_out, shape_out, labels_out))
+            ufunc, inputs, shape_ins, sig_ins, sig_out, _shape_out, perm_out, permut_ins, op_kwargs=kwargs)
+        outputs.append((subarrays_out, f_shape_out, labels_out))
 
     return outputs
 

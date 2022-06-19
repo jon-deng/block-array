@@ -99,6 +99,7 @@ def test_broadcast():
 #     ufunc.recursive_concatenate(A.subarrays_flat, A.shape, A.dims)
 
 def test_apply_ufunc():
+    ## Test binary ufuncs with 2D inputs
     a = np.random.random_sample((4, 4))
     b = np.random.random_sample((4, 2))
     c = np.random.random_sample((2, 4))
@@ -111,11 +112,15 @@ def test_apply_ufunc():
     d = np.random.random_sample((2, 2))
     B = btensor.BlockArray([[a, b], [c, d]])
 
-    # C = ufuncutils.apply_ufunc(np.add, '__call__', *[A, B])
-    # print(C.shape)
-
+    # Test the classic example matmul(A, B)
     D = ufunc.apply_ufunc_array(np.matmul, '__call__', *[A, B])
     D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray())
+    assert np.all(np.isclose(D.to_mono_ndarray(), D_))
+
+    # Test an example with collapsed axes matmul(A[0, :], B[:, 0])
+    # breakpoint()
+    D = ufunc.apply_ufunc_array(np.matmul, '__call__', *[A[0, :], B[:, 0]])
+    D_ = np.matmul(A[0, :].to_mono_ndarray(), B[:, 0].to_mono_ndarray())
     assert np.all(np.isclose(D.to_mono_ndarray(), D_))
 
     D = ufunc.apply_ufunc_array(np.add, '__call__', *[A, B])
@@ -146,6 +151,9 @@ def test_apply_ufunc():
     D = ufunc.apply_ufunc_array(
         np.matmul, '__call__', *[A, B], axes=[(0, 1), (0, 1), (-2, -1)]
     )
+    D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray(), axes=[(0, 1), (0, 1), (-2, -1)])
+    assert np.all(np.isclose(D.to_mono_ndarray(), D_))
+
     D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray(), axes=[(0, 1), (0, 1), (-2, -1)])
     assert np.all(np.isclose(D.to_mono_ndarray(), D_))
 
