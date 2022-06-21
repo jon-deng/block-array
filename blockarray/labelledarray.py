@@ -101,15 +101,16 @@ def validate_labels(labels: MultiLabels, shape: Shape):
     for dim, (axis_labels, axis_size) in enumerate(zip(labels, shape)):
         if axis_size == -1:
             if axis_labels != ():
-                raise ValueError(f"Found non-empty axis labels {axis_labels} for reduced axis {dim}")
+                raise ValueError(f"Invalid non-empty axis labels {axis_labels} for reduced axis {dim}")
         else:
-            # Check that there is one label for each index along an axis
-            if len(axis_labels) != axis_size:
-                raise ValueError(f"{len(axis_labels)} axis labels is incompatible for axis {dim} with size {axis_size}")
+            if len(axis_labels) != 0:
+                # Check that there is one label for each index along an axis
+                if len(axis_labels) != axis_size:
+                    raise ValueError(f"Invalid {len(axis_labels)} axis labels for axis {dim} with size {axis_size}")
 
-            # Check that axis labels are unique
-            if len(set(axis_labels)) != len(axis_labels):
-                raise ValueError(f"duplicate labels found for axis {dim} with labels {axis_labels}")
+                # Check that axis labels are unique
+                if len(set(axis_labels)) != len(axis_labels):
+                    raise ValueError(f"Invalid duplicate labels for axis {dim} with labels {axis_labels}")
 
 def validate_general_idx(idx: GenIndex, size: int):
     """Validate a general index"""
@@ -145,20 +146,22 @@ def validate_multi_general_idx(multi_idx: MultiGenIndex, shape: Shape):
 
 class LabelledArray(Generic[T]):
     """
-    An N-dimensional array with labelled indices
+    An N-dimensional array with (optionally) labelled indices
 
     Parameters
     ----------
     array :
         A list of items in the array. This is a flat list which is interpreted
-        with the supplied shape according to 'C' ordering.
+        as an n-d array according to the supplied `shape` and a 'C' ordering.
     shape :
         A tuple of axis sizes (n, m, ...), where axis 0 has size n, axis 1 has
-        size m, etc.
+        size m, etc. An axis size can also be -1 in which case the axis cannot
+        be indexed but increases the number of dimensions of the array.
     labels :
-        A tuple of labels corresponding each index along an axis. `labels[0]`
-        should contain the labels for indices along axis 0, `labels[1]` the
-        indices along axis 1, etc.
+        An optional tuple of labels corresponding to each index along an axis.
+        `labels[0]` should contain the labels for indices along axis 0,
+        `labels[1]` the indices along axis 1, etc. If a dimension of `labels` is
+        an empty tuple, that dimension will not allow indexing by label.
 
     Attributes
     ----------
@@ -166,7 +169,7 @@ class LabelledArray(Generic[T]):
         A flat tuple containing the array elements
     shape :
         The N-d layout of the elements. For example, a shape `(2, 3)` represents
-        and array of 2 elements in dimension 0 by 3 elements in dimension 1.
+        an array of 2 elements in dimension 0 by 3 elements in dimension 1.
     labels :
         A nested tuple containing labels for each axis at each index
     strides :
@@ -177,10 +180,12 @@ class LabelledArray(Generic[T]):
     """
 
     def __init__(self, array: FlatArray[T], shape: Shape, labels: Optional[MultiLabels]=None):
+        # If no labels are supplied, use empty label tuples for each axis
         if labels is None:
-            labels = tuple([tuple([str(ii) for ii in range(axis_size)]) for axis_size in shape])
-        # Convert any lists to tuples in labels
-        labels = tuple([tuple(dim_labels) for dim_labels in labels])
+            labels = ((),)*len(shape)
+        else:
+            # Convert any lists to tuples in labels
+            labels = tuple([tuple(dim_labels) for dim_labels in labels])
 
         # Validate the array shape and labels
         validate_labels(labels, shape)
@@ -196,6 +201,7 @@ class LabelledArray(Generic[T]):
             stride for stride
             in accumulate(self.shape[-1:0:-1], lambda a, b: a*b, initial=1)]
         self._STRIDES = tuple(_strides[::-1])
+
         self._MULTI_LABEL_TO_IDX = tuple([
             {label: ii for label, ii in zip(axis_labels, idxs)}
             for axis_labels, idxs in zip(self.labels, [range(axis_size) for axis_size in self.shape])])
@@ -253,7 +259,11 @@ class LabelledArray(Generic[T]):
         """
         Return the reduced labels
         """
-        ret_rlabels = [axis_labels for axis_labels in self.f_labels if axis_labels != ()]
+        ret_rlabels = [
+            axis_labels
+            for axis_labels, axis_size in zip(self.f_labels, self.f_shape)
+            if axis_size > 0
+        ]
         return tuple(ret_rlabels)
 
     @property
@@ -279,7 +289,7 @@ class LabelledArray(Generic[T]):
         ])
         ret_labels = tuple([
                 tuple([axis_labels[ii] for ii in axis_idx])
-                if isinstance(axis_idx, (list, tuple))
+                if isinstance(axis_idx, (list, tuple)) and axis_labels != ()
                 else ()
             for axis_labels, axis_idx in zip(self.labels, multi_idx)
         ])
@@ -427,7 +437,7 @@ def conv_gen_to_std_idx(
     size : int
         Size of the iterable
     """
-    assert len(label_to_idx) == size
+    assert len(label_to_idx) == size or len(label_to_idx) == 0
 
     if isinstance(idx, slice):
         return conv_slice_to_std_idx(idx, size)

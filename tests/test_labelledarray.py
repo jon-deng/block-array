@@ -5,7 +5,7 @@ import math
 from itertools import accumulate, product
 import string
 
-import pytest 
+import pytest
 
 from blockarray import labelledarray as la
 from blockarray.labelledarray import LabelledArray, flatten_array
@@ -13,7 +13,7 @@ from blockarray.labelledarray import LabelledArray, flatten_array
 @pytest.fixture()
 def setup_labelledarray():
     """
-    Return a pre-defined `LabelledArray` and reference data 
+    Return a pre-defined `LabelledArray` and reference data
     """
     l, m, n = 2, 3, 4
     shape = (l, m, n)
@@ -101,7 +101,7 @@ def test_conv_gen_to_std_idx():
     N = 10
     LABEL_TO_IDX = {label: idx for idx, label in enumerate(string.ascii_lowercase[:N])}
 
-    # In each case below, `std_idx` is the correct output standard index based 
+    # In each case below, `std_idx` is the correct output standard index based
     # on the known array size of 10
     gen_idx = ['a', 'b', 4, -5]
     std_idx =  [0, 1, 4, 10-5]

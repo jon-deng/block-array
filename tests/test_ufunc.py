@@ -118,7 +118,6 @@ def test_apply_ufunc():
     assert np.all(np.isclose(D.to_mono_ndarray(), D_))
 
     # Test an example with collapsed axes matmul(A[0, :], B[:, 0])
-    # breakpoint()
     D = ufunc.apply_ufunc_array(np.matmul, '__call__', *[A[0, :], B[:, 0]])
     D_ = np.matmul(A[0, :].to_mono_ndarray(), B[:, 0].to_mono_ndarray())
     assert np.all(np.isclose(D.to_mono_ndarray(), D_))
@@ -185,7 +184,6 @@ def test_apply_ufunc_reduce():
     E = np.add.reduce(D)
     E_ = np.add.reduce(D.to_mono_ndarray())
     np.all(np.isclose(E.to_mono_ndarray(), E_))
-    breakpoint()
 
 def test_apply_ufunc_accumulate():
     a = np.random.random_sample((4, 4))
