@@ -30,7 +30,7 @@ else:
 if _HAS_JAX:
     JaxArray = jnp.ndarray
 else:
-    JaxArray = _Null 
+    JaxArray = _Null
 
 Scalar = Union[int, float]
 
@@ -45,6 +45,9 @@ BlockShape = Tuple[Tuple[int, ...], ...]
 Labels = Tuple[str, ...]
 MultiLabels = Tuple[Labels, ...]
 
+## BlockShape type
+AxisSize = Tuple[Union[int, 'AxisSize'], ...]
+
 ## Indexing types
 # These types represent an index to single element
 StdIndex = int
@@ -56,7 +59,7 @@ GenIndices = List[GenIndex]
 
 StdIndices = List[StdIndex]
 
-# Special type for expanding missing indices 
+# Special type for expanding missing indices
 EllipsisType = type(...)
 
 # Multidimensions general/standard indices

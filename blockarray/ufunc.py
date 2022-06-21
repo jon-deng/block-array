@@ -30,6 +30,8 @@ import functools
 from typing import Tuple, List, Mapping, Optional, TypeVar, Union
 import numpy as np
 
+from tests.test_blockarray import A
+
 from . import blockarray as ba, blockmat as bm, blockvec as bv
 from . import typing
 
@@ -265,60 +267,88 @@ def conv_neg(n: int, size: int) -> int:
         return n
 
 # Broadcasting functions
-def broadcast_size(a, b):
-    if a is None:
+def dec_broadcast_none(fun):
+    """
+    Make a broadcast function broadcast over `None`
+    """
+    def wrapped_fun(a, b):
+        if a is None:
+            return b
+        elif b is None:
+            return a
+        else:
+            return fun(a, b)
+    return wrapped_fun
+
+def broadcast_size(a: int, b: int):
+    """
+    Broadcast a simple axis size
+
+    Parameters
+    ----------
+    a: typing.AxisSize
+    b: typing.AxisSize
+    """
+    if a == 1 or a == -1:
         return b
-    elif b is None:
-        return a
-    elif a == 1 and b > 1:
-        return b
-    elif a > 1 and b == 1:
+    elif b == 1 or b == -1:
         return a
     elif a == b:
         return a
     else:
         raise ValueError(f"{a} and {b} are not broadcastable")
 
-def broadcast_label(a, b):
-    if a is None:
+@dec_broadcast_none
+def broadcast_axis_size(a: typing.AxisSize, b: typing.AxisSize) -> typing.AxisSize:
+    """
+    Broadcast axis sizes
+
+    Parameters
+    ----------
+    a: typing.AxisSize
+    b: typing.AxisSize
+    """
+    if isinstance(a, int) and isinstance(b, int):
+        return broadcast_size(a, b)
+    elif isinstance(a, int) and isinstance(b, tuple):
+        return tuple(broadcast_axis_size(a, bb) for bb in b)
+    elif isinstance(a, tuple) and isinstance(b, int):
+        return tuple(broadcast_axis_size(aa, b) for aa in a)
+    elif isinstance(a, tuple) and isinstance(b, tuple):
+        if len(a) == 1:
+            return tuple(broadcast_axis_size(a[0], bb) for bb in b)
+        elif len(b) == 1:
+            return tuple(broadcast_axis_size(aa, b[0]) for aa in a)
+        elif len(b) == len(a):
+            return tuple(broadcast_axis_size(aa, bb) for aa, bb in zip(a, b))
+        else:
+            raise ValueError(f"{a} and {b} are not broadcastable")
+    else:
+        raise ValueError(f"{a} and {b} are not broadcastable")
+
+@dec_broadcast_none
+def broadcast_axis_labels(a: typing.Labels, b: typing.Labels) -> typing.Labels:
+    """
+    Broadcast axis labels
+
+    Parameters
+    ----------
+    a: Tuple[str, ...]
+    b: Tuple[str, ...]
+    """
+    if a == ():
         return b
-    elif b is None:
+    elif b == ():
         return a
     elif a == b:
         return a
     else:
         raise ValueError(f"{a} and {b} are not broadcastable")
-
-def rbroadcast(broadcast_op, a, b):
-    if isinstance(a, tuple) or isinstance(b, tuple):
-        if not isinstance(a, tuple):
-            _a = tuple([a])
-        else:
-            _a = a
-
-        if not isinstance(b, tuple):
-            _b = tuple([b])
-        else:
-            _b = b
-
-        if len(_a) == 1 and len(_b) >= 1:
-            return tuple([rbroadcast(broadcast_op, _a[0], bb) for bb in _b])
-        elif len(_a) >= 1 and len(_b) == 1:
-            return tuple([rbroadcast(broadcast_op, aa, _b[0]) for aa in _a])
-        elif len(_a) == len(_b):
-            return tuple([rbroadcast(broadcast_op, aa, bb) for aa, bb in zip(_a, _b)])
-        else:
-            raise ValueError(f"{a} and {b} are not broadcastable due to different lengths")
-    else:
-        return broadcast_op(a, b)
 
 def broadcast(broadcast_op, *inputs):
     rev_inputs = [input[::-1] for input in inputs]
     return tuple([
-        functools.reduce(
-            functools.partial(rbroadcast, broadcast_op),
-            axis_inputs
-        )
+        functools.reduce(broadcast_op, axis_inputs)
         for axis_inputs in itertools.zip_longest(*rev_inputs, fillvalue=None)
     ])[::-1]
 
@@ -331,12 +361,11 @@ def broadcast_dims(
         free_name_to_in,
     ):
     """
-    Broadcast a set of dimensions to an output dimension
+    Broadcast a set of dimension tuples
 
-    The dimension is a tuple descriptors describing properties of each axis
-    along the n-dimensional array.
-    A common example is the `.shape` attribute for `numpy.ndarray` which stores
-    the size of each axis as an integer.
+    The dimension tuples are tuples describing properties of each axis of an
+    n-d array. A common example is the `.shape` attribute for `numpy.ndarray`
+    which stores the size of each axis as an integer.
     """
     _in_dims = [
         apply_permutation(dims, perm) for dims, perm in zip(input_dims, permut_ins)
@@ -535,10 +564,10 @@ def _apply_op_core(
 
     ## Determine the output `f_shape` and `f_labels`
     f_shape_ins = [_f_shape(input) for input in inputs]
-    _f_shape_outs = broadcast_dims(broadcast_size, f_shape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
+    _f_shape_outs = broadcast_dims(broadcast_axis_size, f_shape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
 
     f_label_ins = [_f_labels(input) for input in inputs]
-    _f_labels_outs = broadcast_dims(broadcast_label, f_label_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
+    _f_labels_outs = broadcast_dims(broadcast_axis_labels, f_label_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
 
     ## Check that reduced dimensions have compatible bshapes
     _bshape_ins = [
