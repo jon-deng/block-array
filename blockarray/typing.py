@@ -40,13 +40,14 @@ FlatArray = Tuple[T, ...]
 
 Shape = Tuple[int, ...]
 Strides = Tuple[int, ...]
-BlockShape = Tuple[Tuple[int, ...], ...]
+
 
 Labels = Tuple[str, ...]
 MultiLabels = Tuple[Labels, ...]
 
 ## BlockShape type
 AxisSize = Tuple[Union[int, 'AxisSize'], ...]
+BlockShape = Tuple[AxisSize, ...]
 
 ## Indexing types
 # These types represent an index to single element
