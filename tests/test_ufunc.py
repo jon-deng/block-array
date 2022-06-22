@@ -156,6 +156,41 @@ def test_apply_ufunc():
     D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray(), axes=[(0, 1), (0, 1), (-2, -1)])
     assert np.all(np.isclose(D.to_mono_ndarray(), D_))
 
+    ## Test cases with broadcasting
+    a = np.random.random_sample((4, 4, 1, 1))
+    b = np.random.random_sample((4, 2, 1, 1))
+    c = np.random.random_sample((2, 4, 1, 1))
+    d = np.random.random_sample((2, 2, 1, 1))
+    A = btensor.BlockArray([a, b, c, d], shape=(2, 2, 1, 1))
+
+    # This shouldn't work because dim 1 with size 4 cannot be broadcast with A's dim 1 with size (4, 2)
+    # a = np.random.random_sample((4, 4, 1, 1))
+    # b = np.random.random_sample((2, 4, 1, 1))
+    # B = btensor.BlockArray([a, b], shape=(2, 1, 1, 1))
+
+    # D = ufunc.apply_ufunc_array(
+    #     np.matmul, '__call__', *[A, B]
+    # )
+    # D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray())
+    # assert np.all(np.isclose(D.to_mono_ndarray(), D_))
+
+    # D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray())
+    # assert np.all(np.isclose(D.to_mono_ndarray(), D_))
+
+    # This should work because dim 1 with size 1 can be broadcast with A's dim 1 with size (4, 2)
+    a = np.random.random_sample((4, 1, 1, 1))
+    b = np.random.random_sample((2, 1, 1, 1))
+    B = btensor.BlockArray([a, b], shape=(2, 1, 1, 1))
+
+    D = ufunc.apply_ufunc_array(
+        np.matmul, '__call__', *[A, B]
+    )
+    D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray())
+    assert np.all(np.isclose(D.to_mono_ndarray(), D_))
+
+    D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray())
+    assert np.all(np.isclose(D.to_mono_ndarray(), D_))
+
     # Unfortunately, seems like inner1d is not available in the numpy public api?
     # D = ufunc.apply_ufunc_array(
     #     np.inner1d, '__call__', *[A, B], axes=[(1,), (0,), ()])

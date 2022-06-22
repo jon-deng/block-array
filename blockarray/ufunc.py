@@ -203,7 +203,7 @@ def make_gen_in_multi_index(
         sig_out: Signature
     ):
     """
-    Make a function that generates indices for inputs given an output index
+    Return a function that generates indices for inputs from an output index
     """
     free_name_to_output = {label: ii for ii, label in enumerate(sig_out)}
 
@@ -212,16 +212,24 @@ def make_gen_in_multi_index(
         for shape_in, sig_in in zip(shape_ins, sig_ins)
     ]
     def gen_in_multi_index(out_multi_idx):
-        if len(sig_out) == 0:
-            l_midx_outs = out_multi_idx
-            c_midx_outs = ()
-        else:
-            l_midx_outs = out_multi_idx[:-len(sig_out)]
-            c_midx_outs = out_multi_idx[-len(sig_out):]
+        l_midx_outs = out_multi_idx[:len(out_multi_idx)-len(sig_out)]
+        c_midx_outs = out_multi_idx[len(out_multi_idx)-len(sig_out):]
 
+        # The `np.minimum` call against `l_shape-1` takes care of broadcasting
+        # input axes with size 1, against output axes with size > 1
+        # The `[len(l_midx_outs)-n:]` takes care of broadcasting missing input
+        # axes against non-missing output axes
+        l_shape_ins = [shape[:len(shape)-len(sig)] for shape, sig in zip(shape_ins, sig_ins)]
         l_midx_ins = [
-            l_midx_outs[-n:] if n != 0 else ()
-            for n in loop_ndim_ins
+            # Convert to int here because indexing doesn't handle np.int types well
+            tuple(
+                int(ii)
+                for ii in np.minimum(
+                    l_midx_outs[len(l_midx_outs)-n:],
+                    np.array(l_shape)-1
+                )
+            )
+            for n, l_shape in zip(loop_ndim_ins, l_shape_ins)
         ]
         c_midx_ins = [
             tuple([
@@ -384,7 +392,8 @@ def broadcast_dims(
 
     return [out_loop_dims+core_dims for core_dims in out_core_dims]
 
-# Helper method for getting `BlockArray` attributes from scalars
+# These are helper methods for getting `BlockArray` attributes from both
+# `BlockArray` and scalar (float) type objects
 def _f_bshape(array: Input[T]) -> typing.BlockShape:
     """
     Return the `f_bshape` attribute for BlockArrays and scalar inputs
