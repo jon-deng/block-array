@@ -66,6 +66,7 @@ EllipsisType = type(...)
 # Multidimensions general/standard indices
 MultiGenIndex = Tuple[Union[GenIndex, GenIndices, slice, EllipsisType], ...]
 MultiStdIndex = Tuple[Union[StdIndex, StdIndices], ...]
+MultiIntIndex = Tuple[StdIndex, ...]
 
 # These types represent the mapping from labels to indices
 LabelToStdIndex = Mapping[str, StdIndex]

@@ -27,7 +27,7 @@ import operator
 from numbers import Number
 import itertools
 import functools
-from typing import Tuple, List, Mapping, Optional, TypeVar, Union
+from typing import Tuple, List, Mapping, TypeVar, Union, Callable
 import numpy as np
 
 from tests.test_blockarray import A
@@ -45,16 +45,18 @@ Perm = List[int]
 T = TypeVar('T')
 Input = Union[ba.BlockArray[T], Number]
 
+## Signature processing functions
 def parse_ufunc_signature(
         sig_str: str
     ) -> Tuple[Signatures, Signatures]:
     """
-    Parse a ufunc signature into a nicer format
+    Parse a ufunc signature string into a nicer format
 
-    For a ufunc signature string
-    '(i,j),(j,k)->(i,k)'
-    this function represents the inputs and output axis labels in a tuple
-    `('i', 'j') ('j', 'k') ('i', 'k')`
+    For a ufunc signature string:
+        `'(i,j),(j,k)->(i,k)'`
+    this function represents the inputs and output components of the signature
+    as:
+        `[('i', 'j'), ('j', 'k')], [('i', 'k')]`
     """
     # split into input and output signatures
     sig_str = sig_str.replace(' ', '')
@@ -104,19 +106,22 @@ def interpret_ufunc_signature(
     Returns
     -------
     free_dname_to_in: Dict
-        A description of free dimension names. This
-        dictionary maps the dimension name to a tuple of 2 integers `(nin, dim)`
-        containing the input number and dimension of the dimension name. For
+        A description of free dimension names on the inputs.
+
+        This maps the dimension name to a tuple of 2 integers `(nin, dim)`
+        containing the input number (`nin`) and core dimension (`dim`)
+        that the free label corresponds to. For
         example, a signature '(i,j),(j,k)->(i,k)' has free dimension names of
-        'i,k' and would have `free_dname_descr` be
-        `{'i': (0, 0), 'k': (1, 1)}`.
+        'i,k' and would have
+            `free_dname_to_in = {'i': (0, 0), 'k': (1, 1)}`.
     redu_dname_to_ins: Dict
-        A description of reduced dimension names.
-        This dictionary maps the dimension name to a list of tuples of 2
+        A description of reduced dimension names on the inputs.
+
+        This maps the dimension name to a list of tuples of 2
         integers `(nin, dim)` containing inputs and dimensions where the reduced
         dimension occurs. For example, a signature '(i,j),(j,k)->(i,k)' has
-        reduced dimension names of 'j' and would have `redu_dname_descr` be
-        `{'j': [(0, 1), (1, 0)]}`.
+        reduced dimension names of 'j' and would have
+            `redu_dname_descr = {'j': [(0, 1), (1, 0)]}`.
     """
     # TODO: Will have to handle weird signatures where output dimension names
     # do not match and of the input dimension names
@@ -130,6 +135,9 @@ def interpret_ufunc_signature(
 
     # For each free dimension name, record the input number and axis number that
     # it occurs in
+    # TODO: This won't work if a signature contains the free dimension label
+    # multiple times in the inputs. You should change this to be similar to
+    # redu_dname_to_ins
     free_dname_to_in = {
         name: (ii_input, ii_ax)
         for ii_input, sig_input in enumerate(sig_ins)
@@ -156,52 +164,19 @@ def split_shapes_by_signatures(
     Split a list of shapes into loop and core shapes
     """
     loop_shapes = [
-        shape[:-len(sig)] if len(sig) != 0 else shape[:]
-        for shape, sig in zip(shapes, sigs)
+        shape[:len(shape)-len(sig)] for shape, sig in zip(shapes, sigs)
     ]
     core_shapes = [
-        shape[-len(sig):] if len(sig) != 0 else ()
-        for shape, sig in zip(shapes, sigs)
+        shape[len(shape)-len(sig):] for shape, sig in zip(shapes, sigs)
     ]
     return loop_shapes, core_shapes
 
-def calculate_output_shapes(
-        loop_shape_ins: Shapes,
-        core_shape_ins: Shapes,
-        sig_ins: Signatures,
-        sig_outs: Signatures,
-        free_name_to_in : Optional[Mapping[str, Tuple[int, int]]]=None
-    ) -> Tuple[Shapes, Shapes]:
-    """
-    Calculate and output shape from input shapes and a signature
-    """
-    # Check that the element wise dims of all inputs are the same
-    # TODO: support broadcasting?
-    loop_shape_out = np.broadcast_shapes(*loop_shape_ins)
-    # for shapea, shapeb in zip(loop_shape_ins[:-1], loop_shape_ins[1:]):
-    #     assert shapea == shapeb
-
-    if free_name_to_in is None:
-        free_name_to_in, _ = interpret_ufunc_signature(sig_ins, sig_outs)
-
-    # loop_shape_out = loop_shape_ins[0]
-    loop_shape_outs = [loop_shape_out] * len(sig_outs)
-
-    core_shape_outs = [
-        tuple([
-            core_shape_ins[free_name_to_in[label][0]][free_name_to_in[label][1]]
-            for label in sig
-        ])
-        for sig in sig_outs
-    ]
-
-    return loop_shape_outs, core_shape_outs
-
+## Output shape/indexing function
 def make_gen_in_multi_index(
         shape_ins: List[int],
         sig_ins: Signatures,
         sig_out: Signature
-    ):
+    ) -> Callable[[typing.MultiIntIndex], typing.MultiStdIndex]:
     """
     Return a function that generates indices for inputs from an output index
     """
@@ -212,6 +187,27 @@ def make_gen_in_multi_index(
         for shape_in, sig_in in zip(shape_ins, sig_ins)
     ]
     def gen_in_multi_index(out_multi_idx):
+        """
+        Return corresponding input indices for an output index
+
+        A corresponding input index indexes the portion of the input
+        involved in computing the indexed output portion. For example, consider
+        the input shapes
+            `(1, 1, 1, 5)` `(2, 2, 2, 5)`
+        and a `ufunc` with signature
+            `'(),()->()'`.
+        Then the output shape is
+            `(2, 2, 2, 5)`.
+        The output subarray at `(0, 1, 0, 4)` is computed from the input subarrays
+        at `(0, 0, 0, 4)` and `(0, 1, 0, 4)` which are the corresponding output
+        indices.
+
+        In the example above, all dimensions are loop dimensions; indexing with
+        core dimensions is more tricky. In the current implementation:
+            ufunc free core dimensions are treated like loop-dimensions
+            ufunc reduced core dimensions are concatenated to a single large array
+                (corresponding dimensions are indexed with a `:`)
+        """
         l_midx_outs = out_multi_idx[:len(out_multi_idx)-len(sig_out)]
         c_midx_outs = out_multi_idx[len(out_multi_idx)-len(sig_out):]
 
@@ -232,12 +228,12 @@ def make_gen_in_multi_index(
             for n, l_shape in zip(loop_ndim_ins, l_shape_ins)
         ]
         c_midx_ins = [
-            tuple([
+            tuple(
                 c_midx_outs[free_name_to_output[label]]
                 if label in free_name_to_output
                 else slice(None)
                 for label in sig_input
-            ])
+            )
             for sig_input in sig_ins
         ]
 
