@@ -45,6 +45,8 @@ Perm = List[int]
 T = TypeVar('T')
 Input = Union[ba.BlockArray[T], Number]
 
+V = TypeVar('V')
+
 ## Signature processing functions
 def parse_ufunc_signature(
         sig_str: str
@@ -156,21 +158,6 @@ def interpret_ufunc_signature(
 
     return free_dname_to_in, redu_dname_to_ins
 
-def split_shapes_by_signatures(
-        shapes: typing.Shape,
-        sigs: Signatures
-    ) -> Tuple[Shapes, Shapes]:
-    """
-    Split a list of shapes into loop and core shapes
-    """
-    loop_shapes = [
-        shape[:len(shape)-len(sig)] for shape, sig in zip(shapes, sigs)
-    ]
-    core_shapes = [
-        shape[len(shape)-len(sig):] for shape, sig in zip(shapes, sigs)
-    ]
-    return loop_shapes, core_shapes
-
 ## Output shape/indexing function
 def make_gen_in_multi_index(
         shape_ins: List[int],
@@ -244,7 +231,7 @@ def make_gen_in_multi_index(
 
     return gen_in_multi_index
 
-def apply_permutation(arg: List[T], perm: Perm) -> List[T]:
+def apply_permutation(arg: Union[List[T], Tuple[T]], perm: Perm) -> Union[List[T], Tuple[T]]:
     """
     Return a permutation of a list
     """
@@ -284,14 +271,14 @@ def dec_broadcast_none(fun):
             return fun(a, b)
     return wrapped_fun
 
-def broadcast_size(a: int, b: int):
+def broadcast_size(a: int, b: int) -> int:
     """
     Broadcast a simple axis size
 
     Parameters
     ----------
-    a: typing.AxisSize
-    b: typing.AxisSize
+    a, b : int
+        Axis sizes being broadcast
     """
     if a == 1 or a == -1:
         return b
@@ -309,8 +296,8 @@ def broadcast_axis_size(a: typing.AxisSize, b: typing.AxisSize) -> typing.AxisSi
 
     Parameters
     ----------
-    a: typing.AxisSize
-    b: typing.AxisSize
+    a, b: typing.AxisSize
+        Nested axis sizes being broadcast
     """
     if isinstance(a, int) and isinstance(b, int):
         return broadcast_size(a, b)
@@ -337,8 +324,8 @@ def broadcast_axis_labels(a: typing.Labels, b: typing.Labels) -> typing.Labels:
 
     Parameters
     ----------
-    a: Tuple[str, ...]
-    b: Tuple[str, ...]
+    a, b: Tuple[str, ...]
+        Axis labels being broadcast
     """
     if a == ():
         return b
@@ -349,7 +336,13 @@ def broadcast_axis_labels(a: typing.Labels, b: typing.Labels) -> typing.Labels:
     else:
         raise ValueError(f"{a} and {b} are not broadcastable")
 
-def broadcast(broadcast_op, *inputs):
+def broadcast(broadcast_op: Callable[[V, V], V], *inputs: Tuple[V, ...]) -> Tuple[V, ...]:
+    """
+    Broadcast tuples of inputs using a specified broadcast operation
+
+    The `broadcast_op` is used to broadcast each dimension/axis of the input 
+    tuples against each other, similar to broadcasting of numpy shape tuples.
+    """
     rev_inputs = [input[::-1] for input in inputs]
     return tuple([
         functools.reduce(broadcast_op, axis_inputs)
@@ -357,12 +350,12 @@ def broadcast(broadcast_op, *inputs):
     ])[::-1]
 
 def broadcast_dims(
-        broadcast_op,
-        input_dims,
-        sig_ins,
-        sig_outs,
-        permut_ins,
-        free_name_to_in,
+        broadcast_op: Callable[[V, V], V],
+        input_dims: Tuple[V, ...],
+        sig_ins: Signatures,
+        sig_outs: Signatures,
+        permut_ins: List[List[int]],
+        free_name_to_in: Mapping[str, Tuple[int, int]],
     ):
     """
     Broadcast a set of dimension tuples
@@ -399,7 +392,7 @@ def _f_bshape(array: Input[T]) -> typing.BlockShape:
     else:
         return array.f_bshape
 
-def _f_shape(array):
+def _f_shape(array: Input[T]) -> typing.Shape:
     """
     Return the `f_shape` attribute for BlockArrays and scalar inputs
     """
@@ -408,7 +401,7 @@ def _f_shape(array):
     else:
         return array.f_shape
 
-def _f_labels(array):
+def _f_labels(array: Input[T]) -> typing.MultiLabels:
     """
     Return the `f_bshape` attribute for BlockArrays and scalar inputs
     """
@@ -417,7 +410,7 @@ def _f_labels(array):
     else:
         return array.f_labels
 
-def _f_ndim(array: Input[T]) -> typing.BlockShape:
+def _f_ndim(array: Input[T]) -> int:
     """
     Return the `f_ndim` attribute for BlockArrays and scalar inputs
     """
@@ -426,7 +419,7 @@ def _f_ndim(array: Input[T]) -> typing.BlockShape:
     else:
         return array.f_ndim
 
-def unsqueeze(array):
+def unsqueeze(array: Input[T]) -> Input[T]:
     """
     Return the unsqueeze `BlockArray` or scalar
     """

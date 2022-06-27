@@ -19,22 +19,12 @@ def test_interpret_ufunc_signature():
     sig_outputs = [('i', 'k')]
     print(ufunc.interpret_ufunc_signature(sig_inputs, sig_outputs))
 
-def test_split_shapes_by_signatures():
-    shape_inputs = [(2, 3, 2, 4), (2, 3, 4, 2)]
-    sig_inputs = [('i', 'j'), ('j', 'k')]
+# def test_split_shapes_by_signatures():
+#     shape_inputs = [(2, 3, 2, 4), (2, 3, 4, 2)]
+#     sig_inputs = [('i', 'j'), ('j', 'k')]
 
-    print(ufunc.split_shapes_by_signatures(shape_inputs, sig_inputs))
-    # shape_outputs = []
-
-def test_calculate_output_shapes():
-    shape_inputs = [(2, 3, 2, 4), (2, 3, 4, 2)]
-    sig_inputs = [('i', 'j'), ('j', 'k')]
-    sig_outputs = [('i', 'k')]
-
-    ewise_input_shapes, core_input_shapes = ufunc.split_shapes_by_signatures(shape_inputs, sig_inputs)
-
-    ewise_output_shapes, core_output_shapes = ufunc.calculate_output_shapes(ewise_input_shapes, core_input_shapes, sig_inputs, sig_outputs)
-    print(ewise_output_shapes, core_output_shapes)
+#     print(ufunc.split_shapes_by_signatures(shape_inputs, sig_inputs))
+#     # shape_outputs = []
 
 def test_gen_in_multi_index():
     sig_inputs = [('i', 'j'), ('j', 'k')]
@@ -241,8 +231,8 @@ def test_apply_ufunc_accumulate():
 if __name__ == '__main__':
     test_parse_ufunc_signature()
     test_interpret_ufunc_signature()
-    test_split_shapes_by_signatures()
-    test_calculate_output_shapes()
+    # test_split_shapes_by_signatures()
+    # test_calculate_output_shapes()
     test_gen_in_multi_index()
     # test_recursive_concatenate()
     test_apply_ufunc()
