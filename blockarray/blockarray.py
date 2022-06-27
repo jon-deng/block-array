@@ -2,7 +2,7 @@
 This module contains the block array definition and defines some basic operations
 """
 
-from typing import TypeVar, Optional, Union, Callable, Generic
+from typing import Type, TypeVar, Optional, Union, Callable, Generic
 import itertools
 import functools
 import operator
@@ -14,6 +14,8 @@ from .typing import (BlockShape, Shape, MultiLabels, Scalar, MultiGenIndex)
 
 T = TypeVar('T')
 
+
+## `BlockArray` object + core functions
 class BlockArray(Generic[T]):
     """
     An n-dimensional block array
@@ -456,7 +458,72 @@ def _validate_subarray_shapes_from_larray(
                 valid_bsizes = [bsize == _bsize for _bsize in ascblock_sizes]
                 assert all(valid_bsizes)
 
+def axis_size(size):
+    """
+    Return a recursive axis size
+    """
+    if isinstance(size, int):
+        return size
+    elif isinstance(size, tuple):
+        return sum([axis_size(sub_size) for sub_size in size])
+    else:
+        raise TypeError(f"`size` must be int or tuple, not {type(size)}")
 
+def axis_bsize(size):
+    """
+    Return the axis block size (number of blocks)
+    """
+    if isinstance(size, int):
+        return -1
+    elif isinstance(size, tuple):
+        return len(size)
+    else:
+        raise TypeError(f"`size` must be int or tuple, not {type(size)}")
+
+
+## `BlockArray` creation routines
+def _require_tuple(ax_bshape):
+    if isinstance(ax_bshape, tuple):
+        return ax_bshape
+    elif isinstance(ax_bshape, int):
+        return (ax_bshape,)
+    else: 
+        raise TypeError(f"`ax_bshape` must be `tuple` or `int`, not {type(ax_bshape)}")
+
+def make_create_array(create_numpy_array):
+    """
+    Derivate an array creation routine from a `numpy` creation routine
+
+    Parameters
+    ----------
+    create_numpy_array :
+        A numpy array creation routine with the signature
+        `create_numpy_array(shape, *args, **kwargs)`
+    """
+    def create_subarray(sub_shape):
+        if all(isinstance(axsize, int) for axsize in sub_shape):
+            return create_numpy_array(sub_shape)
+        else:
+            return create_block_array(sub_shape)
+
+    def create_block_array(bshape):
+        shape = tuple(axis_bsize(ax_bshape) for ax_bshape in bshape)
+
+        _bshape = tuple(_require_tuple(ax_bshape) for ax_bshape in bshape)
+
+        subarrays = [create_subarray(sub_shape) for sub_shape in itertools.product(*_bshape)]
+
+        return BlockArray(subarrays, shape)
+
+    return create_block_array
+
+zeros = make_create_array(np.zeros)
+
+ones = make_create_array(np.ones)
+
+rand = make_create_array(np.random.rand)
+
+## Binary operations
 def _validate_elementwise_binary_op(a: BlockArray[T], b: BlockArray[T]):
     """
     Validates if BlockArray inputs are applicable
@@ -498,6 +565,7 @@ div = functools.partial(_elementwise_binary_op, operator.truediv)
 power = functools.partial(_elementwise_binary_op, operator.pow)
 
 
+## Unary operations
 def _elementwise_unary_op(
         op: Callable[[T], T], a: BlockArray[T]
     ) -> BlockArray[T]:
@@ -575,15 +643,3 @@ def to_mono_ndarray(barray: BlockArray[T]) -> np.ndarray:
         ret_array[tuple(midx)] = barray[block_idx]
 
     return ret_array
-
-
-def axis_size(size):
-    """
-    Return a recursive axis size
-    """
-    if isinstance(size, int):
-        return size
-    elif isinstance(size, tuple):
-        return sum([axis_size(sub_size) for sub_size in size])
-    else:
-        raise TypeError(f"`size` must be int or tuple, not {type(size)}")

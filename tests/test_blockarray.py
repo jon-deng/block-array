@@ -72,6 +72,9 @@ def test_squeeze():
     dd = A[0:1, :]
     assert dd.squeeze().f_bshape == (4, (4, 2))
 
+def test_ones():
+    A = ba.zeros((5, 5, (1, 4)))
+    assert A.f_bshape == (5, 5, (1, 4))
 
 def test_ufunc():
     for op in [np.add, np.multiply, np.divide]:
@@ -96,5 +99,6 @@ if __name__ == '__main__':
     test_div()
     test_bshape()
     test_squeeze()
-    test_ufunc()
+    # test_ufunc()
+    test_ones()
     # test_power()
