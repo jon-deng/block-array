@@ -1,3 +1,7 @@
+"""
+Test `ufunc.py` functionality
+"""
+import pytest
 
 import numpy as np
 from blockarray import blockarray as btensor, ufunc
@@ -79,17 +83,14 @@ def test_broadcast():
     # d = ufunc.broadcast(ufunc.broadcast_size, a, b, c)
     # print(d)
 
-# def test_recursive_concatenate():
-#     a = np.ones((4, 4))
-#     b = np.ones((4, 2))
-#     c = np.ones((2, 4))
-#     d = np.ones((2, 2))
-#     A = btensor.BlockArray([[a, b], [c, d]])
+@pytest.fixture(params=[np.matmul, np.add, np.subtract, np.multiply, np.divide])
+def setup_ufunc(request):
+    """
+    Return a pre-defined `LabelledArray` and reference data
+    """
+    return request.param
 
-#     ufunc.recursive_concatenate(A.subarrays_flat, A.shape, A.dims)
-
-def test_apply_ufunc():
-    ## Test binary ufuncs with 2D inputs
+def setup_2d_inputs():
     a = np.random.random_sample((4, 4))
     b = np.random.random_sample((4, 2))
     c = np.random.random_sample((2, 4))
@@ -101,30 +102,9 @@ def test_apply_ufunc():
     c = np.random.random_sample((2, 4))
     d = np.random.random_sample((2, 2))
     B = btensor.BlockArray([[a, b], [c, d]])
+    return A, B
 
-    # Test the classic example matmul(A, B)
-    D = ufunc.apply_ufunc_array(np.matmul, '__call__', *[A, B])
-    D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray())
-    assert np.all(np.isclose(D.to_mono_ndarray(), D_))
-
-    # Test an example with collapsed axes matmul(A[0, :], B[:, 0])
-    D = ufunc.apply_ufunc_array(np.matmul, '__call__', *[A[0, :], B[:, 0]])
-    D_ = np.matmul(A[0, :].to_mono_ndarray(), B[:, 0].to_mono_ndarray())
-    assert np.all(np.isclose(D.to_mono_ndarray(), D_))
-
-    D = ufunc.apply_ufunc_array(np.add, '__call__', *[A, B])
-    D_ = np.add(A.to_mono_ndarray(), B.to_mono_ndarray())
-    assert np.all(np.isclose(D.to_mono_ndarray(), D_))
-
-    scalar_np = np.float64(5.0)
-    D = ufunc.apply_ufunc_array(np.add, '__call__', *[scalar_np, B])
-    D_ = np.add(scalar_np, B.to_mono_ndarray())
-    assert np.all(np.isclose(D.to_mono_ndarray(), D_))
-
-    D = ufunc.apply_ufunc_array(np.multiply, '__call__', *[scalar_np, B])
-    D_ = np.multiply(scalar_np, B.to_mono_ndarray())
-    assert np.all(np.isclose(D.to_mono_ndarray(), D_))
-
+def setup_4d_inputs():
     a = np.random.random_sample((4, 4, 1, 1))
     b = np.random.random_sample((4, 2, 1, 1))
     c = np.random.random_sample((2, 4, 1, 1))
@@ -136,58 +116,26 @@ def test_apply_ufunc():
     c = np.random.random_sample((2, 4, 1, 1))
     d = np.random.random_sample((2, 2, 1, 1))
     B = btensor.BlockArray([a, b, c, d], shape=(2, 2, 1, 1))
+    return A, B
 
-    D = ufunc.apply_ufunc_array(
-        np.matmul, '__call__', *[A, B], axes=[(0, 1), (0, 1), (-2, -1)]
-    )
-    D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray(), axes=[(0, 1), (0, 1), (-2, -1)])
+@pytest.fixture(params=[setup_2d_inputs, setup_4d_inputs])
+def setup_inputs(request):
+    """
+    Return a pre-defined `LabelledArray` and reference data
+    """
+    return request.param()
+    
+def test_apply_binary_ufunc(setup_ufunc, setup_inputs):
+    """Test binary ufuncs"""
+    A, B = setup_inputs
+    _ufunc = setup_ufunc
+
+    D = ufunc.apply_ufunc_array(_ufunc, '__call__', *[A, B])
+    D_ = _ufunc(A.to_mono_ndarray(), B.to_mono_ndarray())
+
     assert np.all(np.isclose(D.to_mono_ndarray(), D_))
 
-    D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray(), axes=[(0, 1), (0, 1), (-2, -1)])
-    assert np.all(np.isclose(D.to_mono_ndarray(), D_))
-
-    ## Test cases with broadcasting
-    a = np.random.random_sample((4, 4, 1, 1))
-    b = np.random.random_sample((4, 2, 1, 1))
-    c = np.random.random_sample((2, 4, 1, 1))
-    d = np.random.random_sample((2, 2, 1, 1))
-    A = btensor.BlockArray([a, b, c, d], shape=(2, 2, 1, 1))
-
-    # This shouldn't work because dim 1 with size 4 cannot be broadcast with A's dim 1 with size (4, 2)
-    # a = np.random.random_sample((4, 4, 1, 1))
-    # b = np.random.random_sample((2, 4, 1, 1))
-    # B = btensor.BlockArray([a, b], shape=(2, 1, 1, 1))
-
-    # D = ufunc.apply_ufunc_array(
-    #     np.matmul, '__call__', *[A, B]
-    # )
-    # D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray())
-    # assert np.all(np.isclose(D.to_mono_ndarray(), D_))
-
-    # D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray())
-    # assert np.all(np.isclose(D.to_mono_ndarray(), D_))
-
-    # This should work because dim 1 with size 1 can be broadcast with A's dim 1 with size (4, 2)
-    a = np.random.random_sample((4, 1, 1, 1))
-    b = np.random.random_sample((2, 1, 1, 1))
-    B = btensor.BlockArray([a, b], shape=(2, 1, 1, 1))
-
-    D = ufunc.apply_ufunc_array(
-        np.matmul, '__call__', *[A, B]
-    )
-    D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray())
-    assert np.all(np.isclose(D.to_mono_ndarray(), D_))
-
-    D_ = np.matmul(A.to_mono_ndarray(), B.to_mono_ndarray())
-    assert np.all(np.isclose(D.to_mono_ndarray(), D_))
-
-    # Unfortunately, seems like inner1d is not available in the numpy public api?
-    # D = ufunc.apply_ufunc_array(
-    #     np.inner1d, '__call__', *[A, B], axes=[(1,), (0,), ()])
-    # D_ = np.inner1d(A.to_mono_ndarray(), B.to_mono_ndarray(), axes=[(1,), (0,), ()])
-    # assert np.all(np.isclose(D.to_mono_ndarray(), D_))
-
-def test_apply_ufunc_reduce():
+def test_apply_ufunc_reduce_2d():
     a = np.random.random_sample((4, 4))
     b = np.random.random_sample((4, 2))
     c = np.random.random_sample((2, 4))
@@ -204,6 +152,24 @@ def test_apply_ufunc_reduce():
     D = np.add.reduce(A)
     D_ = np.add.reduce(A.to_mono_ndarray())
     np.all(np.isclose(D.to_mono_ndarray(), D_))
+
+def test_apply_ufunc_reduce_1d():
+    a = np.random.random_sample((4, 4))
+    b = np.random.random_sample((4, 2))
+    c = np.random.random_sample((2, 4))
+    d = np.random.random_sample((2, 2))
+    A = btensor.BlockArray([[a, b], [c, d]])
+
+    a = np.random.random_sample((4, 4))
+    b = np.random.random_sample((4, 2))
+    c = np.random.random_sample((2, 4))
+    d = np.random.random_sample((2, 2))
+    B = btensor.BlockArray([[a, b], [c, d]])
+
+    # Reducing the 2d array gives a 1d array
+    D = np.add.reduce(A)
+    D_ = np.add.reduce(A.to_mono_ndarray())
+    # np.all(np.isclose(D.to_mono_ndarray(), D_))
 
     # Reducing the 1d array should give a 0d array (scalar)
     E = np.add.reduce(D)
@@ -231,12 +197,7 @@ def test_apply_ufunc_accumulate():
 if __name__ == '__main__':
     test_parse_ufunc_signature()
     test_interpret_ufunc_signature()
-    # test_split_shapes_by_signatures()
-    # test_calculate_output_shapes()
     test_gen_in_multi_index()
-    # test_recursive_concatenate()
-    test_apply_ufunc()
-    test_apply_ufunc_reduce()
     test_apply_ufunc_accumulate()
 
     test_broadcast()
