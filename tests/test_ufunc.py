@@ -90,20 +90,6 @@ def setup_ufunc(request):
     """
     return request.param
 
-def setup_2d_inputs():
-    a = np.random.random_sample((4, 4))
-    b = np.random.random_sample((4, 2))
-    c = np.random.random_sample((2, 4))
-    d = np.random.random_sample((2, 2))
-    A = btensor.BlockArray([[a, b], [c, d]])
-
-    a = np.random.random_sample((4, 4))
-    b = np.random.random_sample((4, 2))
-    c = np.random.random_sample((2, 4))
-    d = np.random.random_sample((2, 2))
-    B = btensor.BlockArray([[a, b], [c, d]])
-    return A, B
-
 @pytest.fixture(params=[
     # ( (5,), ((5,)) ), 
     # ( (5,), ((5,)) ), 
@@ -112,21 +98,14 @@ def setup_2d_inputs():
     ( ((2, 4), (3,), (1,)), ((1,), (3,)) ),
     # ( ((2, 4), (2, 4), (1, 1)), ((1, 4), (1, 1)) )
 ])
-def setup_inputs(request):
+def setup_binary_inputs(request):
     A = btensor.rand(request.param[0])
     B = btensor.rand(request.param[1])
     return A, B
-
-# @pytest.fixture(params=[setup_scalar_random_inputs])
-# def setup_inputs(request):
-#     """
-#     Return a pre-defined `LabelledArray` and reference data
-#     """
-#     return request.param()
     
-def test_apply_binary_ufunc(setup_ufunc, setup_inputs):
+def test_apply_binary_ufunc(setup_ufunc, setup_binary_inputs):
     """Test binary ufuncs"""
-    A, B = setup_inputs
+    A, B = setup_binary_inputs
     _ufunc = setup_ufunc
 
     D = ufunc.apply_ufunc_array(_ufunc, '__call__', *[A, B])
@@ -134,59 +113,38 @@ def test_apply_binary_ufunc(setup_ufunc, setup_inputs):
 
     assert np.all(np.isclose(D.to_mono_ndarray(), D_))
 
-def test_apply_ufunc_reduce_2d():
-    a = np.random.random_sample((4, 4))
-    b = np.random.random_sample((4, 2))
-    c = np.random.random_sample((2, 4))
-    d = np.random.random_sample((2, 2))
-    A = btensor.BlockArray([[a, b], [c, d]])
+@pytest.fixture(params=[
+    ((2,),), 
+    ((5, 5, 5),), 
+    ((2, 4), (2, 4)), 
+    (2, (2, 4)), 
+    ((1,), (2,3), 4)
+])
+def setup_reduce_inputs(request):
+    A = btensor.rand(request.param)
+    return A
 
-    a = np.random.random_sample((4, 4))
-    b = np.random.random_sample((4, 2))
-    c = np.random.random_sample((2, 4))
-    d = np.random.random_sample((2, 2))
-    B = btensor.BlockArray([[a, b], [c, d]])
+def test_apply_ufunc_reduce(setup_reduce_inputs):
+    A = setup_reduce_inputs
 
     # Reducing the 2d array gives a 1d array
     D = np.add.reduce(A)
     D_ = np.add.reduce(A.to_mono_ndarray())
     np.all(np.isclose(D.to_mono_ndarray(), D_))
 
-def test_apply_ufunc_reduce_1d():
-    a = np.random.random_sample((4, 4))
-    b = np.random.random_sample((4, 2))
-    c = np.random.random_sample((2, 4))
-    d = np.random.random_sample((2, 2))
-    A = btensor.BlockArray([[a, b], [c, d]])
+@pytest.fixture(params=[
+    ((2,),), 
+    ((5, 5, 5),), 
+    ((2, 4), (2, 4)), 
+    (2, (2, 4)),
+    ((1,), (2,3), 4)
+])
+def setup_accumulate_inputs(request):
+    A = btensor.rand(request.param)
+    return A
 
-    a = np.random.random_sample((4, 4))
-    b = np.random.random_sample((4, 2))
-    c = np.random.random_sample((2, 4))
-    d = np.random.random_sample((2, 2))
-    B = btensor.BlockArray([[a, b], [c, d]])
-
-    # Reducing the 2d array gives a 1d array
-    D = np.add.reduce(A)
-    D_ = np.add.reduce(A.to_mono_ndarray())
-    # np.all(np.isclose(D.to_mono_ndarray(), D_))
-
-    # Reducing the 1d array should give a 0d array (scalar)
-    E = np.add.reduce(D)
-    E_ = np.add.reduce(D.to_mono_ndarray())
-    np.all(np.isclose(E.to_mono_ndarray(), E_))
-
-def test_apply_ufunc_accumulate():
-    a = np.random.random_sample((4, 4))
-    b = np.random.random_sample((4, 2))
-    c = np.random.random_sample((2, 4))
-    d = np.random.random_sample((2, 2))
-    A = btensor.BlockArray([[a, b], [c, d]])
-
-    a = np.random.random_sample((4, 4))
-    b = np.random.random_sample((4, 2))
-    c = np.random.random_sample((2, 4))
-    d = np.random.random_sample((2, 2))
-    B = btensor.BlockArray([[a, b], [c, d]])
+def test_apply_ufunc_accumulate(setup_accumulate_inputs):
+    A = setup_accumulate_inputs
 
     D = np.add.accumulate(A)
     D_ = np.add.accumulate(A.to_mono_ndarray())
