@@ -572,6 +572,9 @@ def _apply_op_core(
         apply_permutation(_f_bshape(input), perm)
         for input, perm in zip(inputs, permut_ins)
     ]
+
+    # BUG: Have to apply broadcasting rule to core and loops dimensions differently, the below code should only be
+    # applied to the core shape
     for redu_dim_name, redu_dim_info in redu_name_to_in.items():
         redu_bshapes = [_bshape_ins[ii_in][ii_dim] for ii_in, ii_dim in redu_dim_info]
         if not (redu_bshapes[:-1] == redu_bshapes[1:]):
