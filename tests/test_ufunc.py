@@ -104,26 +104,24 @@ def setup_2d_inputs():
     B = btensor.BlockArray([[a, b], [c, d]])
     return A, B
 
-def setup_4d_inputs():
-    a = np.random.random_sample((4, 4, 1, 1))
-    b = np.random.random_sample((4, 2, 1, 1))
-    c = np.random.random_sample((2, 4, 1, 1))
-    d = np.random.random_sample((2, 2, 1, 1))
-    A = btensor.BlockArray([a, b, c, d], shape=(2, 2, 1, 1))
-
-    a = np.random.random_sample((4, 4, 1, 1))
-    b = np.random.random_sample((4, 2, 1, 1))
-    c = np.random.random_sample((2, 4, 1, 1))
-    d = np.random.random_sample((2, 2, 1, 1))
-    B = btensor.BlockArray([a, b, c, d], shape=(2, 2, 1, 1))
+@pytest.fixture(params=[
+    # ( (5,), ((5,)) ), 
+    # ( (5,), ((5,)) ), 
+    ( ((2, 4), (2, 4)), ((2, 4), (2, 4)) ), 
+    ( ((2, 4), (1, 1), (1, 1)), ((1, 1), (1, 1)) ),
+    # ( ((2, 4), (2, 4), (1, 1)), ((1, 4), (1, 1)) )
+])
+def setup_inputs(request):
+    A = btensor.rand(request.param[0])
+    B = btensor.rand(request.param[1])
     return A, B
 
-@pytest.fixture(params=[setup_2d_inputs, setup_4d_inputs])
-def setup_inputs(request):
-    """
-    Return a pre-defined `LabelledArray` and reference data
-    """
-    return request.param()
+# @pytest.fixture(params=[setup_scalar_random_inputs])
+# def setup_inputs(request):
+#     """
+#     Return a pre-defined `LabelledArray` and reference data
+#     """
+#     return request.param()
     
 def test_apply_binary_ufunc(setup_ufunc, setup_inputs):
     """Test binary ufuncs"""

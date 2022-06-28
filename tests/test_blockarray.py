@@ -2,6 +2,7 @@
 Test the operations in blockmath.py
 """
 
+import pytest
 import numpy as np
 
 import blockarray.blockarray as ba
@@ -72,9 +73,14 @@ def test_squeeze():
     dd = A[0:1, :]
     assert dd.squeeze().f_bshape == (4, (4, 2))
 
-def test_ones():
-    A = ba.zeros((5, 5, (1, 4)))
-    assert A.f_bshape == (5, 5, (1, 4))
+@pytest.fixture(params=[
+    (5, 5, (1, 4)), 
+    ((2, 4), (2, 4), (1, 1)),
+    ((2, 4), (2, 4), 1)
+])
+def test_ones(request):
+    A = ba.zeros(request.param)
+    assert A.f_bshape == request.param
 
 def test_ufunc():
     for op in [np.add, np.multiply, np.divide]:
