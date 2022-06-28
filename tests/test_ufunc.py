@@ -48,40 +48,47 @@ def test_gen_in_multi_index():
 
     print(gen_input_midx(out_midx))
 
-def test_broadcast():
-    a = (     1, 2, 3, (4, 5), (5, 6))
-    b = ((2, 3), 2, 1, (4, 5), (1, 1))
-    c = ufunc.broadcast_axis_size(a, b)
-    assert c == ((2, 3), 2, 3, (4, 5), (5, 6))
 
-    a = ( 1,     2,  3,      1, (5, 6))
-    b = (10, (2, 2), 1, (4, 5),   (1,))
-    c = ufunc.broadcast_axis_size(a, b)
-    assert c == (10, (2, 2), 3, (4, 5), (5, 6))
+class TestBroadcast:
+    def test_a(self):
+        a = (     1, 2, 3, (4, 5), (5, 6))
+        b = ((2, 3), 2, 1, (4, 5), (1, 1))
+        c = ufunc.broadcast_axis_size(a, b)
+        assert c == ((2, 3), 2, 3, (4, 5), (5, 6))
 
-    a = (1, (1, (1,)))
-    b = (5, (3,    4))
-    c = ufunc.broadcast_axis_size(a, b)
-    assert c == (5, (3, (4,)))
+    def test_b(self):
+        a = ( 1,     2,  3,      1, (5, 6))
+        b = (10, (2, 2), 1, (4, 5),   (1,))
+        c = ufunc.broadcast_axis_size(a, b)
+        assert c == (10, (2, 2), 3, (4, 5), (5, 6))
 
-    a =    (1, 1, 2)
-    b = (6, 5, 4, 2)
-    c =       (4, 1)
-    d = ufunc.broadcast(ufunc.broadcast_axis_size, (a, b, c))
-    print(d)
+    def test_c(self):
+        a = (1, (1, (1,)))
+        b = (5, (3,    4))
+        c = ufunc.broadcast_axis_size(a, b)
+        assert c == (5, (3, (4,)))
 
-    a =    ((5, 4), (2, 2), (1, 4))
-    b = (6, (5, 1), (2, 2), (4, 1))
-    c =                        (4,)
-    d = ufunc.broadcast(ufunc.broadcast_axis_size, (a, b, c))
-    print(d)
+    def test_d(self):
+        a =    (1, 1, 2)
+        b = (6, 5, 4, 2)
+        c =       (4, 1)
+        d = ufunc.broadcast(ufunc.broadcast_axis_size, (a, b, c))
+        print(d)
 
-    # Expect this case to not work
-    # a =    ((5, 4),    (2, 2), (1, 4))
-    # b = (6, (5, 1), (3, 2, 2), (4, 1))
-    # c =                        (4,)
-    # d = ufunc.broadcast(ufunc.broadcast_size, a, b, c)
-    # print(d)
+        a =    ((5, 4), (2, 2), (1, 4))
+        b = (6, (5, 1), (2, 2), (4, 1))
+        c =                        (4,)
+        d = ufunc.broadcast(ufunc.broadcast_axis_size, (a, b, c))
+        print(d)
+
+    def test_e(self):
+        # Expect this case to not work
+        with pytest.raises(ValueError) as exc:
+            a =    ((5, 4),    (2, 2), (1, 4))
+            b = (6, (5, 1), (3, 2, 2), (4, 1))
+            c =                        (4,)
+            d = ufunc.broadcast(ufunc.broadcast_size, a, b, c)
+            print(d)
 
 @pytest.fixture(params=[np.matmul, np.add, np.subtract, np.multiply, np.divide])
 def setup_ufunc(request):
