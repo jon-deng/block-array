@@ -572,16 +572,7 @@ def _apply_op_core(
         apply_permutation(_f_bshape(input), perm)
         for input, perm in zip(inputs, permut_ins)
     ]
-
-    # BUG: Have to apply broadcasting rule to core and loops dimensions differently, the below code should only be
-    # applied to the core shape
-    for redu_dim_name, redu_dim_info in redu_name_to_in.items():
-        redu_bshapes = [_bshape_ins[ii_in][ii_dim] for ii_in, ii_dim in redu_dim_info]
-        if not (redu_bshapes[:-1] == redu_bshapes[1:]):
-            raise ValueError(
-                f"Core dimension {redu_dim_name} has incompatible block shapes"
-                f"of {redu_bshapes}."
-            )
+    _f_bshape_out = broadcast_dims(broadcast_axis_size, _bshape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
 
     ## Compute the output shape from the input shape and signature
     # the _ prefix means the permuted shape-type tuple with core dimensions at
