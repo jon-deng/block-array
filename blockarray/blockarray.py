@@ -521,7 +521,7 @@ zeros = make_create_array(np.zeros)
 
 ones = make_create_array(np.ones)
 
-rand = make_create_array(np.random.rand)
+rand = make_create_array(lambda shape: np.random.rand(*shape))
 
 ## Binary operations
 def _validate_elementwise_binary_op(a: BlockArray[T], b: BlockArray[T]):
