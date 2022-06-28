@@ -23,13 +23,6 @@ def test_interpret_ufunc_signature():
     sig_outputs = [('i', 'k')]
     print(ufunc.interpret_ufunc_signature(sig_inputs, sig_outputs))
 
-# def test_split_shapes_by_signatures():
-#     shape_inputs = [(2, 3, 2, 4), (2, 3, 4, 2)]
-#     sig_inputs = [('i', 'j'), ('j', 'k')]
-
-#     print(ufunc.split_shapes_by_signatures(shape_inputs, sig_inputs))
-#     # shape_outputs = []
-
 def test_gen_in_multi_index():
     sig_inputs = [('i', 'j'), ('j', 'k')]
     sig_outputs = [('i', 'k')]
@@ -164,4 +157,4 @@ if __name__ == '__main__':
     test_gen_in_multi_index()
     test_apply_ufunc_accumulate()
 
-    test_broadcast()
+    # test_broadcast()
