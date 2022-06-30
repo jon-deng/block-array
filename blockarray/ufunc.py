@@ -340,7 +340,7 @@ def broadcast(broadcast_op: Callable[[V, V], V], *inputs: Tuple[V, ...]) -> Tupl
     """
     Broadcast tuples of inputs using a specified broadcast operation
 
-    The `broadcast_op` is used to broadcast each dimension/axis of the input 
+    The `broadcast_op` is used to broadcast each dimension/axis of the input
     tuples against each other, similar to broadcasting of numpy shape tuples.
     """
     rev_inputs = [input[::-1] for input in inputs]
@@ -517,7 +517,7 @@ def _apply_ufunc_accumulate(ufunc: np.ufunc, *inputs: Input[T], **kwargs):
     if 'axis' not in kwargs:
         kwargs['axis'] = 0
     axis = kwargs['axis']
-    axes = [(axis,), (axis,), ()]
+    axes = [(axis,), (axis,)]
 
     return _apply_op_core(ufunc.accumulate, signature, axes, *inputs, **kwargs)
 
