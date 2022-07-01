@@ -52,7 +52,7 @@ def parse_ufunc_signature(
         sig_str: str
     ) -> Tuple[Signatures, Signatures]:
     """
-    Parse a ufunc signature string into a nicer format
+    Parse a `ufunc.signature` string into a nicer format
 
     For a ufunc signature string:
         `'(i,j),(j,k)->(i,k)'`
@@ -93,7 +93,7 @@ def interpret_ufunc_signature(
         Mapping[str, List[Tuple[int, int]]]
     ]:
     """
-    Interprets a ufunc signature
+    Interprets a `ufunc` signature
 
     This returns dictionaries containing information on the 'free' and
     'reduced' axes/dimensions. 'free' dimensions correspond to labels that occur
@@ -369,9 +369,26 @@ def broadcast_dims(
     """
     Broadcast a set of dimension tuples
 
-    The dimension tuples are tuples describing properties of each axis of an
+    A dimension tuple is a tuple contaning information about each axis of an
     n-d array. A common example is the `.shape` attribute for `numpy.ndarray`
     which stores the size of each axis as an integer.
+
+    The dimension
+
+    Parameters
+    ----------
+    broadcast_op: Callable
+        An operation which returns the broadcasted result from two axis descriptors
+        of the dimension tuple.
+    std_in_dims: Tuple
+        A dimension tuple describing some property of each axis of the input.
+        The dimension tuple must be in standard order; loop dimensions are first
+        followed by core dimenions being last.
+    sig_ins, sig_outs:
+        Input and output signatures
+    free_name_to_in:
+        A mapping from free axis labels to associated inputs, as returned by
+        `interpret_ufunc_signature`.
     """
     loop_dims = [dims[:len(dims)-len(sig)] for dims, sig in zip(std_in_dims, sig_ins)]
     core_dims = [dims[len(dims)-len(sig):] for dims, sig in zip(std_in_dims, sig_ins)]
@@ -440,7 +457,7 @@ def unsqueeze_shape(shape: typing.Shape) -> typing.Shape:
 # Ufunc routines
 def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs: Input[T], **kwargs):
     """
-    Apply a ufunc on sequence of BlockArray inputs
+    Apply a ufunc on BlockArray inputs
     """
     ## Validate inputs
     # Check input types
