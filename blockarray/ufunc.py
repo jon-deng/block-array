@@ -625,8 +625,10 @@ def _apply_op_blockwise(
     # inputs = [x for x in inputs if not isinstance(x, Number)]
     sig_ins = [sig for x, sig in zip(inputs, sig_ins)]
 
-    # BUG: `shape_ins` should be in standard order with core dimensions at the end!
-    gen_in_midx = make_gen_in_multi_index(shape_ins, sig_ins, sig_out)
+    # `shape_ins` must be in standard order with core dimensions at the end
+    # since this is how `make_gen_in_multi_index` works
+    _shape_ins = [apply_permutation(shape, perm) for shape, perm in zip(shape_ins, permut_ins)]
+    gen_in_midx = make_gen_in_multi_index(_shape_ins, sig_ins, sig_out)
 
     subarrays_out = []
 
