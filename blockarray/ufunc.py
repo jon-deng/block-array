@@ -361,10 +361,9 @@ def broadcast(broadcast_op: Callable[[V, V], V], *inputs: Tuple[V, ...]) -> Tupl
 
 def broadcast_dims(
         broadcast_op: Callable[[V, V], V],
-        input_dims: Tuple[V, ...],
+        std_in_dims: Tuple[V, ...],
         sig_ins: Signatures,
         sig_outs: Signatures,
-        permut_ins: List[List[int]],
         free_name_to_in: Mapping[str, Tuple[int, int]],
     ):
     """
@@ -374,11 +373,8 @@ def broadcast_dims(
     n-d array. A common example is the `.shape` attribute for `numpy.ndarray`
     which stores the size of each axis as an integer.
     """
-    _in_dims = [
-        apply_permutation(dims, perm) for dims, perm in zip(input_dims, permut_ins)
-    ]
-    loop_dims = [dims[:len(dims)-len(sig)] for dims, sig in zip(_in_dims, sig_ins)]
-    core_dims = [dims[len(dims)-len(sig):] for dims, sig in zip(_in_dims, sig_ins)]
+    loop_dims = [dims[:len(dims)-len(sig)] for dims, sig in zip(std_in_dims, sig_ins)]
+    core_dims = [dims[len(dims)-len(sig):] for dims, sig in zip(std_in_dims, sig_ins)]
     out_loop_dims = broadcast(broadcast_op, *loop_dims)
 
     out_core_dims = [
@@ -577,14 +573,17 @@ def _apply_op_core(
 
     ## Determine the output `f_shape` and `f_labels`
     f_shape_ins = [_f_shape(input) for input in inputs]
-    std_f_shape_outs = broadcast_dims(broadcast_axis_size, f_shape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
+    std_f_shape_ins = [apply_permutation(x, perm) for x, perm in zip(f_shape_ins, permut_ins)]
+    std_f_shape_outs = broadcast_dims(broadcast_axis_size, std_f_shape_ins, sig_ins, sig_outs, free_name_to_in)
 
     f_label_ins = [_f_labels(input) for input in inputs]
-    std_f_labels_outs = broadcast_dims(broadcast_axis_labels, f_label_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
+    std_f_label_ins = [apply_permutation(x, perm) for x, perm in zip(f_label_ins, permut_ins)]
+    std_f_labels_outs = broadcast_dims(broadcast_axis_labels, std_f_label_ins, sig_ins, sig_outs, free_name_to_in)
 
     ## Check that reduced dimensions have compatible bshapes
     f_bshape_ins = [_f_bshape(input) for input in inputs]
-    std_f_bshape_out = broadcast_dims(broadcast_axis_size, f_bshape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
+    std_f_bshape_ins = [apply_permutation(x, perm) for x, perm in zip(f_bshape_ins, permut_ins)]
+    std_f_bshape_out = broadcast_dims(broadcast_axis_size, std_f_bshape_ins, sig_ins, sig_outs, free_name_to_in)
 
     ## Compute the output shape from the input shape and signature
     # the _ prefix means the permuted shape-type tuple with core dimensions at
