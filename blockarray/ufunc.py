@@ -248,6 +248,16 @@ def apply_permutation(arg: Union[List[T], Tuple[T]], perm: Perm) -> Union[List[T
 
         return type(arg)([arg[ii] for ii in perm])
 
+def undo_permutation(arg: Union[List[T], Tuple[T]], perm: Perm) -> Union[List[T], Tuple[T]]:
+    """
+    Return a permutation of a list
+    """
+    # create a reverse permutation
+    undo_perm = [None]*len(perm)
+    for ii, idx in enumerate(perm):
+        undo_perm[idx] = ii
+    return apply_permutation(arg, tuple(undo_perm))
+
 def conv_neg(n: int, size: int) -> int:
     """
     Convert a negative integer index to the equivalent positive one
@@ -584,11 +594,11 @@ def _apply_op_core(
     shape_ins = [input.shape for input in inputs]
 
     labels_outs = [
-        apply_permutation(labels, perm)
+        undo_permutation(labels, perm)
         for labels, perm in zip(_f_labels_outs, permut_outs)
     ]
     shape_outs = [
-        apply_permutation(shape, perm)
+        undo_permutation(shape, perm)
         for shape, perm in zip(_f_shape_outs, permut_outs)
     ]
 
@@ -636,7 +646,7 @@ def _apply_op_blockwise(
         _midx_out = apply_permutation(midx_out, perm_out)
         _midx_ins = gen_in_midx(_midx_out)
         midx_ins = [
-            apply_permutation(_idx, perm)
+            undo_permutation(_idx, perm)
             for _idx, perm in zip(_midx_ins, permut_ins)
         ]
         subarray_ins = [
