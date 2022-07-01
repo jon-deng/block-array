@@ -160,7 +160,7 @@ def interpret_ufunc_signature(
 
 ## Output shape/indexing function
 def make_gen_in_multi_index(
-        shape_ins: List[int],
+        std_shape_ins: List[int],
         sig_ins: Signatures,
         sig_out: Signature
     ) -> Callable[[typing.MultiIntIndex], typing.MultiStdIndex]:
@@ -171,7 +171,7 @@ def make_gen_in_multi_index(
 
     loop_ndim_ins = [
         len(shape_in)-len(sig_in)
-        for shape_in, sig_in in zip(shape_ins, sig_ins)
+        for shape_in, sig_in in zip(std_shape_ins, sig_ins)
     ]
     def gen_in_multi_index(out_multi_idx):
         """
@@ -202,7 +202,7 @@ def make_gen_in_multi_index(
         # input axes with size 1, against output axes with size > 1
         # The `[len(l_midx_outs)-n:]` takes care of broadcasting missing input
         # axes against non-missing output axes
-        l_shape_ins = [shape[:len(shape)-len(sig)] for shape, sig in zip(shape_ins, sig_ins)]
+        l_shape_ins = [shape[:len(shape)-len(sig)] for shape, sig in zip(std_shape_ins, sig_ins)]
         l_midx_ins = [
             # Convert to int here because indexing doesn't handle np.int types well
             tuple(
@@ -438,6 +438,9 @@ def unsqueeze(array: Input[T]) -> Input[T]:
     else:
         return array.unsqueeze()
 
+def unsqueeze_shape(shape: typing.Shape) -> typing.Shape:
+    return tuple(ax_size if ax_size != -1 else 1 for ax_size in shape)
+
 # Ufunc routines
 def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs: Input[T], **kwargs):
     """
@@ -550,8 +553,9 @@ def _apply_op_core(
     # This permutation shifts core dimensions to the 'standard' location as
     # the final dimensions of the array
     ndim_ins = [_f_ndim(input) for input in inputs]
-    _loop_ndim_ins = [ndim-len(sig) for ndim, sig in zip(ndim_ins, sig_ins)]
-    ndim_outs = [max(_loop_ndim_ins)+len(sig) for sig in sig_outs]
+    core_ndim_ins = [len(sig) for sig in sig_ins]
+    loop_ndim_ins = [ndim-core_ndim for ndim, core_ndim in zip(ndim_ins, core_ndim_ins)]
+    ndim_outs = [max(loop_ndim_ins)+len(sig) for sig in sig_outs]
     ndims = ndim_ins + ndim_outs
 
     # TODO: be careful to convert `axs` to full axes arguments
@@ -562,7 +566,8 @@ def _apply_op_core(
 
     # Compute the shape permutation from axes
     # This permutes the axis sizes in shape so the core dimensions are at the end
-    # and elementwise dimensions are at the beginning
+    # and loop dimensions are at the beginning
+    # dimensions tuples that are in this format are prefixed by `std_`
     permuts = [
         tuple([ii for ii in range(ndim) if ii not in set(axs)]) + axs
         for axs, ndim in zip(axes, ndims)
@@ -572,17 +577,14 @@ def _apply_op_core(
 
     ## Determine the output `f_shape` and `f_labels`
     f_shape_ins = [_f_shape(input) for input in inputs]
-    _f_shape_outs = broadcast_dims(broadcast_axis_size, f_shape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
+    std_f_shape_outs = broadcast_dims(broadcast_axis_size, f_shape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
 
     f_label_ins = [_f_labels(input) for input in inputs]
-    _f_labels_outs = broadcast_dims(broadcast_axis_labels, f_label_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
+    std_f_labels_outs = broadcast_dims(broadcast_axis_labels, f_label_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
 
     ## Check that reduced dimensions have compatible bshapes
-    _bshape_ins = [
-        apply_permutation(_f_bshape(input), perm)
-        for input, perm in zip(inputs, permut_ins)
-    ]
-    _f_bshape_out = broadcast_dims(broadcast_axis_size, _bshape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
+    f_bshape_ins = [_f_bshape(input) for input in inputs]
+    std_f_bshape_out = broadcast_dims(broadcast_axis_size, f_bshape_ins, sig_ins, sig_outs, permut_ins, free_name_to_in)
 
     ## Compute the output shape from the input shape and signature
     # the _ prefix means the permuted shape-type tuple with core dimensions at
@@ -595,20 +597,20 @@ def _apply_op_core(
 
     labels_outs = [
         undo_permutation(labels, perm)
-        for labels, perm in zip(_f_labels_outs, permut_outs)
+        for labels, perm in zip(std_f_labels_outs, permut_outs)
     ]
     shape_outs = [
         undo_permutation(shape, perm)
-        for shape, perm in zip(_f_shape_outs, permut_outs)
+        for shape, perm in zip(std_f_shape_outs, permut_outs)
     ]
 
     ## Compute the outputs block wise by looping over inputs
     outputs = []
     for f_shape_out, labels_out, sig_out, perm_out in zip(shape_outs, labels_outs, sig_outs, permut_outs):
         # Unsqueeze the output shape as well
-        _shape_out = tuple(ax_size if ax_size != -1 else 1 for ax_size in f_shape_out)
+        shape_out = unsqueeze_shape(f_shape_out)
         subarrays_out = _apply_op_blockwise(
-            ufunc, inputs, shape_ins, sig_ins, sig_out, _shape_out, perm_out, permut_ins, op_kwargs=kwargs)
+            ufunc, inputs, shape_ins, shape_out, sig_ins, sig_out, perm_out, permut_ins, op_kwargs=kwargs)
         outputs.append((subarrays_out, f_shape_out, labels_out))
 
     return outputs
@@ -617,9 +619,9 @@ def _apply_op_blockwise(
         op,
         inputs: List[Input[T]],
         shape_ins: Shapes,
+        shape_out: typing.Shape,
         sig_ins: Signatures,
         sig_out: Signatures,
-        shape_out: typing.Shape,
         perm_out: Perm,
         permut_ins: List[Perm],
         op_kwargs=None
@@ -627,27 +629,19 @@ def _apply_op_blockwise(
     """
     Return the subarrays from applying an operation over blocks of `BlockArray`s
     """
-    ## Remove any scalar inputs from the list of inputs/signatures
-    # These should be put back in when the ufunc is computed on subarrays
-    # scalar_descr_inputs = [(ii, x) for ii, x in enumerate(inputs) if isinstance(x, Number)]
-    # inputs = [x for x in inputs if not isinstance(x, Number)]
-    # sig_ins = [sig for x, sig in zip(inputs, sig_ins) if not isinstance(x, Number)]
-    # inputs = [x for x in inputs if not isinstance(x, Number)]
-    sig_ins = [sig for x, sig in zip(inputs, sig_ins)]
-
     # `shape_ins` must be in standard order with core dimensions at the end
     # since this is how `make_gen_in_multi_index` works
-    _shape_ins = [apply_permutation(shape, perm) for shape, perm in zip(shape_ins, permut_ins)]
-    gen_in_midx = make_gen_in_multi_index(_shape_ins, sig_ins, sig_out)
+    std_shape_ins = [apply_permutation(shape, perm) for shape, perm in zip(shape_ins, permut_ins)]
+    gen_in_midx = make_gen_in_multi_index(std_shape_ins, sig_ins, sig_out)
 
     subarrays_out = []
 
     def _apply_output_op(inputs, midx_out, permut_ins, perm_out, **op_kwargs):
-        _midx_out = apply_permutation(midx_out, perm_out)
-        _midx_ins = gen_in_midx(_midx_out)
+        std_midx_out = apply_permutation(midx_out, perm_out)
+        std_midx_ins = gen_in_midx(std_midx_out)
         midx_ins = [
-            undo_permutation(_idx, perm)
-            for _idx, perm in zip(_midx_ins, permut_ins)
+            undo_permutation(idx, perm)
+            for idx, perm in zip(std_midx_ins, permut_ins)
         ]
         subarray_ins = [
             input[midx_in] for input, midx_in in zip(inputs, midx_ins)
