@@ -84,78 +84,74 @@ class TestBroadcast:
             d = ufunc.broadcast(ufunc.broadcast_size, a, b, c)
             print(d)
 
-@pytest.fixture(params=[np.matmul, np.add, np.subtract, np.multiply, np.divide])
-def setup_ufunc(request):
-    """
-    Return a pre-defined `LabelledArray` and reference data
-    """
-    return request.param
+class TestUfunc:
+    @pytest.fixture(params=[np.matmul, np.add, np.subtract, np.multiply, np.divide])
+    def setup_ufunc(self, request):
+        """
+        Return a pre-defined `LabelledArray` and reference data
+        """
+        return request.param
 
-@pytest.fixture(params=[
-    # ( (5,), ((5,)) ),
-    # ( (5,), ((5,)) ),
-    ( ((2, 4), (2, 4)), ((2, 4), (2, 4)) ),
-    ( ((2, 4), (1,), (1,)), ((1,), (1,)) ),
-    ( ((2, 4), (3,), (1,)), ((1,), (3,)) ),
-    # ( ((2, 4), (2, 4), (1, 1)), ((1, 4), (1, 1)) )
-])
-def setup_binary_inputs(request):
-    A = btensor.rand(request.param[0])
-    B = btensor.rand(request.param[1])
-    return A, B
+    @pytest.fixture(params=[
+        # [(5,), ((5,))],
+        # [(5,), ((5,))],
+        [ ((2, 4), (2, 4)), ((2, 4), (2, 4)) ],
+        [ ((2, 4), (1,), (1,)), ((1,), (1,)) ],
+        [ ((2, 4), (3,), (1,)), ((1,), (3,)) ],
+        # ( ((2, 4), (2, 4), (1, 1)), ((1, 4), (1, 1)) )
+    ])
+    def setup_binary_inputs(self, request):
+        A = btensor.rand(request.param[0])
+        B = btensor.rand(request.param[1])
+        return A, B
 
-def test_apply_binary_ufunc(setup_ufunc, setup_binary_inputs):
-    """Test binary ufuncs"""
-    A, B = setup_binary_inputs
-    _ufunc = setup_ufunc
+    def test_apply_binary_ufunc(self, setup_ufunc, setup_binary_inputs):
+        """Test binary ufuncs"""
+        A, B = setup_binary_inputs
+        _ufunc = setup_ufunc
 
-    D = ufunc.apply_ufunc_array(_ufunc, '__call__', *[A, B])
-    D_ = _ufunc(A.to_mono_ndarray(), B.to_mono_ndarray())
+        D = ufunc.apply_ufunc_array(_ufunc, '__call__', *[A, B])
+        D_ = _ufunc(A.to_mono_ndarray(), B.to_mono_ndarray())
 
-    assert np.all(np.isclose(D.to_mono_ndarray(), D_))
+        assert np.all(np.isclose(D.to_mono_ndarray(), D_))
 
-@pytest.fixture(params=[
-    ((2,),),
-    ((5, 5, 5),),
-    ((2, 4), (2, 4)),
-    (2, (2, 4)),
-    ((1,), (2,3), 4)
-])
-def setup_reduce_inputs(request):
-    A = btensor.rand(request.param)
-    return A
+    @pytest.fixture(params=[
+        ((2,),),
+        ((5, 5, 5),),
+        ((2, 4), (2, 4)),
+        (2, (2, 4)),
+        ((1,), (2,3), 4)
+    ])
+    def setup_reduce_inputs(self, request):
+        A = btensor.rand(request.param)
+        return A
 
-def test_apply_ufunc_reduce(setup_reduce_inputs):
-    A = setup_reduce_inputs
+    def test_apply_ufunc_reduce(self, setup_reduce_inputs):
+        A = setup_reduce_inputs
 
-    # Reducing the 2d array gives a 1d array
-    D = np.add.reduce(A, axis=-1)
-    D_ = np.add.reduce(A.to_mono_ndarray(), axis=-1)
-    np.all(np.isclose(D.to_mono_ndarray(), D_))
+        # Reducing the 2d array gives a 1d array
+        D = np.add.reduce(A, axis=-1)
+        D_ = np.add.reduce(A.to_mono_ndarray(), axis=-1)
+        np.all(np.isclose(D.to_mono_ndarray(), D_))
 
-@pytest.fixture(params=[
-    ((2,),),
-    ((5, 5, 5),),
-    ((2, 4), (2, 4)),
-    (2, (2, 4)),
-    ((1,), (2,3), 4)
-])
-def setup_accumulate_inputs(request):
-    A = btensor.rand(request.param)
-    return A
+    @pytest.fixture(params=[
+        ((2,),),
+        ((5, 5, 5),),
+        ((2, 4), (2, 4)),
+        (2, (2, 4)),
+        ((1,), (2,3), 4)
+    ])
+    def setup_accumulate_inputs(self, request):
+        A = btensor.rand(request.param)
+        return A
 
-def test_apply_ufunc_accumulate(setup_accumulate_inputs):
-    A = setup_accumulate_inputs
+    def test_apply_ufunc_accumulate(self, setup_accumulate_inputs):
+        A = setup_accumulate_inputs
 
-    D = np.add.accumulate(A, axis=-1)
-    D_ = np.add.accumulate(A.to_mono_ndarray(), axis=-1)
-    np.all(np.isclose(D.to_mono_ndarray(), D_))
+        D = np.add.accumulate(A, axis=-1)
+        D_ = np.add.accumulate(A.to_mono_ndarray(), axis=-1)
+        np.all(np.isclose(D.to_mono_ndarray(), D_))
 
 
 if __name__ == '__main__':
-    test_parse_ufunc_signature()
-    test_interpret_ufunc_signature()
-    test_gen_in_multi_index()
-    test_apply_ufunc_accumulate()
-
-    # test_broadcast()
+    pass
