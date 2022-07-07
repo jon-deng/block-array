@@ -12,11 +12,12 @@ SIGNATURE = '(i,j),(j,k)->(i, k)'
 
 def test_parse_ufunc_signature():
     sig = SIGNATURE
-    input_sigs, output_sig = ufunc.parse_ufunc_signature(sig)
+    input_sigs, output_sigs = ufunc.parse_ufunc_signature(sig)
 
-    print(sig)
-    print(input_sigs)
-    print(output_sig)
+    assert (
+        input_sigs == [('i', 'j'), ('j', 'k')] 
+        and output_sigs == [('i', 'k')]
+    )
 
 def test_interpret_ufunc_signature():
     sig_inputs = [('i', 'j'), ('j', 'k')]
@@ -64,17 +65,17 @@ class TestBroadcast:
     def test_d(self):
         a =    (1, 1, 2)
         b = (6, 5, 4, 2)
-        c =       (4, 1)
-        d = ufunc.broadcast(ufunc.broadcast_axis_size, (a, b, c))
-        print(d)
-
-        a =    ((5, 4), (2, 2), (1, 4))
-        b = (6, (5, 1), (2, 2), (4, 1))
-        c =                        (4,)
-        d = ufunc.broadcast(ufunc.broadcast_axis_size, (a, b, c))
-        print(d)
+        d = ufunc.broadcast(ufunc.broadcast_axis_size, a, b)
+        assert d == (6, 5, 4, 2)
 
     def test_e(self):
+        a =    (1, 1, 2)
+        b = (6, 5, 4, 2)
+        c =       (4, 1)
+        d = ufunc.broadcast(ufunc.broadcast_axis_size, a, b, c)
+        assert d == (6, 5, 4, 2)
+
+    def test_f(self):
         # Expect this case to not work
         with pytest.raises(ValueError) as exc:
             a =    ((5, 4),    (2, 2), (1, 4))
