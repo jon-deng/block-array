@@ -468,6 +468,15 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs: Input[T], **kwargs)
         input_types = [type(x) for x in inputs]
         raise TypeError(f"Inputs must be of type `scalar` or `BlockArray`, not {input_types}")
 
+    # Convert any scalar inputs to `numpy` equivalents so that they can be indexed, etc.
+    def require_array(x):
+        if isinstance(x, Number):
+            # The index makes sure the result is a `numpy` scalar, not 0D array
+            return np.array(x)[()]
+        else:
+            return x
+    inputs = [require_array(input) for input in inputs]
+
     if method == '__call__':
         outputs = _apply_ufunc_call(ufunc, *inputs, **kwargs)
     elif method == 'reduce':
