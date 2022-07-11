@@ -88,6 +88,25 @@ class BlockArray(Generic[T]):
         The `LabelledArray` instance used to store the subtensors in a block
         format
     """
+    def __new__(
+            cls,
+            subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
+            shape: Optional[Shape]=None,
+            labels: Optional[MultiLabels]=None
+        ):
+        if isinstance(subarrays, larr.LabelledArray):
+            shape = subarrays.f_shape
+
+        # Return a subarray instance if an explicit `shape` indicates all
+        # block axes are collapsed
+        # i.e. if `shape=(-1, -1, ..., -1)` then just return the single subarray
+        if shape is not None:
+            if shape == (-1,)*len(shape):
+                assert len(subarrays) == 1
+                return subarrays[0]
+        
+        return object.__new__(cls)
+
     def __init__(
             self,
             subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
@@ -95,21 +114,23 @@ class BlockArray(Generic[T]):
             labels: Optional[MultiLabels]=None
         ):
 
+        # Set the `_larray` attribute
         if isinstance(subarrays, larr.LabelledArray):
             self._larray = subarrays
         elif isinstance(subarrays, (list, tuple)):
             flat_array, _shape = larr.flatten_array(subarrays)
             if shape is None:
-                # If a shape is not provided, assume `array` is a nested
-                # array representation
+                # If an explicit shape is not provided, assume `subarrays` is a 
+                # nested array and the shape is the nested shape
                 shape = _shape
-            elif len(_shape) > 1:
-                # If a shape is provided for a nested array, check that nested
-                # array shape and provided shape are compatible
-                if shape != _shape:
+            else:
+                # If a shape is provided, ensure that `subarrays` doesn't also 
+                # imply a shape
+                if len(_shape) > 1:
                     raise ValueError(
-                        "Nested array shape {_shape} and provided shape {shape}"
-                        "are not compatible")
+                        "Both nested array shape {_shape} and explicit shape {shape}"
+                        " were provided."
+                    )
             self._larray = larr.LabelledArray(flat_array, shape, labels)
         else:
             raise TypeError(
