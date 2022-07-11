@@ -492,13 +492,14 @@ def _require_tuple(ax_bshape):
 
 def make_create_array(create_numpy_array):
     """
-    Derivate an array creation routine from a `numpy` creation routine
+    Derive a `BlockArray` creation routine from a `numpy` creation routine
 
     Parameters
     ----------
     create_numpy_array :
         A numpy array creation routine with the signature
         `create_numpy_array(shape, *args, **kwargs)`
+        Examples are `np.zeros`, `np.ones`, etc.
     """
     def create_subarray(sub_shape):
         if all(isinstance(axsize, int) for axsize in sub_shape):
