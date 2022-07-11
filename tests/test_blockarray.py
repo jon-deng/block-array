@@ -20,6 +20,11 @@ c = 2 * np.ones((2, 4))
 d = 2 * np.ones((2, 2))
 B = ba.BlockArray([[a, b], [c, d]])
 
+def test_create_collapsed():
+    a = np.ones((2, 2))
+    A = ba.BlockArray([a], shape=(-1, -1))
+    assert (A is a)
+
 def test_index():
     assert np.all(B[0, 0] == a)
     assert np.all(B[0, 1] == b)
