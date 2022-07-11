@@ -460,6 +460,8 @@ def _validate_subarray_shapes_from_larray(
     # dimensions)
     ndim = len(bshape)
     if ndim > 1:
+        # TODO: Replace with multiplication-table type check; 
+        # the current check is hard to understand and loops more than needed
         # no need to check compatibility for 1 dimensional tensors
         for idx_ax, bsizes in enumerate(bshape):
             for idx_block, bsize in enumerate(bsizes):
