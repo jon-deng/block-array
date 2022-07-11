@@ -129,14 +129,6 @@ class BlockArray(Generic[T]):
                 # If an explicit shape is not provided, assume `subarrays` is a 
                 # nested array and the shape is the nested shape
                 shape = _shape
-            else:
-                # If a shape is provided, ensure that `subarrays` doesn't also 
-                # imply a shape
-                if len(_shape) > 1:
-                    raise ValueError(
-                        "Both nested array shape {_shape} and explicit shape {shape}"
-                        " were provided."
-                    )
             self._larray = larr.LabelledArray(flat_array, shape, labels)
         else:
             raise TypeError(
