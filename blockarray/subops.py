@@ -57,6 +57,9 @@ else:
 
 ## Core operations for computing size and shape of the various array types
 
+def ndim(array: T) -> int:
+    return len(shape(array))
+
 def size(array: T) -> int:
     """
     Return the size of an array (total number of elements)

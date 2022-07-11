@@ -94,16 +94,22 @@ class BlockArray(Generic[T]):
             shape: Optional[Shape]=None,
             labels: Optional[MultiLabels]=None
         ):
+        # Get the flat list of subarrays and the shape to validate the shape
         if isinstance(subarrays, larr.LabelledArray):
+            flat_subarrays = subarrays.flat
             shape = subarrays.f_shape
+        elif isinstance(subarrays, (list, tuple)):
+            flat_subarrays, _shape = larr.flatten_array(subarrays)
+            if shape is None:
+                shape = _shape
+        _validate_shape(gops.ndim(flat_subarrays[0]), shape)
 
         # Return a subarray instance if an explicit `shape` indicates all
         # block axes are collapsed
         # i.e. if `shape=(-1, -1, ..., -1)` then just return the single subarray
-        if shape is not None:
-            if shape == (-1,)*len(shape):
-                assert len(subarrays) == 1
-                return subarrays[0]
+        if shape == (-1,)*len(shape):
+            assert len(flat_subarrays) == 1
+            return flat_subarrays[0]
         
         return object.__new__(cls)
 
@@ -478,6 +484,10 @@ def _validate_subarray_shapes_from_larray(
                 # compute the block sizes of all the remaining dimensions
                 valid_bsizes = [bsize == _bsize for _bsize in ascblock_sizes]
                 assert all(valid_bsizes)
+
+def _validate_shape(ndim, shape):
+    if len(shape) != ndim:
+        raise ValueError(f"`shape` {shape} must have same number of dimensions as {ndim:d}")
 
 def axis_size(size):
     """
