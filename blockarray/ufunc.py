@@ -568,15 +568,52 @@ def _apply_ufunc_outer(ufunc: np.ufunc, *inputs: Input[T], **kwargs):
 def _apply_op_core(
         ufunc,
         signature: str,
-        baxes: typing.Shape,
+        baxes: List[typing.Shape],
         *inputs: Input[T],
         **kwargs
     ) -> List[Tuple[List[T], typing.Shape, typing.Labels]]:
     """
     Return the result of applying a function of `numpy` subarrays 
+
+    Parameters
+    ----------
+    ufunc :
+        The numpy ufunc-like function to apply on the inputs. This includes the 
+        ufunc methods `ufunc.reduce`, `ufunc.accumulate`, etc...
+    signature :
+        The signature of the ufunc (see documentation for generalized universal
+        functions in numpy).
+    baxes :
+        The equivalent of the 'axes' keyword argument for `np.ufunc`. `baxes` 
+        and `kwargs['axes']` must be consistent for the resulting operation to 
+        make sense as the axes of the blocks and the axes of the subarrays are 
+        the same.
+
+        This is included as a separate argument since ufunc methods 
+        (`ufunc.reduce`, etc.) don't have an `axes` keyword argument, although
+        they can be modelled in the same way as the direct `ufunc.__call__`
+        method. To see how 'axes' is defined in these cases, see
+        `_apply_ufunc_reduce`, etc.
+    inputs :
+        The list of inputs to apply the ufunc on.
+    kargs :
+        Optional keyword arguments for the ufunc.
     """
     sig_ins, sig_outs = parse_ufunc_signature(signature)
     nout = len(sig_outs)
+
+    # Check the `baxes` and `kwargs['axes']` are consistent
+    # TODO: This should also handle the case where 'axis' is supplied
+    if 'axes' in kwargs:
+        ncore_dims = [len(sig) for sig in sig_ins+sig_outs]
+        sub_baxes = [
+            tuple(conv_neg(ii, ndim) for ii in axs) 
+            for axs, ndim in zip(kwargs['axes'], ncore_dims)
+        ]
+        if sub_baxes != baxes:
+            raise ValueError(
+                "`ufunc` 'axes' argument is inconsistent with block 'baxes' argument"
+            )
 
     free_name_to_ins, redu_name_to_ins = interpret_ufunc_signature(sig_ins, sig_outs)
 
