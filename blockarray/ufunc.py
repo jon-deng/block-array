@@ -135,11 +135,8 @@ def interpret_ufunc_signature(
         if name not in free_names
     }
 
-    # For each free dimension name, record the input number and axis number that
+    # For each free/reduced dimension name, record the input number and axis number that
     # it occurs in
-    # TODO: This won't work if a signature contains the free dimension label
-    # multiple times in the inputs. You should change this to be similar to
-    # redu_dname_to_ins
     free_dname_to_ins = {name: [] for name in list(free_names)}
     redu_dname_to_ins = {name: [] for name in list(redu_names)}
     for dname_to_ins in [free_dname_to_ins, redu_dname_to_ins]:
@@ -592,7 +589,7 @@ def _apply_op_core(
     ndim_outs = [max(loop_ndim_ins)+len(sig) for sig in sig_outs]
     ndims = ndim_ins + ndim_outs
 
-    # TODO: be careful to convert `axs` to full axes arguments
+    # Note that `axs` refers to axes of the full shape
     axes = [
         tuple([conv_neg(ii, ndim) for ii in axs])
         for ndim, axs in zip(ndim_ins+ndim_outs, baxes)
