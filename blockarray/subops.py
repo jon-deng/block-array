@@ -23,7 +23,7 @@ from .typing import (Shape, DfnMat, DfnVec, PETScMat, PETScVec, JaxArray)
 
 # pylint: disable=no-member
 
-NDARRAY_TYPES = (np.ndarray,)
+NDARRAY_TYPES = (np.ndarray, np.generic)
 VECTOR_TYPES = ()
 MATRIX_TYPES = ()
 if _HAS_PETSC:
