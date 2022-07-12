@@ -458,6 +458,18 @@ def unsqueeze_shape(shape: typing.Shape) -> typing.Shape:
 def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs: Input[T], **kwargs):
     """
     Apply a ufunc on BlockArray inputs
+
+    Parameters
+    ----------
+    ufunc : np.ufunc
+        The numpy `ufunc` to apply (see documentation of `np.ufunc`).
+    method : str
+        The `ufunc` method to apply. This is one of 'reduce', 'accumulate', etc.
+        (see documentation of `np.ufunc`).
+    inputs : List of BlockArray or scalar
+        The inputs to apply the ufunc on
+    kwargs : 
+        Keyword arguments for `np.ufunc` (see documentation of `np.ufunc`).
     """
     ## Validate inputs
     # Check input types
@@ -566,6 +578,9 @@ def _apply_op_core(
         *inputs: Input[T],
         **kwargs
     ) -> List[Tuple[List[T], typing.Shape, typing.Labels]]:
+    """
+    Return the result of applying a function of `numpy` subarrays 
+    """
     sig_ins, sig_outs = parse_ufunc_signature(signature)
     nout = len(sig_outs)
 
@@ -635,7 +650,7 @@ def _apply_op_core(
         # Unsqueeze the output shape as well
         shape_out = unsqueeze_shape(f_shape_out)
         subarrays_out = _apply_op_blockwise(
-            ufunc, inputs, shape_ins, shape_out, sig_ins, sig_out, perm_out, permut_ins, op_kwargs=kwargs)
+            ufunc, inputs, shape_ins, shape_out, sig_ins, sig_out, permut_ins, perm_out, op_kwargs=kwargs)
         outputs.append((subarrays_out, f_shape_out, labels_out))
 
     return outputs
@@ -647,12 +662,16 @@ def _apply_op_blockwise(
         shape_out: typing.Shape,
         sig_ins: Signatures,
         sig_out: Signatures,
-        perm_out: Perm,
         permut_ins: List[Perm],
+        perm_out: Perm,
         op_kwargs=None
     ) -> List[T]:
     """
     Return the subarrays from applying an operation over blocks of `BlockArray`s
+
+    This roughly works as follow:
+        - Output subarrays along loop dimensions result from applying `ufunc`
+        elementwise along corresponding loop dimensions on inputs. 
     """
     # `shape_ins` must be in standard order with core dimensions at the end
     # since this is how `make_gen_in_multi_index` works
