@@ -89,7 +89,7 @@ def interpret_ufunc_signature(
         sig_ins: Signatures,
         sig_outs: Signatures
     ) -> Tuple[
-        Mapping[str, Tuple[int, int]],
+        Mapping[str, List[Tuple[int, int]]],
         Mapping[str, List[Tuple[int, int]]]
     ]:
     """
@@ -107,7 +107,7 @@ def interpret_ufunc_signature(
 
     Returns
     -------
-    free_dname_to_in: Dict
+    free_dname_to_ins: Dict
         A description of free dimension names on the inputs.
 
         This maps the dimension name to a tuple of 2 integers `(nin, dim)`
@@ -115,7 +115,7 @@ def interpret_ufunc_signature(
         that the free label corresponds to. For
         example, a signature '(i,j),(j,k)->(i,k)' has free dimension names of
         'i,k' and would have
-            `free_dname_to_in = {'i': (0, 0), 'k': (1, 1)}`.
+            `free_dname_to_ins = {'i': [(0, 0)], 'k': [(1, 1)]}`.
     redu_dname_to_ins: Dict
         A description of reduced dimension names on the inputs.
 
@@ -126,7 +126,7 @@ def interpret_ufunc_signature(
             `redu_dname_descr = {'j': [(0, 1), (1, 0)]}`.
     """
     # TODO: Will have to handle weird signatures where output dimension names
-    # do not match and of the input dimension names
+    # do not match any of the input dimension names
 
     # Get the set of free dimension names and contract (cont) dimension names
     free_names = {name for sig_out in sig_outs for name in sig_out}
@@ -140,23 +140,17 @@ def interpret_ufunc_signature(
     # TODO: This won't work if a signature contains the free dimension label
     # multiple times in the inputs. You should change this to be similar to
     # redu_dname_to_ins
-    free_dname_to_in = {
-        name: (ii_input, ii_ax)
-        for ii_input, sig_input in enumerate(sig_ins)
-        for ii_ax, name in enumerate(sig_input)
-        if name in free_names
-    }
-    assert set(free_dname_to_in.keys()) == free_names
-
-    # For each reduced dimension name, record the axis indices it occurs in
-    # for each input
+    free_dname_to_ins = {name: [] for name in list(free_names)}
     redu_dname_to_ins = {name: [] for name in list(redu_names)}
-    for ii_input, sig_input in enumerate(sig_ins):
-        for ii_ax, name in enumerate(sig_input):
-            if name in redu_dname_to_ins:
-                redu_dname_to_ins[name].append(tuple([ii_input, ii_ax]))
+    for dname_to_ins in [free_dname_to_ins, redu_dname_to_ins]:
+        for ii_input, sig_input in enumerate(sig_ins):
+            for ii_ax, name in enumerate(sig_input):
+                if name in dname_to_ins:
+                    dname_to_ins[name].append(tuple([ii_input, ii_ax]))
+    assert set(free_dname_to_ins.keys()) == free_names
+    assert set(redu_dname_to_ins.keys()) == redu_names
 
-    return free_dname_to_in, redu_dname_to_ins
+    return free_dname_to_ins, redu_dname_to_ins
 
 ## Output shape/indexing function
 def make_gen_in_multi_index(
@@ -394,9 +388,12 @@ def broadcast_dims(
     core_dims = [dims[len(dims)-len(sig):] for dims, sig in zip(std_in_dims, sig_ins)]
     out_loop_dims = broadcast(broadcast_op, *loop_dims)
 
+    # Note `free_name_to_in[label][0][0]` returns the input number
+    # Note `free_name_to_in[label][0][1]` returns the free axis idx
+    # for the first instance of a free axis input
     out_core_dims = [
         tuple([
-            core_dims[free_name_to_in[label][0]][free_name_to_in[label][1]]
+            core_dims[free_name_to_in[label][0][0]][free_name_to_in[label][0][1]]
             for label in sig
         ])
         for sig in sig_outs
@@ -584,7 +581,7 @@ def _apply_op_core(
     sig_ins, sig_outs = parse_ufunc_signature(signature)
     nout = len(sig_outs)
 
-    free_name_to_in, redu_name_to_in = interpret_ufunc_signature(sig_ins, sig_outs)
+    free_name_to_ins, redu_name_to_ins = interpret_ufunc_signature(sig_ins, sig_outs)
 
     ## Compute a permutation of the `f_shape` from the axes kwargs
     # This permutation shifts core dimensions to the 'standard' location as
@@ -615,16 +612,16 @@ def _apply_op_core(
     ## Determine the output `f_shape` and `f_labels`
     f_shape_ins = [_f_shape(input) for input in inputs]
     std_f_shape_ins = [apply_permutation(x, perm) for x, perm in zip(f_shape_ins, permut_ins)]
-    std_f_shape_outs = broadcast_dims(broadcast_axis_size, std_f_shape_ins, sig_ins, sig_outs, free_name_to_in)
+    std_f_shape_outs = broadcast_dims(broadcast_axis_size, std_f_shape_ins, sig_ins, sig_outs, free_name_to_ins)
 
     f_label_ins = [_f_labels(input) for input in inputs]
     std_f_label_ins = [apply_permutation(x, perm) for x, perm in zip(f_label_ins, permut_ins)]
-    std_f_labels_outs = broadcast_dims(broadcast_axis_labels, std_f_label_ins, sig_ins, sig_outs, free_name_to_in)
+    std_f_labels_outs = broadcast_dims(broadcast_axis_labels, std_f_label_ins, sig_ins, sig_outs, free_name_to_ins)
 
     ## Check that reduced dimensions have compatible bshapes
     f_bshape_ins = [_f_bshape(input) for input in inputs]
     std_f_bshape_ins = [apply_permutation(x, perm) for x, perm in zip(f_bshape_ins, permut_ins)]
-    std_f_bshape_out = broadcast_dims(broadcast_axis_size, std_f_bshape_ins, sig_ins, sig_outs, free_name_to_in)
+    std_f_bshape_out = broadcast_dims(broadcast_axis_size, std_f_bshape_ins, sig_ins, sig_outs, free_name_to_ins)
 
     ## Compute the output shape from the input shape and signature
     # the _ prefix means the permuted shape-type tuple with core dimensions at
