@@ -10,7 +10,7 @@ import numpy as np
 
 from . import labelledarray as larr
 from . import subops as gops
-from .typing import (BlockShape, Shape, MultiLabels, Scalar, MultiGenIndex)
+from .typing import (BlockShape, Shape, MultiLabels, Scalar, MultiGenIndex, AxisSize)
 
 T = TypeVar('T')
 
@@ -451,8 +451,8 @@ def _validate_f_bshape_from_larray(
     ----------
     array : larr.LabelledArray
         The block array containing the subtensors
-    bshape : BlockShape
-        The target block shape of the BlockArray
+    f_bshape : BlockShape
+        The 'full' block shape to validate
     """
     # f_shape = array.shape
     # Check that `array` and f_shape have the right number of dimensions
@@ -484,13 +484,13 @@ def _validate_f_bshape_from_larray(
                 f" with `f_bshape` {f_bshape}"
             )
 
-def _validate_shape(ndim, shape):
+def _validate_shape(ndim: int, shape: Shape):
     if len(shape) != ndim:
         raise ValueError(f"`shape` {shape} must have same number of dimensions as {ndim:d}")
 
-def axis_size(size):
+def axis_size(size: AxisSize) -> int:
     """
-    Return a recursive axis size
+    Return the equivalent monolithic axis size from a block axis size 
     """
     if isinstance(size, int):
         return size
@@ -499,9 +499,9 @@ def axis_size(size):
     else:
         raise TypeError(f"`size` must be int or tuple, not {type(size)}")
 
-def axis_bsize(size):
+def axis_bsize(size: AxisSize) -> int:
     """
-    Return the axis block size (number of blocks)
+    Return the axis block size (number of blocks) from a block axis size 
     """
     if isinstance(size, int):
         return -1
@@ -512,13 +512,18 @@ def axis_bsize(size):
 
 
 ## `BlockArray` creation routines
-def _require_tuple(ax_bshape):
-    if isinstance(ax_bshape, tuple):
-        return ax_bshape
-    elif isinstance(ax_bshape, int):
-        return (ax_bshape,)
+def _require_tuple(ax_bsize: AxisSize) -> AxisSize:
+    """
+    Return non-tuple block axis sizes in a tuple
+
+    This is similar to 'unsqueezing' any collapsed axes
+    """
+    if isinstance(ax_bsize, tuple):
+        return ax_bsize
+    elif isinstance(ax_bsize, int):
+        return (ax_bsize,)
     else: 
-        raise TypeError(f"`ax_bshape` must be `tuple` or `int`, not {type(ax_bshape)}")
+        raise TypeError(f"`ax_bshape` must be `tuple` or `int`, not {type(ax_bsize)}")
 
 def make_create_array(create_numpy_array):
     """
