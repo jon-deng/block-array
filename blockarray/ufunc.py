@@ -671,7 +671,15 @@ def _apply_op_blockwise(
 
     This roughly works as follow:
         - Output subarrays along loop dimensions result from applying `ufunc`
-        elementwise along corresponding loop dimensions on inputs. 
+        blockwise along corresponding loop dimensions on inputs. 
+        - Output subarrays along core free dimensions result from applying `ufunc`
+        elementwise along corresponding core free dimensions on inputs. That is
+        core free dimensions are treated like loop dimensions.
+        - Output subarrays along reduced dimensions are not present, since these
+        dimensions are collapsed/reduced. To perform the collapsed/reducing 
+        operation for each subarray along elementwise blocks, subarrays are 
+        concatenated along the reduced dimensions and ufuncs are then applied on
+        the single concatenated subarray.
     """
     # `shape_ins` must be in standard order with core dimensions at the end
     # since this is how `make_gen_in_multi_index` works
