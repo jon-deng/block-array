@@ -2,8 +2,8 @@
 This module contains the block array definition and defines some basic operations
 """
 
-from typing import Type, TypeVar, Optional, Union, Callable, Generic
-import itertools
+from typing import TypeVar, Optional, Union, Callable, Generic
+from itertools import product, accumulate
 import functools
 import operator
 import numpy as np
@@ -136,9 +136,9 @@ class BlockArray(Generic[T]):
                 f" not {type(subarrays)}."
             )
 
-        self._bshape = _block_shape_from_larray(self._larray)
+        self._bshape = _f_bshape_from_larray(self._larray)
 
-        _validate_subarray_shapes_from_larray(self._larray, self.bshape)
+        _validate_f_bshape_from_larray(self._larray, self.f_bshape)
 
     ## String representation functions
     def __repr__(self):
@@ -407,7 +407,7 @@ class BlockArray(Generic[T]):
         from . import ufunc as _ufunc
         return _ufunc.apply_ufunc_array(ufunc, method, *inputs, **kwargs)
 
-def _block_shape_from_larray(array: larr.LabelledArray[T]) -> BlockShape:
+def _f_bshape_from_larray(array: larr.LabelledArray[T]) -> BlockShape:
     """
     Return the block shape from subarrays in a `LabelledArray`
 
@@ -436,12 +436,12 @@ def _block_shape_from_larray(array: larr.LabelledArray[T]) -> BlockShape:
 
     return tuple(ret_bshape)
 
-def _validate_subarray_shapes_from_larray(
+def _validate_f_bshape_from_larray(
         array: larr.LabelledArray[T],
-        bshape: BlockShape
+        f_bshape: BlockShape
     ):
     """
-    Validate sub-arrays in a `LabelledArray` have consistent shapes
+    Validate subarrays have consistent shapes with supplied `f_bshape`
 
     The shapes of sub-arrays in a block format have to behave like a
     multiplication table to be consistent, where the 'edges' of the
@@ -451,33 +451,38 @@ def _validate_subarray_shapes_from_larray(
     ----------
     array : larr.LabelledArray
         The block array containing the subtensors
-    shape : BlockShape
+    bshape : BlockShape
         The target block shape of the BlockArray
     """
-    # Subtensors are valid along an axis at a certain block if:
-    # all subtensors in the remaining dimensions have the same shape along that
-    # axis (i.e. shape[axis_idx] is the same for all subtensors in the remaining
-    # dimensions)
-    ndim = len(bshape)
-    if ndim > 1:
-        # TODO: Replace with multiplication-table type check; 
-        # the current check is hard to understand and loops more than needed
-        # no need to check compatibility for 1 dimensional tensors
-        for idx_ax, bsizes in enumerate(bshape):
-            for idx_block, bsize in enumerate(bsizes):
-                # index all subtensors with the associated (asc) `idx_block`,
-                # i.e. all subtensors along the remaining axes
-                ascblock_idx = (
-                    (slice(None),)*idx_ax
-                    + (idx_block,)
-                    + (slice(None),)*(ndim-idx_ax-1))
-                ascblock_subtensors = array[ascblock_idx].flat
-                ascblock_sizes = [
-                    gops.shape(subtensor)[idx_ax] for subtensor in ascblock_subtensors]
+    # f_shape = array.shape
+    # Check that `array` and f_shape have the right number of dimensions
+    # and number of blocks
+    assert len(array.f_shape) == len(f_bshape)
+    _f_shape = tuple(-1 if isinstance(bax_size, int) else len(bax_size) for bax_size in f_bshape)
+    assert array.f_shape == _f_shape
 
-                # compute the block sizes of all the remaining dimensions
-                valid_bsizes = [bsize == _bsize for _bsize in ascblock_sizes]
-                assert all(valid_bsizes)
+    # To validate subarray shapes, loop through each entry and note subarray 
+    # shapes have to satisfy a multiplication table type rule:
+    # `subarray[i, j, k, ...]` requires shape `(bshape[i], bshape[j], bshape[k], ...)`
+    # where `bshape` has any collapsed axes removed (this works because 
+    # `subarray[i, j, k, ...]` implicts selects only non-collapsed axes).
+    dims =  tuple(ii for ii, bsize in enumerate(f_bshape) if not isinstance(bsize, int))
+    bshape = tuple(f_bshape[ii] for ii in dims)
+    shape = tuple(len(bsize) for bsize in bshape)
+    midxs = [range(size) for size in shape]
+
+    ref_subarray_shape = list(f_bshape)
+    for midx, _ref_subarray_shape in zip(product(*midxs), product(*bshape)):
+        subarray_shape = gops.shape(array[midx])
+        # This only contains the shape along non-collapsed axes so you have to 
+        # insert the collapsed size
+        for ii, jj in enumerate(dims):
+            ref_subarray_shape[jj] = _ref_subarray_shape[ii]
+        if subarray_shape != tuple(ref_subarray_shape):
+            raise ValueError(
+                f"Subarray at {midx} with shape {subarray_shape} is inconsistent"
+                f" with `f_bshape` {f_bshape}"
+            )
 
 def _validate_shape(ndim, shape):
     if len(shape) != ndim:
@@ -537,7 +542,7 @@ def make_create_array(create_numpy_array):
 
         _bshape = tuple(_require_tuple(ax_bshape) for ax_bshape in bshape)
 
-        subarrays = [create_subarray(sub_shape) for sub_shape in itertools.product(*_bshape)]
+        subarrays = [create_subarray(sub_shape) for sub_shape in product(*_bshape)]
 
         return BlockArray(subarrays, shape)
 
@@ -652,12 +657,12 @@ def to_mono_ndarray(barray: BlockArray[T]) -> np.ndarray:
     # cumulative block shape gives lower/upper block index bounds for assigning
     # individual blocks into the ndarray
     cum_r_bshape = [
-        [nn for nn in itertools.accumulate(axis_shape, initial=0)]
+        [nn for nn in accumulate(axis_shape, initial=0)]
         for axis_shape in barray.bshape]
 
     # loop through each block and assign its elements to the appropriate
     # part of the monolithic ndarray
-    for block_idx in itertools.product(*[range(n) for n in barray.shape]):
+    for block_idx in product(*[range(n) for n in barray.shape]):
         lbs = [ax_strides[ii] for ii, ax_strides in zip(block_idx, cum_r_bshape)]
         ubs = [ax_strides[ii+1] for ii, ax_strides in zip(block_idx, cum_r_bshape)]
 
