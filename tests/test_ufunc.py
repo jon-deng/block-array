@@ -113,7 +113,7 @@ class TestUfunc:
         D = ufunc.apply_ufunc_array(_ufunc, '__call__', *[A, B])
         D_ = _ufunc(A.to_mono_ndarray(), B.to_mono_ndarray())
 
-        assert np.all(np.isclose(D.to_mono_ndarray(), D_))
+        assert compare_blockarray_to_monoarray(D, D_)
 
     @pytest.fixture(params=[
         ((2,),),
@@ -132,7 +132,8 @@ class TestUfunc:
         # Reducing the 2d array gives a 1d array
         D = np.add.reduce(A, axis=-1)
         D_ = np.add.reduce(A.to_mono_ndarray(), axis=-1)
-        np.all(np.isclose(D.to_mono_ndarray(), D_))
+
+        assert compare_blockarray_to_monoarray(D, D_)
 
     @pytest.fixture(params=[
         ((2,),),
@@ -150,7 +151,13 @@ class TestUfunc:
 
         D = np.add.accumulate(A, axis=-1)
         D_ = np.add.accumulate(A.to_mono_ndarray(), axis=-1)
-        np.all(np.isclose(D.to_mono_ndarray(), D_))
+        assert compare_blockarray_to_monoarray(D, D_)
+
+def compare_blockarray_to_monoarray(barray, marray):
+    if isinstance(barray, btensor.BlockArray):
+        return np.all(np.isclose(barray.to_mono_ndarray(), marray))
+    else:
+        return np.all(np.isclose(barray, marray))
 
 
 if __name__ == '__main__':
