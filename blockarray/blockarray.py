@@ -2,7 +2,7 @@
 This module contains the block array definition and defines some basic operations
 """
 
-from typing import TypeVar, Optional, Union, Callable, Generic
+from typing import TypeVar, Optional, Union, Callable, Generic, Tuple
 from itertools import product, accumulate
 import functools
 import operator
@@ -13,7 +13,7 @@ from . import subops as gops
 from .typing import (BlockShape, Shape, MultiLabels, Scalar, MultiGenIndex, AxisSize)
 
 T = TypeVar('T')
-
+V = TypeVar('V')
 
 ## `BlockArray` object + core functions
 class BlockArray(Generic[T]):
@@ -322,16 +322,9 @@ class BlockArray(Generic[T]):
         if f_axes is None:
             f_axes = [ii for ii, size in enumerate(self.f_shape) if size == -1]
 
-        new_fshape = list(self.f_shape)
-        new_flabels = list(self.f_labels)
-        for ax in f_axes:
-            if self.f_shape[ax] != -1:
-                raise ValueError(f"Can't unsqueeze axis {ax:d} of f_shape {self.f_shape}")
-            else:
-                new_fshape[ax] = 1
-                new_flabels[ax] = ('0')
-        new_fshape = tuple(new_fshape)
-        new_flabels = tuple(new_flabels)
+        new_fshape = unsqueeze_shape(self.f_shape, f_axes)
+        # Unsqueezing `f_labels` doesn't require any modification 
+        new_flabels = self.f_labels
 
         return BlockArray(self.subarrays_flat, new_fshape, new_flabels)
 
@@ -510,6 +503,21 @@ def axis_bsize(size: AxisSize) -> int:
     else:
         raise TypeError(f"`size` must be int or tuple, not {type(size)}")
 
+def unsqueeze_shape(
+        shape: Shape,
+        axes: Tuple[int, ...] = None
+    ) -> Shape:
+
+    if axes is None:
+        axes = [ii for ii, size in enumerate(shape) if size == -1]
+
+    ret_shape = list(shape)
+    for ax in axes:
+        if shape[ax] != -1:
+            raise ValueError(f"Can't unsqueeze axis {ax:d} of shape {shape}")
+        else:
+            ret_shape[ax] = 1
+    return tuple(ret_shape)
 
 ## `BlockArray` creation routines
 def _require_tuple(ax_bsize: AxisSize) -> AxisSize:
