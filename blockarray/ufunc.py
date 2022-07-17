@@ -30,8 +30,6 @@ import functools
 from typing import Tuple, List, Mapping, TypeVar, Union, Callable
 import numpy as np
 
-from tests.test_blockarray import A
-
 from . import blockarray as ba, blockmat as bm, blockvec as bv
 from . import typing
 
@@ -52,13 +50,23 @@ def parse_ufunc_signature(
         sig_str: str
     ) -> Tuple[Signatures, Signatures]:
     """
-    Parse a `ufunc.signature` string into a nicer format
+    Parse a `ufunc.signature` string into a tuple format
 
     For a ufunc signature string:
         `'(i,j),(j,k)->(i,k)'`
     this function represents the inputs and output components of the signature
     as:
         `[('i', 'j'), ('j', 'k')], [('i', 'k')]`
+
+    Parameters
+    ----------
+    sig_str : str
+        A `ufunc` signature string
+
+    Returns
+    -------
+    sig_inputs, sig_outputs :
+        A list of tuples representing the input/output signatures
     """
     # split into input and output signatures
     sig_str = sig_str.replace(' ', '')
@@ -107,23 +115,17 @@ def interpret_ufunc_signature(
 
     Returns
     -------
-    free_dname_to_ins: Dict
-        A description of free dimension names on the inputs.
+    free_dname_to_ins, redu_dname_to_ins: Dict
+        A mapping of free/reduced dimension names to inputs and axes.
 
         This maps the dimension name to a tuple of 2 integers `(nin, dim)`
         containing the input number (`nin`) and core dimension (`dim`)
-        that the free label corresponds to. For
-        example, a signature '(i,j),(j,k)->(i,k)' has free dimension names of
-        'i,k' and would have
-            `free_dname_to_ins = {'i': [(0, 0)], 'k': [(1, 1)]}`.
-    redu_dname_to_ins: Dict
-        A description of reduced dimension names on the inputs.
-
-        This maps the dimension name to a list of tuples of 2
-        integers `(nin, dim)` containing inputs and dimensions where the reduced
-        dimension occurs. For example, a signature '(i,j),(j,k)->(i,k)' has
-        reduced dimension names of 'j' and would have
-            `redu_dname_descr = {'j': [(0, 1), (1, 0)]}`.
+        that the free label corresponds to. 
+        For example, a signature '(i,j),(j,k)->(i,k)' has free dimension names 
+        of 'i,k' and would have
+            `free_dname_to_ins = {'i': [(0, 0)], 'k': [(1, 1)]}`
+        The same signature has reduced dimension names of 'j' and would have
+            `redu_dname_to_ins = {'j': [(0, 1), (1, 0)]}`
     """
     # TODO: Will have to handle weird signatures where output dimension names
     # do not match any of the input dimension names
@@ -156,7 +158,23 @@ def make_gen_in_multi_index(
         sig_out: Signature
     ) -> Callable[[typing.MultiIntIndex], typing.MultiStdIndex]:
     """
-    Return a function that generates indices for inputs from an output index
+    Return a function that generates indices for inputs corresponding to an output index
+
+    Parameters
+    ----------
+    std_shape_ins :
+        A list of input shapes in 'standard' order; all loop dimensions should
+        be the first axes followed by all the core dimensions. 
+    sig_ins :
+        Signatures (as returned by `parse_ufunc_signature`) for inputs
+    sig_out :
+        Signature for the output
+
+    Returns
+    -------
+    gen_in_multi_index : 
+        Function that returns indices for each input corresponding to an output
+        index.
     """
     free_name_to_output = {label: ii for ii, label in enumerate(sig_out)}
 
@@ -169,22 +187,23 @@ def make_gen_in_multi_index(
         Return corresponding input indices for an output index
 
         A corresponding input index indexes the portion of the input
-        involved in computing the indexed output portion. For example, consider
+        involved in computing the specified output index. For example, consider
         the input shapes
-            `(1, 1, 1, 5)` `(2, 2, 2, 5)`
+            `(1,)` and `(5,)`
         and a `ufunc` with signature
             `'(),()->()'`.
-        Then the output shape is
-            `(2, 2, 2, 5)`.
-        The output subarray at `(0, 1, 0, 4)` is computed from the input subarrays
-        at `(0, 0, 0, 4)` and `(0, 1, 0, 4)` which are the corresponding output
+        Then the output shape is broadcast to 
+            `(5,)`.
+        The output subarray at `(4,)` is computed from the input subarrays
+        at `(0,)` and `(4,)`, which are the corresponding input
         indices.
 
         In the example above, all dimensions are loop dimensions; indexing with
-        core dimensions is more tricky. In the current implementation:
-            ufunc free core dimensions are treated like loop-dimensions
-            ufunc reduced core dimensions are concatenated to a single large array
-                (corresponding dimensions are indexed with a `:`)
+        core dimensions is a little trickier. In the current implementation:
+            - 'free' core dimensions are treated like loop-dimensions except
+            they do not broadcast since core axis sizes must match exactly.
+            - 'reduced' core dimensions are indexed with a `:`. That is, all
+            subarrays along reduces axes are selected.
         """
         l_midx_outs = out_multi_idx[:len(out_multi_idx)-len(sig_out)]
         c_midx_outs = out_multi_idx[len(out_multi_idx)-len(sig_out):]
@@ -225,6 +244,18 @@ def make_gen_in_multi_index(
 def apply_permutation(arg: Union[List[T], Tuple[T]], perm: Perm) -> Union[List[T], Tuple[T]]:
     """
     Return a permutation of a list
+
+    Parameters
+    ----------
+    arg : List or Tuple
+        The list/tuple to permute
+    perm : 
+        The permutation to apply. This should be a tuple containing integers
+        between `0` to `len(arg)-1` ordered according to the desired permutation.
+
+    Returns
+    -------
+        The permuted input
     """
     # check the list to permute is valid
     assert len(arg) == len(perm)
@@ -241,7 +272,19 @@ def apply_permutation(arg: Union[List[T], Tuple[T]], perm: Perm) -> Union[List[T
 
 def undo_permutation(arg: Union[List[T], Tuple[T]], perm: Perm) -> Union[List[T], Tuple[T]]:
     """
-    Return a permutation of a list
+    Return the result of undoing a permutation on an input
+
+    Parameters
+    ----------
+    arg : List or Tuple
+        The list/tuple to permute
+    perm : 
+        The permutation to undo. This should be a tuple containing integers
+        between `0` to `len(arg)-1` ordered according to the desired permutation.
+
+    Returns
+    -------
+        The un-permuted input
     """
     # create a reverse permutation
     undo_perm = [None]*len(perm)
@@ -252,6 +295,18 @@ def undo_permutation(arg: Union[List[T], Tuple[T]], perm: Perm) -> Union[List[T]
 def conv_neg(n: int, size: int) -> int:
     """
     Convert a negative integer index to the equivalent positive one
+
+    Parameters
+    ----------
+    n : int
+        The index (possible negative)
+    size : int
+        The size of the axis/array being indexed
+
+    Returns
+    -------
+    int
+        The equivalent positive index
     """
     if n < 0:
         return size+n
@@ -261,7 +316,9 @@ def conv_neg(n: int, size: int) -> int:
 # Broadcasting functions
 def dec_broadcast_none(fun):
     """
-    Make a broadcast function broadcast over `None`
+    Return a decorated function that also broadcasts over `None`
+
+    This is used with the `broadcast_*` functions.
     """
     def wrapped_fun(a, b):
         if a is None:
@@ -280,6 +337,11 @@ def broadcast_size(a: int, b: int) -> int:
     ----------
     a, b : int
         Axis sizes being broadcast
+
+    Returns
+    -------
+    int
+        The broadcast axis size
     """
     if a == 1 or a == -1:
         return b
@@ -293,12 +355,17 @@ def broadcast_size(a: int, b: int) -> int:
 @dec_broadcast_none
 def broadcast_axis_size(a: typing.AxisSize, b: typing.AxisSize) -> typing.AxisSize:
     """
-    Broadcast axis sizes
+    Broadcast block axis size
 
     Parameters
     ----------
     a, b: typing.AxisSize
         Nested axis sizes being broadcast
+
+    Returns
+    -------
+    int 
+        Broadcasted block axis size
     """
     if isinstance(a, int) and isinstance(b, int):
         return broadcast_size(a, b)
@@ -327,6 +394,11 @@ def broadcast_axis_labels(a: typing.Labels, b: typing.Labels) -> typing.Labels:
     ----------
     a, b: Tuple[str, ...]
         Axis labels being broadcast
+
+    Returns
+    -------
+    Tuple[str, ...]
+        Broadcasted block axis labels
     """
     if a == ():
         return b
@@ -339,10 +411,17 @@ def broadcast_axis_labels(a: typing.Labels, b: typing.Labels) -> typing.Labels:
 
 def broadcast(broadcast_op: Callable[[V, V], V], *inputs: Tuple[V, ...]) -> Tuple[V, ...]:
     """
-    Broadcast tuples of inputs using a specified broadcast operation
+    Broadcast multiple dimension tuples using a specified broadcast operation
 
     The `broadcast_op` is used to broadcast each dimension/axis of the input
     tuples against each other, similar to broadcasting of numpy shape tuples.
+    
+    Parameters
+    ----------
+    broadcast_op :
+        The broadcasting operation to apply along each axis
+    inputs :
+        Tuples of axis descriptors (size, labels, etc.) to be broadcast.
     """
     rev_inputs = [input[::-1] for input in inputs]
     return tuple([
@@ -358,13 +437,11 @@ def broadcast_dims(
         free_name_to_in: Mapping[str, Tuple[int, int]],
     ):
     """
-    Broadcast a set of dimension tuples
+    Broadcast a set of dimension tuples while accounting for core dimensions
 
     A dimension tuple is a tuple contaning information about each axis of an
     n-d array. A common example is the `.shape` attribute for `numpy.ndarray`
     which stores the size of each axis as an integer.
-
-    The dimension
 
     Parameters
     ----------
@@ -376,10 +453,10 @@ def broadcast_dims(
         The dimension tuple must be in standard order; loop dimensions are first
         followed by core dimenions being last.
     sig_ins, sig_outs:
-        Input and output signatures
-    free_name_to_in:
-        A mapping from free axis labels to associated inputs, as returned by
-        `interpret_ufunc_signature`.
+        Input and output signatures (see `parse_ufunc_signature`)
+    free_name_to_ins:
+        A mapping from free axis labels to associated inputs (see 
+        `interpret_ufunc_signature`).
     """
     loop_dims = [dims[:len(dims)-len(sig)] for dims, sig in zip(std_in_dims, sig_ins)]
     core_dims = [dims[len(dims)-len(sig):] for dims, sig in zip(std_in_dims, sig_ins)]
@@ -398,7 +475,7 @@ def broadcast_dims(
 
     return [out_loop_dims+core_dims for core_dims in out_core_dims]
 
-# These are helper methods for getting `BlockArray` attributes from both
+# These are helper methods for getting `BlockArray` type attributes from both
 # `BlockArray` and scalar (float) type objects
 def _f_bshape(array: Input[T]) -> typing.BlockShape:
     """
@@ -438,15 +515,12 @@ def _f_ndim(array: Input[T]) -> int:
 
 def unsqueeze(array: Input[T]) -> Input[T]:
     """
-    Return the unsqueeze `BlockArray` or scalar
+    Return the unsqueezed `BlockArray` or scalar
     """
     if isinstance(array, Number):
         return array
     else:
         return array.unsqueeze()
-
-def unsqueeze_shape(shape: typing.Shape) -> typing.Shape:
-    return tuple(ax_size if ax_size != -1 else 1 for ax_size in shape)
 
 # Ufunc routines
 def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs: Input[T], **kwargs):
@@ -679,7 +753,7 @@ def _apply_op_core(
     outputs = []
     for f_shape_out, labels_out, sig_out, perm_out in zip(shape_outs, labels_outs, sig_outs, permut_outs):
         # Unsqueeze the output shape as well
-        shape_out = unsqueeze_shape(f_shape_out)
+        shape_out = ba.unsqueeze_shape(f_shape_out)
         subarrays_out = _apply_op_blockwise(
             ufunc, inputs, shape_ins, shape_out, sig_ins, sig_out, permut_ins, perm_out, op_kwargs=kwargs)
         outputs.append((subarrays_out, f_shape_out, labels_out))
