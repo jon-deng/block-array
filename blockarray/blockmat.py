@@ -28,10 +28,10 @@ class BlockMatrix(ba.BlockArray[T]):
     Represents a block matrix with blocks indexed by keys
     """
     def __init__(self,
-        array,
+        subarrays,
         shape=None,
         labels=None):
-        super().__init__(array, shape, labels)
+        super().__init__(subarrays, shape, labels)
 
         if len(self.f_shape) != 2:
             raise ValueError(f"BlockMatrix must have dimension == 2, not {len(self.shape)}")
