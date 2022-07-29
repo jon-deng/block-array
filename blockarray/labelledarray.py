@@ -6,6 +6,8 @@ arbitrary objects and with labelled indices in addition to integer indices
 along each axis. These can be indexed in a similar way to `numpy.ndarray`.
 """
 
+import numpy as np
+
 from typing import Optional, Union, List, Tuple, Generic
 from itertools import product, chain, accumulate
 
@@ -210,9 +212,9 @@ class LabelledArray(Generic[T]):
         validate_shape(array, shape)
 
         # Assign basic data
-        self._array = tuple(array)
         self._shape = tuple(shape)
         self._labels = tuple(labels)
+        self._array = np.array(array, dtype=object).reshape(self.shape)
 
         # Compute convenience constants
         _strides = [
@@ -323,10 +325,14 @@ class LabelledArray(Generic[T]):
         f_labels = tuple(f_labels)
 
         # enclose single ints in a list so it works with itertools
-        multi_idx = [(idx,) if isinstance(idx, int) else idx for idx in multi_idx]
-        ret_flat_idxs = [multi_to_flat_idx(idx, self._STRIDES) for idx in product(*multi_idx)]
-
-        ret_array = tuple(self.flat[flat_idx] for flat_idx in ret_flat_idxs)
+        midx = [(idx,) if isinstance(idx, int) else idx for idx in multi_idx]
+        ndim = len(midx)
+        midx = [
+            np.array(idxs, dtype=np.intp)[(slice(None),)+(None,)*n]
+            for n, idxs in zip(range(ndim-1, -1, -1), midx)
+        ]
+        midx = np.broadcast_arrays(*midx)
+        ret_array = self._array[midx].reshape(-1)
 
         if f_shape == (-1,) * self.f_ndim:
             assert len(ret_array) == 1

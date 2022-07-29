@@ -25,6 +25,7 @@ def setup_labelledarray():
     strides = tuple(strides)[::-1]
 
     elements = string.ascii_lowercase[:math.prod(shape)]
+    elements = [char for char in elements]
 
     return LabelledArray(elements, shape, labels), (elements, shape, labels, strides)
 
