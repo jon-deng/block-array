@@ -1,9 +1,6 @@
 """
-This module contains generic functions for operating on vector/matrix objects
+Generic functions for operating on different vector/matrix/array objects
 from PETSc, numpy, and FEniCS.
-
-This is needed for BlockVector and BlockMatrix to work with different
-'subarrays' from the different packages.
 """
 
 from multiprocessing.sharedctypes import Value
