@@ -1,7 +1,7 @@
 """
-This module contains the LabelledArray class
+A multi-dimensional array with labelled indices
 
-A LabelledArray is a multidimensional array of a fixed shape containing
+A `LabelledArray` is a multidimensional array of a fixed shape containing
 arbitrary objects and with labelled indices in addition to integer indices
 along each axis. These can be indexed in a similar way to `numpy.ndarray`.
 """
