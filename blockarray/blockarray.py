@@ -94,24 +94,17 @@ class BlockArray(Generic[T]):
             shape: Optional[Shape]=None,
             labels: Optional[MultiLabels]=None
         ):
-        # Get the flat list of subarrays and the shape to validate the shape
-        if isinstance(subarrays, larr.LabelledArray):
-            flat_subarrays = subarrays.flat
-            shape = subarrays.f_shape
-        elif isinstance(subarrays, (list, tuple)):
-            flat_subarrays, _shape = larr.flatten_array(subarrays)
-            if shape is None:
-                shape = _shape
-        _validate_shape(gops.ndim(flat_subarrays[0]), shape)
-
         # Return a subarray instance if an explicit `shape` indicates all
         # block axes are collapsed
         # i.e. if `shape=(-1, -1, ..., -1)` then just return the single subarray
-        if shape == (-1,)*len(shape):
-            assert len(flat_subarrays) == 1
+        if shape is None:
+            return object.__new__(cls)
+        elif shape == (-1,)*len(shape):
+            # Get the flat list of subarrays and the shape to validate the shape
+            flat_subarrays, *_ = cls._process_subarrays(subarrays, shape, labels)
             return flat_subarrays[0]
-        
-        return object.__new__(cls)
+        else:
+            return object.__new__(cls)
 
     def __init__(
             self,
@@ -120,26 +113,49 @@ class BlockArray(Generic[T]):
             labels: Optional[MultiLabels]=None
         ):
 
-        # Set the `_larray` attribute
+        self._larray = larr.LabelledArray(
+            *self._process_subarrays(subarrays, shape, labels)
+        )
+        self._bshape = _f_bshape_from_larray(self._larray)
+
+        _validate_f_bshape_from_larray(self._larray, self.f_bshape)
+
+    @staticmethod
+    def _process_subarrays(
+            subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
+            shape: Optional[Shape]=None,
+            labels: Optional[MultiLabels]=None
+        ) -> Tuple[larr.FlatArray[T], Shape, Optional[MultiLabels]]:
+        """
+        Return a 'standard' `BlockArray` input format from general formats
+
+        Parameters
+        ----------
+        subarrays, shape, labels :
+            See class docstring
+
+        Returns
+        -------
+        flat_subarrays, shape, labels
+        """
+        # Get the flat list of subarrays and the shape to validate the shape
         if isinstance(subarrays, larr.LabelledArray):
-            self._larray = subarrays
+            flat_subarrays = subarrays.flat
+            shape = subarrays.f_shape
         elif isinstance(subarrays, (list, tuple)):
-            flat_array, _shape = larr.flatten_array(subarrays)
+            flat_subarrays, _shape = larr.flatten_array(subarrays)
             if shape is None:
                 # If an explicit shape is not provided, assume `subarrays` is a 
                 # nested array and the shape is the nested shape
                 shape = _shape
-            self._larray = larr.LabelledArray(flat_array, shape, labels)
         else:
             raise TypeError(
                 "Expected `subarrays` to be of type `LabelledArray`, `list`, or `tuple`"
                 f" not {type(subarrays)}."
             )
-
-        self._bshape = _f_bshape_from_larray(self._larray)
-
-        _validate_f_bshape_from_larray(self._larray, self.f_bshape)
-
+        _validate_shape(gops.ndim(flat_subarrays[0]), shape)
+        return flat_subarrays, shape, labels
+        
     ## String representation functions
     def __repr__(self):
         return f"{self.__class__.__name__}({repr(self.subarrays_flat)}, {self.f_shape}, {self.f_labels})"
