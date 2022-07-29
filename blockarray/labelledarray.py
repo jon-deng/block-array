@@ -81,8 +81,13 @@ def nest_array(array: FlatArray[T], strides: Strides) -> NestedArray[T]:
     ----------
     array: Tuple, list
         A flat array
-    strides
+    strides:
         A tuple of strides
+
+    Returns
+    -------
+    ret_array:
+        The nested array
     """
     size = len(array)
     for stride in strides:
