@@ -301,16 +301,18 @@ class LabelledArray(Generic[T]):
 
         # Find the returned BlockArray's shape and labels
         # -1 represents a reduced dimension,
-        ret_shape = tuple([
-            len(axis_idx) if isinstance(axis_idx, (list, tuple)) else -1
+        ret_shape = tuple(
+            len(axis_idx) 
+            if isinstance(axis_idx, (list, tuple)) 
+            else -1
             for axis_idx in multi_idx
-        ])
-        ret_labels = tuple([
-                tuple([axis_labels[ii] for ii in axis_idx])
-                if isinstance(axis_idx, (list, tuple)) and axis_labels != ()
-                else ()
+        )
+        ret_labels = tuple(
+            tuple(axis_labels[ii] for ii in axis_idx)
+            if isinstance(axis_idx, (list, tuple)) and axis_labels != ()
+            else ()
             for axis_labels, axis_idx in zip(self.labels, multi_idx)
-        ])
+        )
 
         f_shape = [-1] * self.f_ndim
         f_labels = [()] * self.f_ndim
@@ -324,7 +326,7 @@ class LabelledArray(Generic[T]):
         multi_idx = [(idx,) if isinstance(idx, int) else idx for idx in multi_idx]
         ret_flat_idxs = [multi_to_flat_idx(idx, self._STRIDES) for idx in product(*multi_idx)]
 
-        ret_array = tuple([self.flat[flat_idx] for flat_idx in ret_flat_idxs])
+        ret_array = tuple(self.flat[flat_idx] for flat_idx in ret_flat_idxs)
 
         if f_shape == (-1,) * self.f_ndim:
             assert len(ret_array) == 1
