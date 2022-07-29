@@ -35,13 +35,28 @@ from .typing import (
 
 def flatten_array(array: NestedArray[T]) -> Tuple[FlatArray[T], Shape]:
     """
-    Flattens and return the shape of a nested array
-    """
+    Return a flat array and shape from a nested array
 
+    Parameters
+    ----------
+    array :
+        A nested array
+
+    Returns
+    -------
+    flat_array :
+        The flattened array
+    shape :
+        The shape of the nested array
+    """
     def check_is_nested(array):
-        elem_is_array = [isinstance(elem, (list, tuple)) for elem in array]
-        is_array_count = elem_is_array.count(True)
-        if is_array_count == len(elem_is_array):
+        """
+        Check whether an array is nested
+        """
+        # Checks whether each element of an array is another array
+        is_array = [isinstance(elem, (list, tuple)) for elem in array]
+        is_array_count = is_array.count(True)
+        if is_array_count == len(is_array):
             # Make sure the nested sizes are correct
             assert all([len(elem) == len(array[0]) for elem in array])
             return True
@@ -51,14 +66,12 @@ def flatten_array(array: NestedArray[T]) -> Tuple[FlatArray[T], Shape]:
             raise ValueError("Improperly nested array")
 
     flat_array = array
-    shape = []
+    shape = (len(flat_array),)
     while check_is_nested(flat_array):
-        shape.append(len(flat_array))
+        shape += (len(flat_array[0]),)
         flat_array = [elem for elem in chain(*flat_array)]
 
-    shape.append(len(flat_array)//math.prod(shape))
-
-    return flat_array, tuple(shape)
+    return flat_array, shape
 
 def nest_array(array: FlatArray[T], strides: Strides) -> NestedArray[T]:
     """
