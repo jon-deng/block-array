@@ -356,8 +356,11 @@ class LabelledArray(Generic[T]):
         ret_shape = tuple(_ax_size_from_idx(axis_idx) for axis_idx in multi_idx)
 
         def _ax_labels_from_idx(axis_idx, ax_labels):
-            if isinstance(axis_idx, list) and ax_labels != ():
-                return tuple(ax_labels[ii] for ii in axis_idx)
+            if isinstance(axis_idx, list):
+                if ax_labels != ():
+                    return tuple(ax_labels[ii] for ii in axis_idx)
+                else:
+                    return ()
             elif isinstance(axis_idx, int):
                 return ()
             else:
