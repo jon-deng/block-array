@@ -172,7 +172,7 @@ def convert_subtype_to_petsc(bvec):
     ----------
     bmat: BlockMatrix
     """
-    vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.subarrays_flat]
+    vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.array.flat]
     return BlockVector(vecs, labels=bvec.labels)
 
 # Converting to monolithic vectors
@@ -184,14 +184,14 @@ def to_mono_petsc(bvec, comm=None, finalize=True):
 @require_petsc
 def to_block_rowmat(bvec):
     mats = tuple([
-        tuple([gops.convert_vec_to_rowmat(vec) for vec in bvec.subarrays_flat])
+        tuple([gops.convert_vec_to_rowmat(vec) for vec in bvec.array.flat])
         ])
     return BlockMatrix(mats)
 
 @require_petsc
 def to_block_colmat(bvec):
     mats = tuple([
-        tuple([gops.convert_vec_to_colmat(vec)]) for vec in bvec.subarrays_flat
+        tuple([gops.convert_vec_to_colmat(vec)]) for vec in bvec.array.flat
         ])
     return BlockMatrix(mats)
 

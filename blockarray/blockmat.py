@@ -119,7 +119,7 @@ def convert_subtype_to_petsc(bmat: BlockMatrix[T]):
     ----------
     bmat: BlockMatrix
     """
-    mats = [gops.convert_mat_to_petsc(mat) for mat in bmat.subarrays_flat]
+    mats = [gops.convert_mat_to_petsc(mat) for mat in bmat.array.flat]
     barray = LabelledArray(mats, bmat.shape, bmat.labels)
     return BlockMatrix(barray)
 
