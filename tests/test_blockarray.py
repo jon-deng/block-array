@@ -40,8 +40,8 @@ def _test_elementwise_binary_op(sub_op, a, b, block_op=None):
     """
     if block_op is None:
         block_op = sub_op
-    c_array_result = block_op(a, b).subarrays_flat
-    c_array_reference = tuple([sub_op(ai, bi) for ai, bi in zip(a.subarrays_flat, b.subarrays_flat)])
+    c_array_result = block_op(a, b).array.flat
+    c_array_reference = tuple([sub_op(ai, bi) for ai, bi in zip(a.array.flat, b.array.flat)])
 
     correct_subarrays = [
         np.all(sub_res == sub_ref)
@@ -79,7 +79,7 @@ def test_squeeze():
     assert dd.squeeze().f_bshape == (4, (4, 2))
 
 @pytest.fixture(params=[
-    (5, 5, (1, 4)), 
+    (5, 5, (1, 4)),
     ((2, 4), (2, 4), (1, 1)),
     ((2, 4), (2, 4), 1)
 ])
@@ -111,5 +111,5 @@ if __name__ == '__main__':
     test_bshape()
     test_squeeze()
     # test_ufunc()
-    test_ones()
+    # test_ones()
     # test_power()

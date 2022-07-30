@@ -79,11 +79,8 @@ class BlockArray(Generic[T]):
     mshape :
         The shape of the block array's monolithic equivalent.
 
-    subarrays_flat :
-        A flat tuple of the contained subarrays
-    subarrays_nest :
-        A nested tuple of the contained subarrays
-
+    array : np.ndarray
+        The `np.ndarray` object array containing subarrays
     larray : larr.LabelledArray
         The `LabelledArray` instance used to store the subtensors in a block
         format
@@ -140,42 +137,41 @@ class BlockArray(Generic[T]):
         """
         # Get the flat list of subarrays and the shape to validate the shape
         if isinstance(subarrays, larr.LabelledArray):
-            flat_subarrays = subarrays.flat
-            shape = subarrays.f_shape
+            flat_subarrays = subarrays.array.reshape(-1)
+            implicit_shape = subarrays.f_shape
         elif isinstance(subarrays, (list, tuple)):
-            flat_subarrays, _shape = larr.flatten_array(subarrays)
-            if shape is None:
-                # If an explicit shape is not provided, assume `subarrays` is a 
-                # nested array and the shape is the nested shape
-                shape = _shape
+            flat_subarrays, implicit_shape = larr.flatten_array(subarrays)
+        elif isinstance(subarrays, np.ndarray):
+            implicit_shape = subarrays.shape
+            flat_subarrays = subarrays.reshape(-1)
         else:
             raise TypeError(
-                "Expected `subarrays` to be of type `LabelledArray`, `list`, or `tuple`"
+                "Expected `subarrays` to be of type"
+                " `{LabelledArray, list, tuple, np.ndarray}`"
                 f" not {type(subarrays)}."
             )
+
+        # If an explicit shape is not provided, assume the shape of `subarrays`
+        # is the desired shape
+        if shape is None:
+            shape = implicit_shape
+
         _validate_shape(gops.ndim(flat_subarrays[0]), shape)
         return flat_subarrays, shape, labels
-        
+
     ## String representation functions
     def __repr__(self):
-        return f"{self.__class__.__name__}({repr(self.subarrays_flat)}, {self.f_shape}, {self.f_labels})"
+        return f"{self.__class__.__name__}({repr(self.array)}, {self.f_shape}, {self.f_labels})"
 
     def __str__(self):
         return f"{self.__class__.__name__}(bshape={self.f_bshape} labels={self.f_labels})"
 
     @property
-    def subarrays_flat(self):
+    def array(self) -> np.ndarray:
         """
-        Return the flat tuple storing all subtensors
+        Return the numpy object array containing subarrays
         """
-        return self._larray.flat
-
-    @property
-    def subarrays_nest(self):
-        """
-        Return the nested tuple storing all subtensors
-        """
-        return self._larray.nest
+        return self.larray.array
 
     @property
     def larray(self) -> larr.LabelledArray:
@@ -329,7 +325,7 @@ class BlockArray(Generic[T]):
         new_fshape = tuple(new_fshape)
         new_flabels = tuple(new_flabels)
 
-        return BlockArray(self.subarrays_flat, new_fshape, new_flabels)
+        return BlockArray(self.array.reshape(-1), new_fshape, new_flabels)
 
     def unsqueeze(self, f_axes=None):
         """
@@ -339,10 +335,10 @@ class BlockArray(Generic[T]):
             f_axes = [ii for ii, size in enumerate(self.f_shape) if size == -1]
 
         new_fshape = unsqueeze_shape(self.f_shape, f_axes)
-        # Unsqueezing `f_labels` doesn't require any modification 
+        # Unsqueezing `f_labels` doesn't require any modification
         new_flabels = self.f_labels
 
-        return BlockArray(self.subarrays_flat, new_fshape, new_flabels)
+        return BlockArray(self.array.reshape(-1), new_fshape, new_flabels)
 
     ## Dict-like interface over the first dimension
     def keys(self):
@@ -432,7 +428,7 @@ def _f_bshape_from_larray(array: larr.LabelledArray[T]) -> BlockShape:
         # the block axis size is a tuple of ints for
         # axis size for each block along that dim
         if num_ax_blocks <= 0:
-            axis_sizes = gops.shape(array.flat[0])[dim]
+            axis_sizes = gops.shape(array.array.flat[0])[dim]
 
             ret_bshape.append(axis_sizes)
         else:
@@ -470,10 +466,10 @@ def _validate_f_bshape_from_larray(
     _f_shape = tuple(-1 if isinstance(bax_size, int) else len(bax_size) for bax_size in f_bshape)
     assert array.f_shape == _f_shape
 
-    # To validate subarray shapes, loop through each entry and note subarray 
+    # To validate subarray shapes, loop through each entry and note subarray
     # shapes have to satisfy a multiplication table type rule:
     # `subarray[i, j, k, ...]` requires shape `(bshape[i], bshape[j], bshape[k], ...)`
-    # where `bshape` has any collapsed axes removed (this works because 
+    # where `bshape` has any collapsed axes removed (this works because
     # `subarray[i, j, k, ...]` implicts selects only non-collapsed axes).
     dims =  tuple(ii for ii, bsize in enumerate(f_bshape) if not isinstance(bsize, int))
     bshape = tuple(f_bshape[ii] for ii in dims)
@@ -483,7 +479,7 @@ def _validate_f_bshape_from_larray(
     ref_subarray_shape = list(f_bshape)
     for midx, _ref_subarray_shape in zip(product(*midxs), product(*bshape)):
         subarray_shape = gops.shape(array[midx])
-        # This only contains the shape along non-collapsed axes so you have to 
+        # This only contains the shape along non-collapsed axes so you have to
         # insert the collapsed size
         for ii, jj in enumerate(dims):
             ref_subarray_shape[jj] = _ref_subarray_shape[ii]
@@ -499,7 +495,7 @@ def _validate_shape(ndim: int, shape: Shape):
 
 def axis_size(size: AxisSize) -> int:
     """
-    Return the equivalent monolithic axis size from a block axis size 
+    Return the equivalent monolithic axis size from a block axis size
     """
     if isinstance(size, int):
         return size
@@ -510,7 +506,7 @@ def axis_size(size: AxisSize) -> int:
 
 def axis_bsize(size: AxisSize) -> int:
     """
-    Return the axis block size (number of blocks) from a block axis size 
+    Return the axis block size (number of blocks) from a block axis size
     """
     if isinstance(size, int):
         return -1
@@ -546,7 +542,7 @@ def _require_tuple(ax_bsize: AxisSize) -> AxisSize:
         return ax_bsize
     elif isinstance(ax_bsize, int):
         return (ax_bsize,)
-    else: 
+    else:
         raise TypeError(f"`ax_bshape` must be `tuple` or `int`, not {type(ax_bsize)}")
 
 def make_create_array(create_numpy_array):
@@ -610,7 +606,7 @@ def _elementwise_binary_op(
     a, b: BlockArray
     """
     _validate_elementwise_binary_op(a, b)
-    array = tuple([op(ai, bi) for ai, bi in zip(a.subarrays_flat, b.subarrays_flat)])
+    array = tuple([op(ai, bi) for ai, bi in zip(a.array.flat, b.array.flat)])
     larrayay = larr.LabelledArray(array, a.f_shape, a.f_labels)
     return type(a)(larrayay)
 
@@ -647,7 +643,7 @@ def _elementwise_unary_op(
     BlockArray
         The resultant block array
     """
-    array = larr.LabelledArray([op(ai) for ai in a.subarrays_flat], a.f_shape, a.f_labels)
+    array = larr.LabelledArray([op(ai) for ai in a.array.flat], a.f_shape, a.f_labels)
     return type(a)(array)
 
 neg = functools.partial(_elementwise_unary_op, operator.neg)
