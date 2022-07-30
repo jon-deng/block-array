@@ -6,12 +6,11 @@ arbitrary objects and with labelled indices in addition to integer indices
 along each axis. These can be indexed in a similar way to `numpy.ndarray`.
 """
 
-import numpy as np
-
 from typing import Optional, Union, List, Tuple, Generic
-from itertools import product, chain, accumulate
-
+from itertools import chain, accumulate
 import math
+
+import numpy as np
 
 from .typing import (
     T,
@@ -227,14 +226,11 @@ class LabelledArray(Generic[T]):
             for axis_labels, idxs in zip(self.labels, [range(axis_size) for axis_size in self.shape])])
 
     @property
-    def flat(self) -> FlatArray[T]:
-        """Return the flat array representation"""
+    def array(self) -> np.ndarray:
+        """
+        Return the numpy object array container
+        """
         return self._array
-
-    @property
-    def nest(self) -> NestedArray[T]:
-        """Return a nested array representation"""
-        return nest_array(self.flat, self._STRIDES)
 
     @property
     def f_shape(self) -> Shape:
@@ -304,8 +300,8 @@ class LabelledArray(Generic[T]):
         # Find the returned BlockArray's shape and labels
         # -1 represents a reduced dimension,
         ret_shape = tuple(
-            len(axis_idx) 
-            if isinstance(axis_idx, (list, tuple)) 
+            len(axis_idx)
+            if isinstance(axis_idx, (list, tuple))
             else -1
             for axis_idx in multi_idx
         )
@@ -332,7 +328,7 @@ class LabelledArray(Generic[T]):
             for n, idxs in zip(range(ndim-1, -1, -1), midx)
         ]
         midx = np.broadcast_arrays(*midx)
-        ret_array = self._array[midx].reshape(-1)
+        ret_array = self._array[tuple(midx)].reshape(-1)
 
         if f_shape == (-1,) * self.f_ndim:
             assert len(ret_array) == 1
@@ -345,7 +341,7 @@ class LabelledArray(Generic[T]):
         """Return a copy of the array"""
         ret_labels = self.f_labels
         ret_shape = self.f_shape
-        ret_array = [elem.copy() for elem in self.flat]
+        ret_array = [elem.copy() for elem in self.array.flat]
         return self.__class__(ret_array, ret_shape, ret_labels)
 
     def __copy__(self):
