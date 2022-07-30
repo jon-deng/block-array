@@ -222,7 +222,8 @@ class LabelledArray(Generic[T]):
         if isinstance(array, np.ndarray):
             self._array = array.reshape(self.shape)
         else:
-            self._array = np.array(array, dtype=object).reshape(self.shape)
+            self._array = np.ndarray(self.shape, object)
+            self._array.reshape(-1)[:] = array
 
         # Compute convenience constants
         _strides = [
