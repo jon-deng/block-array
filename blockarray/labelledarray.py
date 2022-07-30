@@ -170,8 +170,9 @@ class LabelledArray(Generic[T]):
     Parameters
     ----------
     array :
-        A list of items in the array. This is a flat list which is interpreted
-        as an n-d array according to the supplied `shape` and a 'C' ordering.
+        A list/tuple/np.ndarray of items in the array. This is a flat list which
+        is interpreted as an n-d array according to the supplied `shape` and a
+        'C' ordering.
     shape :
         A tuple of axis sizes (n, m, ...), where axis 0 has size n, axis 1 has
         size m, etc. An axis size can also be -1 in which case the axis cannot
@@ -198,7 +199,12 @@ class LabelledArray(Generic[T]):
         A mapping of labels to indices for each axis
     """
 
-    def __init__(self, array: FlatArray[T], shape: Shape, labels: Optional[MultiLabels]=None):
+    def __init__(
+            self,
+            array: Union[FlatArray[T], np.ndarray],
+            shape: Shape,
+            labels: Optional[MultiLabels]=None
+        ):
         # If no labels are supplied, use empty label tuples for each axis
         if labels is None:
             labels = ((),)*len(shape)
@@ -213,7 +219,10 @@ class LabelledArray(Generic[T]):
         # Assign basic data
         self._shape = tuple(shape)
         self._labels = tuple(labels)
-        self._array = np.array(array, dtype=object).reshape(self.shape)
+        if isinstance(array, np.ndarray):
+            self._array = array.reshape(self.shape)
+        else:
+            self._array = np.array(array, dtype=object).reshape(self.shape)
 
         # Compute convenience constants
         _strides = [
