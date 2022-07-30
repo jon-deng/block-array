@@ -285,7 +285,7 @@ class BlockArray(Generic[T]):
     def copy(self):
         """Return a copy"""
         labels = self.f_labels
-        return self.__class__(self.larray.copy(), labels)
+        return self.__class__(self.larray.copy(), labels=labels)
 
     def __copy__(self):
         return self.copy()
