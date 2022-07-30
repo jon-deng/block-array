@@ -139,11 +139,14 @@ class BlockArray(Generic[T]):
         if isinstance(subarrays, larr.LabelledArray):
             flat_subarrays = subarrays.array.reshape(-1)
             implicit_shape = subarrays.f_shape
+            implicit_labels = subarrays.f_labels
         elif isinstance(subarrays, (list, tuple)):
             flat_subarrays, implicit_shape = larr.flatten_array(subarrays)
+            implicit_labels = None
         elif isinstance(subarrays, np.ndarray):
             implicit_shape = subarrays.shape
             flat_subarrays = subarrays.reshape(-1)
+            implicit_labels = None
         else:
             raise TypeError(
                 "Expected `subarrays` to be of type"
@@ -155,6 +158,8 @@ class BlockArray(Generic[T]):
         # is the desired shape
         if shape is None:
             shape = implicit_shape
+        if labels is None:
+            labels = implicit_labels
 
         _validate_shape(gops.ndim(flat_subarrays[0]), shape)
         return flat_subarrays, shape, labels
