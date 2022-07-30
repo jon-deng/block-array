@@ -76,7 +76,7 @@ def flatten_array(array: NestedArray[T]) -> Tuple[FlatArray[T], Shape]:
 
 def nest_array(array: FlatArray[T], strides: Strides) -> NestedArray[T]:
     """
-    Convert a flat array into a nested array from given strides
+    Return a nested array from a flat array and strides
 
     Parameters
     ----------
@@ -93,7 +93,8 @@ def nest_array(array: FlatArray[T], strides: Strides) -> NestedArray[T]:
     size = len(array)
     for stride in strides:
         assert math.remainder(size, stride) == 0
-    assert strides[-1] == 1 # the last axis stride should be 1 for c-order
+    # the last axis stride should be 1 for c-order
+    assert strides[-1] == 1
 
     if len(strides) == 1:
         return array
@@ -102,15 +103,28 @@ def nest_array(array: FlatArray[T], strides: Strides) -> NestedArray[T]:
         ret_array = [
             nest_array(array[ii*stride:(ii+1)*stride], strides[1:])
             for ii in range(size//stride)
-            ]
+        ]
         return ret_array
 
 def validate_shape(array: FlatArray[T], shape: Shape):
-    """Validates the array shape"""
-    # use `abs()` as hacky way to account for reduced dimensions represented
-    # by -1
+    """
+    Validate a flat array can be reshaped into a given shape
+
+    Parameters
+    ----------
+    array :
+        The flat array
+    shape :
+        The shape to validate `array` against
+
+    Raises
+    ------
+    ValueError
+        Raises `ValueError` if `shape` and `array` are not compatible
+    """
+    # use `abs()` as hacky way to account for collapsed dimensions (size -1)
     if len(array) != abs(math.prod(shape)):
-        raise ValueError(f"shape {shape} is incompatible with array of length {len(array)}")
+        raise ValueError(f"`shape` {shape} is incompatible with array of length {len(array)}")
 
 def validate_labels(labels: MultiLabels, shape: Shape):
     """Validates the array labels"""
