@@ -334,27 +334,41 @@ class LabelledArray(Generic[T]):
         return self.size
 
     def __getitem__(self, multi_idx) -> Union[T, 'LabelledArray[T]']:
+        # This ensures that single axis indices (i.e. `x[1]`, `x[:]`) are
+        # converted to a size 1 tuple; the indexing functions all expect
+        # multi index tuples
         multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
         multi_idx = expand_multi_gen_idx(multi_idx, self.shape)
-        validate_multi_gen_idx(tuple(multi_idx), self.shape)
+        validate_multi_gen_idx(multi_idx, self.shape)
 
         multi_idx = conv_multi_gen_to_std_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
 
-        # Find the returned BlockArray's shape and labels
-        # -1 represents a reduced dimension,
-        ret_shape = tuple(
-            len(axis_idx)
-            if isinstance(axis_idx, (list, tuple))
-            else -1
-            for axis_idx in multi_idx
-        )
+        ## Find the returned `BlockArray` shape and labels
+        # Get the reduced/collapsed shape + labels (these are collapsed since
+        # indexing implictly occurs along non collapsed dims)
+        def _ax_size_from_idx(axis_idx):
+            if isinstance(axis_idx, list):
+                return len(axis_idx)
+            elif isinstance(axis_idx, int):
+                return -1
+            else:
+                assert False
+        ret_shape = tuple(_ax_size_from_idx(axis_idx) for axis_idx in multi_idx)
+
+        def _ax_labels_from_idx(axis_idx, ax_labels):
+            if isinstance(axis_idx, list) and ax_labels != ():
+                return tuple(ax_labels[ii] for ii in axis_idx)
+            elif isinstance(axis_idx, int):
+                return ()
+            else:
+                assert False
         ret_labels = tuple(
-            tuple(axis_labels[ii] for ii in axis_idx)
-            if isinstance(axis_idx, (list, tuple)) and axis_labels != ()
-            else ()
+            _ax_labels_from_idx(axis_idx, axis_labels)
             for axis_labels, axis_idx in zip(self.labels, multi_idx)
         )
 
+        # Splice the non collapsed shape + labels into the corresponding 'full'
+        # tuples
         f_shape = [-1] * self.f_ndim
         f_labels = [()] * self.f_ndim
         for ii, ax_size, ax_labels in zip(self.dims, ret_shape, ret_labels):
@@ -363,12 +377,13 @@ class LabelledArray(Generic[T]):
         f_shape = tuple(f_shape)
         f_labels = tuple(f_labels)
 
+        ## Index the subset of elements from the array
         # enclose single ints in a list so it works with itertools
-        midx = [(idx,) if isinstance(idx, int) else idx for idx in multi_idx]
-        ndim = len(midx)
+        ndim = len(multi_idx)
+        midx = [[idx] if isinstance(idx, int) else idx for idx in multi_idx]
         midx = [
-            np.array(idxs, dtype=np.intp)[(slice(None),)+(None,)*n]
-            for n, idxs in zip(range(ndim-1, -1, -1), midx)
+            np.array(idx, dtype=np.intp)[(slice(None),)+(None,)*n]
+            for n, idx in zip(range(ndim-1, -1, -1), midx)
         ]
         midx = np.broadcast_arrays(*midx)
         ret_array = self._array[tuple(midx)].reshape(-1)
@@ -470,6 +485,9 @@ def conv_multi_gen_to_std_idx(
         for index, axis_size, axis_label_to_idx
         in zip(multidx, shape, multi_label_to_idx)
     ]
+    # Sanity check
+    for idx in multi_sidx:
+        assert isinstance(idx, (List, int))
     return tuple(multi_sidx)
 
 def conv_gen_to_std_idx(
