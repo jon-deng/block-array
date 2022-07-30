@@ -127,12 +127,34 @@ def validate_shape(array: FlatArray[T], shape: Shape):
         raise ValueError(f"`shape` {shape} is incompatible with array of length {len(array)}")
 
 def validate_labels(labels: MultiLabels, shape: Shape):
-    """Validates the array labels"""
+    """
+    Validate if n-dimensional labels and shape are compatible
+
+    This checks that for each dimension:
+        - There is one label for each index
+        - there are no duplicate labels
+        - or, there are no labels
+        - if the dimension is collapsed, no labels are supplied
+
+    Parameters
+    ----------
+    labels :
+        The n-dimensional labels
+    shape :
+        The shape to validate `labels` against
+
+    Raises
+    ------
+    ValueError
+        Raises `ValueError` if `labels` and `shape` are not compatible
+    """
+    # Check that the number of dimensions in labels and shape is compatible
     if len(labels) != len(shape):
         raise ValueError(f"{len(labels)} axis labels is incompatible for array with {len(shape)} dimensions")
 
     for dim, (axis_labels, axis_size) in enumerate(zip(labels, shape)):
         if axis_size == -1:
+            # Check that collapsed dimensions should have no labels
             if axis_labels != ():
                 raise ValueError(f"Invalid non-empty axis labels {axis_labels} for reduced axis {dim}")
         else:
