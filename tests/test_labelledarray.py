@@ -6,6 +6,7 @@ from itertools import accumulate, product
 import string
 
 import pytest
+import numpy as np
 
 from blockarray import labelledarray as la
 from blockarray.labelledarray import LabelledArray, flatten_array
@@ -38,7 +39,7 @@ def test_shape(setup_labelledarray):
     Test the LabelledArray has the correct shape
     """
     array, (_, shape, *_) = setup_labelledarray
-    print(f"test has shape {array.shape} and vals {array.flat}")
+    # print(f"test has shape {array.shape} and vals {array.array}")
     assert array.shape == shape
 
 def test_single_index(setup_labelledarray):
@@ -57,27 +58,23 @@ def test_array_index(setup_labelledarray):
     """Test that indexing a sub-array produces the correct result"""
     array, _ = setup_labelledarray
     assert array[:].shape == array.shape
-    assert array[:].flat == array.flat
+    assert np.all(array[:].array == array.array)
 
     assert array[...].shape == array.shape
-    assert array[...].flat == array.flat
+    assert np.all(array[...] == array.array)
 
     assert array[0:1, 0:1, 0:1].shape == (1, 1, 1)
-    # assert array[0:1, 0:1, 0:1].flat ==
-
     assert array[0:1, 0:1, 0:3].shape == (1, 1, 3)
-    # assert array[0:1, 0:1, 0:3].lat ==
-
 
     axis_idxs = (0, slice(0, 1), slice(0, 1))
     assert array[axis_idxs].f_shape == (-1, 1, 1)
     assert array[axis_idxs].f_shape == (-1, 1, 1)
 
-    print(f"array[:, :, 0] has shape {array[:, :, 0].shape} and vals {array[:, :, 0].flat}")
-    print(f"array[:, :, 1:2] has shape {array[:, :, 1:2].shape} and vals {array[:, :, 1:2].flat}")
-    print(f"array[:, :, 0:1] has shape {array[:, :, 0:1].shape} and vals {array[:, :, 0:1].flat}")
-    print(f"array[:, :, :] has shape {array[:, :, :].shape} and vals {array[:, :, :].flat}")
-    print(f"array[:] has shape {array[:].shape} and vals {array[:].flat}")
+    print(f"array[:, :, 0] has shape {array[:, :, 0].shape} and vals {array[:, :, 0].array}")
+    print(f"array[:, :, 1:2] has shape {array[:, :, 1:2].shape} and vals {array[:, :, 1:2].array}")
+    print(f"array[:, :, 0:1] has shape {array[:, :, 0:1].shape} and vals {array[:, :, 0:1].array}")
+    print(f"array[:, :, :] has shape {array[:, :, :].shape} and vals {array[:, :, :].array}")
+    print(f"array[:] has shape {array[:].shape} and vals {array[:].array}")
 
     print(flatten_array([[1, 2, 3], [4, 5, 6]]))
 
