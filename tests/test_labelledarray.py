@@ -85,10 +85,10 @@ def test_expand_multidx():
     Test that multi-index with ellipses/missing axes are expanded correctly
     """
     multidx = (..., slice(None))
-    assert la.expand_multidx(multidx, (1, 1, 1, 1)) == (slice(None),)*4
+    assert la.expand_multi_gen_idx(multidx, (1, 1, 1, 1)) == (slice(None),)*4
 
     multidx = (slice(None),)
-    assert la.expand_multidx(multidx, (1, 1, 1, 1)) == (slice(None),)*4
+    assert la.expand_multi_gen_idx(multidx, (1, 1, 1, 1)) == (slice(None),)*4
 
 # Tests for lists (and/or single) indexes along a single axis
 def test_conv_gen_to_std_idx():

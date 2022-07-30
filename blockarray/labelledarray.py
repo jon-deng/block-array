@@ -164,7 +164,7 @@ def validate_labels(labels: MultiLabels, shape: Shape):
                 if len(set(axis_labels)) != len(axis_labels):
                     raise ValueError(f"Invalid duplicate labels for axis {dim} with labels {axis_labels}")
 
-def validate_general_idx(idx: GenIndex, size: int):
+def validate_gen_idx(idx: GenIndex, size: int):
     """Validate a general index"""
     lb = -size
     ub = size-1
@@ -190,10 +190,10 @@ def validate_general_idx(idx: GenIndex, size: int):
         if not all(valid_idxs):
             raise IndexError(f"index out of range in {idx} for axis of size {size}")
 
-def validate_multi_general_idx(multi_idx: MultiGenIndex, shape: Shape):
+def validate_multi_gen_idx(multi_idx: MultiGenIndex, shape: Shape):
     """Validate a multi general index"""
     for idx, size in zip(multi_idx, shape):
-        validate_general_idx(idx, size)
+        validate_gen_idx(idx, size)
 
 
 class LabelledArray(Generic[T]):
@@ -335,10 +335,10 @@ class LabelledArray(Generic[T]):
 
     def __getitem__(self, multi_idx) -> Union[T, 'LabelledArray[T]']:
         multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
-        multi_idx = expand_multidx(multi_idx, self.shape)
-        validate_multi_general_idx(tuple(multi_idx), self.shape)
+        multi_idx = expand_multi_gen_idx(multi_idx, self.shape)
+        validate_multi_gen_idx(tuple(multi_idx), self.shape)
 
-        multi_idx = conv_gen_to_std_multidx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
+        multi_idx = conv_multi_gen_to_std_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
 
         # Find the returned BlockArray's shape and labels
         # -1 represents a reduced dimension,
@@ -405,21 +405,7 @@ class LabelledArray(Generic[T]):
 # For the below, the naming convention where applicable is:
 # dnote multi-indexes by `multidx`
 # use `gen_` and `std_` to denote general and standard indexes
-def multi_to_flat_idx(
-    multidx: MultiStdIndex, strides: Strides) -> StdIndex:
-    """
-    Return a flat index given a multi index and strides for each dimension
-
-    Parameters
-    ----------
-    multi_sidx:
-        A multi-index with integer index for each axis specifying a single element
-    strides: tuple(int)
-        The integer offset for each axis according to c-ordering
-    """
-    return sum([idx*stride for idx, stride in zip(multidx, strides)])
-
-def expand_multidx(
+def expand_multi_gen_idx(
     multidx: MultiGenIndex, shape: Shape) -> MultiGenIndex:
     """
     Expands missing axis indices and/or ellipses in a general multi-index
@@ -456,7 +442,7 @@ def expand_multidx(
 
 # This function handles conversion of any of the general index/indices
 # to a standard index/indices
-def conv_gen_to_std_multidx(
+def conv_multi_gen_to_std_idx(
         multidx: MultiGenIndex,
         shape: Shape,
         multi_label_to_idx: MultiLabelToStdIndex
