@@ -35,7 +35,7 @@ class BlockVector(BlockArray[T]):
     ## Add vecs property for special case/backwards compatibilty
     @property
     def vecs(self):
-        return self.subarrays_flat
+        return self.array.tolist()
 
     ## Basic string representation functions
     def stats(self, stats):
@@ -158,7 +158,7 @@ def concatenate_vec(args, labels=None):
     if labels is None:
         labels = [ftls.reduce(lambda a, b: a+b, [bvec.labels[0] for bvec in args])]
 
-    vecs = ftls.reduce(lambda a, b: a+b, [bvec.subarrays_flat for bvec in args])
+    vecs = np.concatenate([bvec.array for bvec in args])
 
     return BlockVector(vecs, labels=labels)
 
