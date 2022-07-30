@@ -406,7 +406,8 @@ class LabelledArray(Generic[T]):
 # dnote multi-indexes by `multidx`
 # use `gen_` and `std_` to denote general and standard indexes
 def expand_multi_gen_idx(
-    multidx: MultiGenIndex, shape: Shape) -> MultiGenIndex:
+        multidx: MultiGenIndex, shape: Shape
+    ) -> MultiGenIndex:
     """
     Expands missing axis indices and/or ellipses in a general multi-index
 
