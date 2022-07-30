@@ -51,21 +51,15 @@ BlockShape = Tuple[AxisSize, ...]
 
 ## Indexing types
 # These types represent an index to single element
-StdIndex = int
-GenIndex = Union[int, str]
-
-# These types represents indexes to a collection of elements
-GenIndices = List[GenIndex]
-# a slice also selects a collection of elements
-
-StdIndices = List[StdIndex]
+StdIndex = Union[int, FlatArray[int]]
+GenIndex = Union[int, str, FlatArray[int], FlatArray[str], slice]
 
 # Special type for expanding missing indices
 EllipsisType = type(...)
 
 # Multidimensions general/standard indices
-MultiGenIndex = Tuple[Union[GenIndex, GenIndices, slice, EllipsisType], ...]
-MultiStdIndex = Tuple[Union[StdIndex, StdIndices], ...]
+MultiGenIndex = Tuple[Union[GenIndex, EllipsisType], ...]
+MultiStdIndex = Tuple[StdIndex, ...]
 MultiIntIndex = Tuple[StdIndex, ...]
 
 # These types represent the mapping from labels to indices

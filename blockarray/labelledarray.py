@@ -23,9 +23,6 @@ from .typing import (
     GenIndex,
     StdIndex,
 
-    StdIndices,
-    GenIndices,
-
     MultiStdIndex,
     MultiGenIndex,
 
@@ -409,7 +406,7 @@ class LabelledArray(Generic[T]):
 # dnote multi-indexes by `multidx`
 # use `gen_` and `std_` to denote general and standard indexes
 def multi_to_flat_idx(
-    multidx: MultiStdIndex, strides: Strides) -> StdIndices:
+    multidx: MultiStdIndex, strides: Strides) -> StdIndex:
     """
     Return a flat index given a multi index and strides for each dimension
 
@@ -489,10 +486,10 @@ def conv_gen_to_std_multidx(
     return tuple(multi_sidx)
 
 def conv_gen_to_std_idx(
-        idx: Union[GenIndex, GenIndices, slice],
+        idx: GenIndex,
         label_to_idx: LabelToStdIndex,
         size: int
-    ) -> Union[StdIndex, StdIndices]:
+    ) -> StdIndex:
     """
     Return a standard index(s) form any of the 3 valid general index formats
 
@@ -524,7 +521,7 @@ def conv_list_to_std_idx(
         idx: Union[List[Union[str, int]], Tuple[Union[str, int]]],
         label_to_idx: LabelToStdIndex,
         size: int
-    ) -> StdIndices:
+    ) -> StdIndex:
     """
     Convert a sequence of indices so that each index is a integer
     """
@@ -534,7 +531,7 @@ def conv_list_to_std_idx(
         for ii in idx
     ]
 
-def conv_slice_to_std_idx(idx: slice, size: int) -> StdIndices:
+def conv_slice_to_std_idx(idx: slice, size: int) -> StdIndex:
     """
     Return the sequence of indexes corresponding to a slice
     """
