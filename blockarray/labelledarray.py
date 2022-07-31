@@ -386,11 +386,12 @@ class LabelledArray(Generic[T]):
         # enclose single ints in a list so it works with itertools
         ndim = len(multi_idx)
         midx = [[idx] if isinstance(idx, int) else idx for idx in multi_idx]
+        # Add empty axes so that numpys advanced indexing broadcasts to the
+        # correct shape
         midx = [
             np.array(idx, dtype=np.intp)[(slice(None),)+(None,)*n]
             for n, idx in zip(range(ndim-1, -1, -1), midx)
         ]
-        midx = np.broadcast_arrays(*midx)
         ret_array = self._array[tuple(midx)].reshape(-1)
 
         if f_shape == (-1,) * self.f_ndim:
