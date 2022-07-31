@@ -52,27 +52,6 @@ class BlockVector(BlockArray[T]):
         print('(min/max/mean):')
         pp.pprint(summary_dict)
 
-    def __setitem__(self, key, value):
-        """
-        Return the vector corresponding to the labelled block
-
-        Parameters
-        ----------
-        key : str, int, slice
-            A block label
-        value : array_like or BlockVector
-        """
-        _array = self[key]
-        if isinstance(_array, BlockArray):
-            if isinstance(value, BlockArray):
-                for subvec, subvec_value in zip(_array, value):
-                    gops.set_vec(subvec, subvec_value)
-            else:
-                for subvec in _array:
-                    gops.set_vec(subvec, value)
-        else:
-            gops.set_vec(_array, value)
-
     def set(self, scalar):
         """
         Set a constant value for the block vector

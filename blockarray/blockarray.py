@@ -310,6 +310,38 @@ class BlockArray(Generic[T]):
         else:
             return ret
 
+    def __setitem__(self,
+            key: MultiGenIndex,
+            value: Union['BlockArray', T]
+        ):
+        """
+        Set subarrays to a given value
+
+        Parameters
+        ----------
+        key :
+            A general multi-index
+        value :
+            The desired value to set
+        """
+        _array = self[key]
+        if isinstance(_array, BlockArray):
+            if isinstance(value, BlockArray):
+                if value.bshape != _array.bshape:
+                    raise ValueError(f"Can't assign input values with bshape {value.bshape} to array with bshape {_array.bshape}")
+                for subarray, sub_value in zip(_array, value):
+                    gops.set(subarray, sub_value)
+            elif isinstance(value, (list, tuple)):
+                # Only allow assigning from flat lists to flat indexed `BlockArray`
+                if _array.ndim != 1:
+                    raise ValueError(f"Can't assign list of input values to array with ndim {_array.ndim}")
+                elif len(_array) != len(value):
+                    raise ValueError(f"Can't assign list of {len(value)} values to {len(_array)} subarrays")
+                for subarray in _array:
+                    gops.set(subarray, value)
+        else:
+            gops.set(_array, value)
+
     ## Reshape type methods
     def squeeze(self, axes=None):
         """
