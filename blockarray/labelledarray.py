@@ -233,15 +233,12 @@ class LabelledArray(Generic[T]):
     Attributes
     ----------
     array :
-        A flat tuple containing the array elements
+        A `np.ndarray` object array containing the elements
     shape :
         The N-d layout of the elements. For example, a shape `(2, 3)` represents
         an array of 2 elements in dimension 0 by 3 elements in dimension 1.
     labels :
-        A nested tuple containing labels for each axis at each index
-    strides :
-        The increment in the flat index represented by a unit increment in each
-        axis index in C-order
+        A nested tuple containing labels for each axis
     multi_label_to_idx :
         A mapping of labels to indices for each axis
     """
@@ -278,9 +275,7 @@ class LabelledArray(Generic[T]):
 
     @property
     def array(self) -> np.ndarray:
-        """
-        Return the numpy object array container
-        """
+        """Return the numpy object array container"""
         return self._array
 
     @property
@@ -315,17 +310,13 @@ class LabelledArray(Generic[T]):
 
     @property
     def shape(self) -> Shape:
-        """
-        Return the reduced array shape
-        """
+        """Return the reduced array shape"""
         ret_rshape = [axis_size for axis_size in self.f_shape if axis_size != -1]
         return tuple(ret_rshape)
 
     @property
     def labels(self) -> MultiLabels:
-        """
-        Return the reduced labels
-        """
+        """Return the reduced labels"""
         ret_rlabels = [
             axis_labels
             for axis_labels, axis_size in zip(self.f_labels, self.f_shape)
@@ -420,6 +411,7 @@ class LabelledArray(Generic[T]):
         return key in self._MULTI_LABEL_TO_IDX[0]
 
     def items(self):
+        """Return an iterable of 'key: value' pairs along the first axis"""
         return zip(self.f_labels[0], self)
 
     ## Iterable interface over the first axis
