@@ -292,12 +292,6 @@ class LabelledArray(Generic[T]):
             self._array = np.ndarray(self.shape, object)
             self._array.reshape(-1)[:] = array
 
-        # Compute convenience constants
-        _strides = [
-            stride for stride
-            in accumulate(self.shape[-1:0:-1], lambda a, b: a*b, initial=1)]
-        self._STRIDES = tuple(_strides[::-1])
-
         self._MULTI_LABEL_TO_IDX = tuple([
             {label: ii for label, ii in zip(axis_labels, idxs)}
             for axis_labels, idxs in zip(self.labels, [range(axis_size) for axis_size in self.shape])])
