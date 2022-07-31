@@ -7,7 +7,7 @@ along each axis. These can be indexed in a similar way to `numpy.ndarray`.
 """
 
 from typing import Optional, Union, List, Tuple, Generic
-from itertools import chain, accumulate
+from itertools import chain
 import math
 
 import numpy as np
@@ -164,6 +164,52 @@ def validate_labels(labels: MultiLabels, shape: Shape):
                 if len(set(axis_labels)) != len(axis_labels):
                     raise ValueError(f"Invalid duplicate labels for axis {dim} with labels {axis_labels}")
 
+def validate_gen_index_range(
+        idx: GenIndex,
+        label_to_idx: LabelToStdIndex,
+        size: int
+    ):
+    """
+    Validate an index selects a correct number of elements
+
+    This checks that `idx`:
+        - doesn't select duplicate elements
+        - doesn't select more elements than the size of axis
+
+    Parameters
+    ----------
+    idx :
+        The index to check
+    label_to_idx :
+        A mapping from string labels to integer indices
+    size :
+        The size of the axis
+
+    Raises
+    ------
+    ValueError :
+        Raises `ValueError` if the index selects an incorrect number of elements
+    """
+    if isinstance(idx, list):
+        _idx = conv_gen_to_std_idx(idx, label_to_idx, size)
+        if len(set(_idx)) != len(_idx):
+            raise ValueError(f"{idx} selects the same element multiple times")
+        elif len(_idx) > size:
+            raise ValueError(f"{idx} selects {len(idx)} elements for an axis of size {size:d}")
+
+def validate_multi_gen_index_range(
+        midx: MultiGenIndex,
+        multi_label_to_idx: MultiLabelToStdIndex,
+        shape: Shape
+    ):
+    """
+    Validate a multi index selects a correct number of elements
+
+    See `validate_gen_index_range` for further details
+    """
+    for idx, label_to_idx, size in zip(midx, multi_label_to_idx, shape):
+        validate_gen_index_range(idx, label_to_idx, size)
+
 class LabelledArray(Generic[T]):
     """
     An N-dimensional array with (optionally) labelled indices
@@ -301,6 +347,7 @@ class LabelledArray(Generic[T]):
         # multi index tuples
         multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
         multi_idx = expand_multi_gen_idx(multi_idx, self.shape)
+        validate_multi_gen_index_range(multi_idx, self._MULTI_LABEL_TO_IDX, self.shape)
         multi_idx = conv_multi_gen_to_std_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
 
         ## Find the returned `BlockArray` shape and labels
