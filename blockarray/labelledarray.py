@@ -164,72 +164,6 @@ def validate_labels(labels: MultiLabels, shape: Shape):
                 if len(set(axis_labels)) != len(axis_labels):
                     raise ValueError(f"Invalid duplicate labels for axis {dim} with labels {axis_labels}")
 
-def validate_gen_idx(idx: GenIndex, size: int):
-    """
-    Validate if a general index is compatible with an axis size
-
-    Parameters
-    ----------
-    idx :
-        A general index for an axis
-    size :
-        The size of the axis
-
-    Raises
-    ------
-    ValueError :
-        Raises `ValueError` if the index is incompatible with the axis size
-    TypeError :
-        Raises `TypeError` if the index has the wrong type
-    """
-    lb = -size
-    ub = size-1
-    def valid_index(idx, lb, ub):
-        """Whether an integer index is valid"""
-        return (idx<=ub and idx>=lb)
-
-    if isinstance(idx, slice):
-        start, stop = idx.start, idx.stop
-        if start is not None:
-            if not valid_index(start, lb, ub):
-                raise IndexError(f"slice start index {start} out of range for axis of size {size}")
-
-        if stop is not None:
-            if not valid_index(stop, lb-1, ub+1):
-                # The stop index is noninclusive so goes +1 off the valid index bound
-                raise IndexError(f"slice stop index {stop} out of range for axis of size {size}")
-    elif isinstance(idx, int):
-        if not valid_index(idx, lb, ub):
-            raise IndexError(f"index {idx} out of range for axis of size {size}")
-    elif isinstance(idx, list):
-        valid_idxs = [valid_index(ii, lb, ub) for ii in idx if isinstance(ii, int)]
-        if not all(valid_idxs):
-            raise IndexError(f"index out of range in {idx} for axis of size {size}")
-    else:
-        raise TypeError(f"`idx` with type {type(idx)} is invalid")
-
-def validate_multi_gen_idx(multi_idx: MultiGenIndex, shape: Shape):
-    """
-    Validate if a n-dimensional general index is compatible with an axis size
-
-    Parameters
-    ----------
-    multi_idx :
-        A tupel of general indexes for each axis
-    shape :
-        The size of each axis
-
-    Raises
-    ------
-    ValueError :
-        Raises `ValueError` if the index is incompatible with the axis size
-    TypeError :
-        Raises `TypeError` if the index has the wrong type
-    """
-    for idx, size in zip(multi_idx, shape):
-        validate_gen_idx(idx, size)
-
-
 class LabelledArray(Generic[T]):
     """
     An N-dimensional array with (optionally) labelled indices
@@ -367,8 +301,6 @@ class LabelledArray(Generic[T]):
         # multi index tuples
         multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
         multi_idx = expand_multi_gen_idx(multi_idx, self.shape)
-        validate_multi_gen_idx(multi_idx, self.shape)
-
         multi_idx = conv_multi_gen_to_std_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
 
         ## Find the returned `BlockArray` shape and labels
