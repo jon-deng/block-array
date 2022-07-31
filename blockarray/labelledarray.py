@@ -30,6 +30,9 @@ from .typing import (
     MultiLabelToStdIndex
 )
 
+# TODO: Inconsistent types for 'list of integer' indexes;
+# some functions use, tuples or lists, etc...
+# Think of standard way to allow list of integer indices
 
 def flatten_array(array: NestedArray[T]) -> Tuple[FlatArray[T], Shape]:
     """
