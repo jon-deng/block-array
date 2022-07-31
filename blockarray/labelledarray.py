@@ -165,7 +165,23 @@ def validate_labels(labels: MultiLabels, shape: Shape):
                     raise ValueError(f"Invalid duplicate labels for axis {dim} with labels {axis_labels}")
 
 def validate_gen_idx(idx: GenIndex, size: int):
-    """Validate a general index"""
+    """
+    Validate if a general index is compatible with an axis size
+
+    Parameters
+    ----------
+    idx :
+        A general index for an axis
+    size :
+        The size of the axis
+
+    Raises
+    ------
+    ValueError :
+        Raises `ValueError` if the index is incompatible with the axis size
+    TypeError :
+        Raises `TypeError` if the index has the wrong type
+    """
     lb = -size
     ub = size-1
     def valid_index(idx, lb, ub):
@@ -185,13 +201,31 @@ def validate_gen_idx(idx: GenIndex, size: int):
     elif isinstance(idx, int):
         if not valid_index(idx, lb, ub):
             raise IndexError(f"index {idx} out of range for axis of size {size}")
-    elif isinstance(idx, (list, tuple)):
+    elif isinstance(idx, list):
         valid_idxs = [valid_index(ii, lb, ub) for ii in idx if isinstance(ii, int)]
         if not all(valid_idxs):
             raise IndexError(f"index out of range in {idx} for axis of size {size}")
+    else:
+        raise TypeError(f"`idx` with type {type(idx)} is invalid")
 
 def validate_multi_gen_idx(multi_idx: MultiGenIndex, shape: Shape):
-    """Validate a multi general index"""
+    """
+    Validate if a n-dimensional general index is compatible with an axis size
+
+    Parameters
+    ----------
+    multi_idx :
+        A tupel of general indexes for each axis
+    shape :
+        The size of each axis
+
+    Raises
+    ------
+    ValueError :
+        Raises `ValueError` if the index is incompatible with the axis size
+    TypeError :
+        Raises `TypeError` if the index has the wrong type
+    """
     for idx, size in zip(multi_idx, shape):
         validate_gen_idx(idx, size)
 
