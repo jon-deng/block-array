@@ -412,7 +412,7 @@ class LabelledArray(Generic[T]):
 
     def items(self):
         """Return an iterable of 'key: value' pairs along the first axis"""
-        return zip(self.f_labels[0], self)
+        return zip(self.labels[0], self)
 
     ## Iterable interface over the first axis
     def __iter__(self) -> Union[List['LabelledArray'], List[T]]:
