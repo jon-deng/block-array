@@ -534,7 +534,20 @@ def conv_list_to_std_idx(
         size: int
     ) -> StdIndex:
     """
-    Convert a sequence of indices so that each index is a integer
+    Return a sequence of indices so that each index is a positive integer
+
+    Parameters
+    ----------
+    idx :
+        A list of either string or integer indices (can be negative)
+    label_to_idx :
+        A mapping from string to integer indices
+    size :
+        The size of the axis
+
+    Returns
+    -------
+        A list of positive integer indices
     """
     return [
         conv_label_to_std_idx(ii, label_to_idx, size)
@@ -544,7 +557,18 @@ def conv_list_to_std_idx(
 
 def conv_slice_to_std_idx(idx: slice, size: int) -> StdIndex:
     """
-    Return the sequence of indexes corresponding to a slice
+    Return a sequence of postiive indices from a slice
+
+    Parameters
+    ----------
+    idx :
+        A list of either string or integer indices (can be negative)
+    size :
+        The size of the axis
+
+    Returns
+    -------
+        A list of positive integer indices
     """
     start = conv_slice_start_to_idx(idx.start, size)
     stop = conv_slice_stop_to_idx(idx.stop, size)
