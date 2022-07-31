@@ -254,7 +254,7 @@ class LabelledArray(Generic[T]):
             labels = ((),)*len(shape)
         else:
             # Convert any lists to tuples in labels
-            labels = tuple([tuple(dim_labels) for dim_labels in labels])
+            labels = tuple(tuple(dim_labels) for dim_labels in labels)
 
         # Validate the array shape and labels
         validate_labels(labels, shape)
@@ -269,9 +269,10 @@ class LabelledArray(Generic[T]):
             self._array = np.ndarray(self.shape, object)
             self._array.reshape(-1)[:] = array
 
-        self._MULTI_LABEL_TO_IDX = tuple([
+        self._MULTI_LABEL_TO_IDX = tuple(
             {label: ii for label, ii in zip(axis_labels, idxs)}
-            for axis_labels, idxs in zip(self.labels, [range(axis_size) for axis_size in self.shape])])
+            for axis_labels, idxs in zip(self.labels, [range(axis_size) for axis_size in self.shape])
+        )
 
     @property
     def array(self) -> np.ndarray:
@@ -301,7 +302,7 @@ class LabelledArray(Generic[T]):
     @property
     def dims(self) -> Tuple[int, ...]:
         """Return the reduced axis/dimensions indices"""
-        return tuple([ii for ii, ax_size in zip(self.f_dims, self.f_shape) if ax_size != -1])
+        return tuple(ii for ii, ax_size in zip(self.f_dims, self.f_shape) if ax_size != -1)
 
     @property
     def f_labels(self) -> MultiLabels:
