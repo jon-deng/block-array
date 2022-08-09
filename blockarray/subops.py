@@ -3,8 +3,7 @@ Generic functions for operating on different vector/matrix/array objects
 from PETSc, numpy, and FEniCS.
 """
 
-from multiprocessing.sharedctypes import Value
-from typing import TypeVar, Union, Tuple, Optional
+from typing import TypeVar, Union, Tuple, Optional, Generic
 import math
 
 import numpy as np
@@ -51,6 +50,96 @@ if len(ALL_MATRIX_TYPES) == 1:
     M = TypeVar('M', bound=ALL_MATRIX_TYPES[0])
 else:
     M = TypeVar('M', *ALL_MATRIX_TYPES)
+
+## Wrapper array objects
+def wrap(array):
+    if isinstance(array, NDARRAY_TYPES):
+        return NumpyArrayLike(array)
+    elif isinstance(array, PETScMat):
+        return PETScMatrix(array)
+    elif isinstance(array, PETScVec):
+        return PETScVector(array)
+    else:
+        raise TypeError(f"Couldn't find wrapper array type for array of type {type(array)}")
+
+@numpy.vectorize
+def unwrap(array):
+    return array.data
+
+T = TypeVar('T')
+class GenericSubarray(Generic[T]):
+    shape: Shape
+    size: int
+    ndim: int
+    data: T
+
+    def __init__(self, array: T):
+        self._data = array
+
+    # def __getitem__(self, key):
+    #     raise NotImplementedError()
+
+    # def __setitem__(self, key, value):
+    #     raise NotImplementedError()
+
+    def set(self, value):
+        """
+        Set the array to `value`
+        """
+        raise NotImplementedError()
+
+    @property
+    def data(self) -> T:
+        return self._data
+
+class PETScVector(GenericSubarray[PETScVec]):
+    def __init__(self, array: PETScVec):
+        super().__init__(array)
+        assert isinstance(self.data, PETScVector)
+
+    @property
+    def shape(self):
+        return (self.size)
+
+    @property
+    def size(self):
+        return self.data.size
+
+    @property
+    def ndim(self):
+        return 1
+
+class PETScMatrix(GenericSubarray[PETScMat]):
+    def __init__(self, array: PETScMat):
+        super().__init__(array)
+        assert isinstance(self.data, PETScMatrix)
+
+    @property
+    def shape(self):
+        return self.data.getSize()
+
+    @property
+    def size(self):
+        return math.prod(self.shape)
+
+    @property
+    def ndim(self):
+        return 2
+
+V = TypeVar('V', *NDARRAY_TYPES)
+class NumpyArrayLike(GenericSubarray[V]):
+
+    @property
+    def shape(self):
+        return self.data.shape
+
+    @property
+    def size(self):
+        return self.data.size
+
+    @property
+    def ndim(self):
+        return self.data.ndim
 
 ## Core operations for computing size and shape of the various array types
 
