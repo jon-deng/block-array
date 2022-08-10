@@ -53,7 +53,7 @@ class BlockMatrix(ba.BlockArray[T]):
         # change the fastet; this ensures that the flat tensor represent the
         # transpose
         ret_subtensors = [
-            self[multi_idx[::-1]].copy().transpose()
+            self.sub[multi_idx[::-1]].copy().transpose()
             for multi_idx in itertools.product(
                 *[range(ax_size) for ax_size in self.shape[::-1]]
                 )
@@ -199,7 +199,7 @@ def get_blocks_csr(bmat: ba.BlockArray[PETScMat]) -> Tuple[List[List[Icsr]], Lis
         j_block_row = []
         v_block_row = []
         for col in range(N_BLOCK):
-            i, j, v = bmat[row, col].getValuesCSR()
+            i, j, v = bmat.sub[row, col].getValuesCSR()
             i_block_row.append(i)
             j_block_row.append(j)
             v_block_row.append(v)

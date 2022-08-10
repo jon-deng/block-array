@@ -170,7 +170,7 @@ class PETScVector(GenericSubarray[PETScVec]):
 class PETScMatrix(GenericSubarray[PETScMat]):
     def __init__(self, array: PETScMat):
         super().__init__(array)
-        assert isinstance(self.data, PETScMatrix)
+        assert isinstance(self.data, PETScMat)
 
     # def __getitem__(self, key):
     #     return self.data[key]
