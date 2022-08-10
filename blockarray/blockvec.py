@@ -52,25 +52,6 @@ class BlockVector(BlockArray[T]):
         print('(min/max/mean):')
         pp.pprint(summary_dict)
 
-    def set(self, scalar):
-        """
-        Set a constant value for the block vector
-        """
-        for vec in self:
-            gops.set_vec(vec, scalar)
-
-    def set_vec(self, vec):
-        """
-        Sets all values based on a monolithic vector
-        """
-        # Check sizes are compatible
-        assert vec.size == np.sum(self.bshape[0])
-
-        # indices of the boundaries of each block
-        n_blocks = np.concatenate(([0], np.cumsum(self.bshape[0])))
-        for i, (n_start, n_stop) in enumerate(zip(n_blocks[:-1], n_blocks[1:])):
-            self[i][:] = vec[n_start:n_stop]
-
     ## Conversion to monolithic formats
     def to_mono_ndarray(self):
         ndarray_vecs = [np.array(vec) for vec in self]

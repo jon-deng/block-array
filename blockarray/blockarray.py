@@ -333,7 +333,8 @@ class BlockArray(Generic[T]):
         else:
             return ret
 
-    def __setitem__(self,
+    def __setitem__(
+            self,
             key: MultiGenIndex,
             value: Union['BlockArray', T]
         ):
@@ -357,11 +358,12 @@ class BlockArray(Generic[T]):
             elif isinstance(value, (list, tuple)):
                 # Only allow assigning from flat lists to flat indexed `BlockArray`
                 if _array.ndim != 1:
-                    raise ValueError(f"Can't assign list of input values to array with ndim {_array.ndim}")
+                    raise ValueError(f"Can't assign list of input values to `BlockArray` with ndim {_array.ndim}")
                 elif len(_array) != len(value):
-                    raise ValueError(f"Can't assign list of {len(value)} values to {len(_array)} subarrays")
-                for subarray in _array:
-                    subarray.set(value)
+                    raise ValueError(f"Can't assign list with {len(value)} items to `BlockArray` with {len(_array)} blocks")
+                else:
+                    for subarray in _array:
+                        subarray.set(value)
         else:
             _array.set(value)
 
