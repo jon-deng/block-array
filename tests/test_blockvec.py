@@ -66,7 +66,7 @@ def test_scalar_mul():
 
 def test_vec_set():
     VEC1['a'] = 5
-    assert np.all(VEC1['a'] == 5)
+    assert np.all(VEC1.sub['a'] == 5)
     print(VEC1)
 
 if __name__ == '__main__':

@@ -126,7 +126,7 @@ class GenericSubarray(Generic[T]):
         """
         Set the array to `value`
         """
-        raise NotImplementedError()
+        raise NotImplementedError(f"Can't set values to array wrapper type {type(self)}")
 
     @property
     def data(self) -> T:
@@ -148,6 +148,9 @@ class PETScVector(GenericSubarray[PETScVec]):
     @property
     def ndim(self):
         return 1
+
+    def set(self, value):
+        self.data.array[:] = value
 
 class PETScMatrix(GenericSubarray[PETScMat]):
     def __init__(self, array: PETScMat):
@@ -183,6 +186,9 @@ class DfnVector(GenericSubarray[DfnVec]):
     def ndim(self):
         return 1
 
+    def set(self, value):
+        self.data[:] = value
+
 class DfnMatrix(GenericSubarray[DfnMat]):
     def __init__(self, array: DfnMat):
         super().__init__(array)
@@ -214,6 +220,9 @@ class NumpyArrayLike(GenericSubarray[V]):
     @property
     def ndim(self):
         return self.data.ndim
+
+    def set(self, value):
+        self.data[:] = value
 
 ## Core operations for computing size and shape of the various array types
 
