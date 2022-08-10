@@ -53,7 +53,36 @@ else:
     M = TypeVar('M', *ALL_MATRIX_TYPES)
 
 ## Wrapper array objects
-@np.vectorize
+def vectorize_func(func):
+    """
+    Return a vectorized unwrap function over object arrays
+
+    This function is needed because blocks are stored in numpy object arrays.
+    When elements of an object array are themselves numpy arrays (i.e. for
+    blocks) numpy tries to unpack inner arrays which is not the desired
+    behaviour here.
+    """
+    def vfunc(input):
+        if isinstance(input, np.ndarray):
+            # Treat numpy object arrays as containers of subarrays
+            if input.dtype == object:
+                ret = np.empty(input.shape, dtype=object)
+                ret.reshape(-1)[:] = [func(x) for x in input.flat]
+                return ret
+            # Treat numpy arrays (not object dtype) as a single subarray
+            else:
+                return func(input)
+        # Recursively apply `func` to lists/tuples
+        elif isinstance(input, list):
+            return [vfunc(x) for x in input]
+        elif isinstance(input, tuple):
+            return tuple(vfunc(x) for x in input)
+        # For all other subarray types, just apply `func` to them
+        else:
+            return func(input)
+    return vfunc
+
+@vectorize_func
 def wrap(array):
     if isinstance(array, GenericSubarray):
         return array
@@ -70,13 +99,12 @@ def wrap(array):
     else:
         raise TypeError(f"Couldn't find wrapper array type for array of type {type(array)}")
 
-# @np.vectorize
+@vectorize_func
 def unwrap(array):
     if isinstance(array, GenericSubarray):
         return array.data
     else:
         return array
-unwrap = np.vectorize(unwrap, otypes=[object])
 
 T = TypeVar('T')
 class GenericSubarray(Generic[T]):

@@ -99,8 +99,8 @@ class BlockArray(Generic[T]):
             return object.__new__(cls)
         elif shape == (-1,)*len(shape):
             # Get the flat list of subarrays and the shape to validate the shape
-            flat_subarrays, *_ = cls._process_subarrays(subarrays, shape, labels, wrap=wrap)
-            return flat_subarrays[0]
+            assert len(subarrays) == 1
+            return subarrays[0]
         else:
             return object.__new__(cls)
 
@@ -353,7 +353,7 @@ class BlockArray(Generic[T]):
                 if value.bshape != _array.bshape:
                     raise ValueError(f"Can't assign input values with bshape {value.bshape} to array with bshape {_array.bshape}")
                 for subarray, sub_value in zip(_array, value):
-                    gops.set(subarray, sub_value)
+                    subarray.set(sub_value)
             elif isinstance(value, (list, tuple)):
                 # Only allow assigning from flat lists to flat indexed `BlockArray`
                 if _array.ndim != 1:
@@ -361,9 +361,9 @@ class BlockArray(Generic[T]):
                 elif len(_array) != len(value):
                     raise ValueError(f"Can't assign list of {len(value)} values to {len(_array)} subarrays")
                 for subarray in _array:
-                    gops.set(subarray, value)
+                    subarray.set(value)
         else:
-            gops.set(_array, value)
+            _array.set(value)
 
     ## Reshape type methods
     def squeeze(self, axes=None):
