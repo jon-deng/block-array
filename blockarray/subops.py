@@ -59,12 +59,19 @@ def wrap(array):
         return PETScMatrix(array)
     elif isinstance(array, PETScVec):
         return PETScVector(array)
+    elif isinstance(array, DfnMat):
+        return DfnMatrix(array)
+    elif isinstance(array, DfnVec):
+        return DfnVector(array)
     else:
         raise TypeError(f"Couldn't find wrapper array type for array of type {type(array)}")
 
 @numpy.vectorize
 def unwrap(array):
-    return array.data
+    if isinstance(array, GenericSubarray):
+        return array.data
+    else:
+        return array
 
 T = TypeVar('T')
 class GenericSubarray(Generic[T]):
@@ -117,6 +124,40 @@ class PETScMatrix(GenericSubarray[PETScMat]):
     @property
     def shape(self):
         return self.data.getSize()
+
+    @property
+    def size(self):
+        return math.prod(self.shape)
+
+    @property
+    def ndim(self):
+        return 2
+
+class DfnVector(GenericSubarray[DfnVec]):
+    def __init__(self, array: DfnVec):
+        super().__init__(array)
+        assert isinstance(self.data, DfnVec)
+
+    @property
+    def shape(self):
+        return tuple(self.data.size(ii) for ii in range(1))
+
+    @property
+    def size(self):
+        return math.prod(self.shape)
+
+    @property
+    def ndim(self):
+        return 1
+
+class DfnMatrix(GenericSubarray[DfnMat]):
+    def __init__(self, array: DfnMat):
+        super().__init__(array)
+        assert isinstance(self.data, DfnMat)
+
+    @property
+    def shape(self):
+        return tuple(self.data.size(ii) for ii in range(2))
 
     @property
     def size(self):
