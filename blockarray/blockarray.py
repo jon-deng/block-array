@@ -89,7 +89,8 @@ class BlockArray(Generic[T]):
             cls,
             subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
             shape: Optional[Shape]=None,
-            labels: Optional[MultiLabels]=None
+            labels: Optional[MultiLabels]=None,
+            wrap: Callable[[T], gops.GenericSubarray[T]]=gops.wrap
         ):
         # Return a subarray instance if an explicit `shape` indicates all
         # block axes are collapsed
@@ -98,7 +99,7 @@ class BlockArray(Generic[T]):
             return object.__new__(cls)
         elif shape == (-1,)*len(shape):
             # Get the flat list of subarrays and the shape to validate the shape
-            flat_subarrays, *_ = cls._process_subarrays(subarrays, shape, labels)
+            flat_subarrays, *_ = cls._process_subarrays(subarrays, shape, labels, wrap=wrap)
             return flat_subarrays[0]
         else:
             return object.__new__(cls)
@@ -107,11 +108,12 @@ class BlockArray(Generic[T]):
             self,
             subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
             shape: Optional[Shape]=None,
-            labels: Optional[MultiLabels]=None
+            labels: Optional[MultiLabels]=None,
+            wrap: Callable[[T], gops.GenericSubarray[T]]=gops.wrap
         ):
 
         self._larray = larr.LabelledArray(
-            *self._process_subarrays(subarrays, shape, labels)
+            *self._process_subarrays(subarrays, shape, labels, wrap=wrap)
         )
         self._bshape = _f_bshape_from_larray(self._larray)
 
@@ -121,7 +123,8 @@ class BlockArray(Generic[T]):
     def _process_subarrays(
             subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
             shape: Optional[Shape]=None,
-            labels: Optional[MultiLabels]=None
+            labels: Optional[MultiLabels]=None,
+            wrap: Callable[[T], gops.GenericSubarray[T]]=gops.wrap
         ) -> Tuple[larr.FlatArray[T], Shape, Optional[MultiLabels]]:
         """
         Return a 'standard' `BlockArray` input format from general formats
@@ -161,7 +164,8 @@ class BlockArray(Generic[T]):
         if labels is None:
             labels = implicit_labels
 
-        _validate_shape(gops.ndim(flat_subarrays[0]), shape)
+        flat_subarrays = wrap(flat_subarrays)
+        _validate_shape(flat_subarrays[0].ndim, shape)
         return flat_subarrays, shape, labels
 
     ## String representation functions
@@ -465,14 +469,14 @@ def _f_bshape_from_larray(array: larr.LabelledArray[T]) -> BlockShape:
         # the block axis size is a tuple of ints for
         # axis size for each block along that dim
         if num_ax_blocks <= 0:
-            axis_sizes = gops.shape(array.array.flat[0])[dim]
+            axis_sizes = array.array.flat[0].shape[dim]
 
             ret_bshape.append(axis_sizes)
         else:
             midx = [0]*f_ndim
             midx[dim] = slice(None)
             midx = tuple(midx[ii] for ii in array.dims)
-            axis_sizes = tuple(gops.shape(subarray)[dim] for subarray in array[midx])
+            axis_sizes = tuple(subarray.shape[dim] for subarray in array[midx])
 
             ret_bshape.append(tuple(axis_sizes))
 
@@ -515,7 +519,7 @@ def _validate_f_bshape_from_larray(
 
     ref_subarray_shape = list(f_bshape)
     for midx, _ref_subarray_shape in zip(product(*midxs), product(*bshape)):
-        subarray_shape = gops.shape(array[midx])
+        subarray_shape = array[midx].shape
         # This only contains the shape along non-collapsed axes so you have to
         # insert the collapsed size
         for ii, jj in enumerate(dims):

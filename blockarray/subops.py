@@ -52,6 +52,7 @@ else:
     M = TypeVar('M', *ALL_MATRIX_TYPES)
 
 ## Wrapper array objects
+@np.vectorize
 def wrap(array):
     if isinstance(array, NDARRAY_TYPES):
         return NumpyArrayLike(array)
@@ -66,7 +67,7 @@ def wrap(array):
     else:
         raise TypeError(f"Couldn't find wrapper array type for array of type {type(array)}")
 
-@numpy.vectorize
+@np.vectorize
 def unwrap(array):
     if isinstance(array, GenericSubarray):
         return array.data
