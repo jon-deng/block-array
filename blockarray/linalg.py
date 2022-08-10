@@ -36,12 +36,16 @@ def mult_mat_vec(mat: bm.BlockMatrix[T], vec: bv.BlockVector[T]) -> bv.BlockVect
     ret_shape = (mat.f_shape[0],)
     ret_subvecs = []
     # Uncollapse any blocks so that iteration over rows and columns is done
-    # The correct output shape (potentially collapsed), should be maintained 
+    # The correct output shape (potentially collapsed), should be maintained
     # from `ret_shape`
     for submat_row in mat.unsqueeze():
         ret_subvec = reduce(
             lambda a, b: a+b,
-            [gops.mult_mat_vec(submat, subvec) for submat, subvec in zip(submat_row, vec)])
+            [
+                gops.mult_mat_vec(submat, subvec)
+                for submat, subvec in zip(submat_row.sub[:], vec)
+            ]
+        )
         ret_subvecs.append(ret_subvec)
     return bv.BlockVector(ret_subvecs, shape=ret_shape, labels=mat.f_labels[0:1])
 
@@ -76,7 +80,10 @@ def mult_mat_mat(mat_a: bm.BlockMatrix[T], mat_b: bm.BlockMatrix[T]) -> bm.Block
     ret_mats = [
         reduce(
             lambda a, b: a+b,
-            (gops.mult_mat_mat(mat_a[ii, kk], mat_b[kk, jj]) for kk in range(NREDUCE))
+            [
+                gops.mult_mat_mat(mat_a.sub[ii, kk], mat_b.sub[kk, jj])
+                for kk in range(NREDUCE)
+            ]
         )
         for ii, jj in itertools.product(range(NROW), range(NCOL))
     ]
