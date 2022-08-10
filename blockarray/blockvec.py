@@ -43,7 +43,7 @@ class BlockVector(BlockArray[T]):
         Return a dictionary of summary statistics for each subvector
         """
         return {
-            key: tuple([stat(subvec[:]) for stat in stats])
+            key: tuple([stat(gops.unwrap(subvec)[:]) for stat in stats])
             for key, subvec in self.items()
         }
 

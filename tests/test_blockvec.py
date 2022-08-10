@@ -38,7 +38,7 @@ def _test_binary_op(op, vec_a, vec_b, element_op=None):
     """
     element_op = op if element_op is None else element_op
     vec_c = op(vec_a, vec_b)
-    for subvec_c, subvec_a, subvec_b in zip(vec_c, vec_a, vec_b):
+    for subvec_c, subvec_a, subvec_b in zip(vec_c.sub[:], vec_a.sub[:], vec_b.sub[:]):
         assert np.all(subvec_c == element_op(subvec_a, subvec_b))
 
 def test_add():
@@ -56,12 +56,12 @@ def test_power():
 def test_scalar_mul():
     alpha = 5.0
     ans = alpha*VEC1
-    for vec_ans, vec in zip(ans, VEC1):
+    for vec_ans, vec in zip(ans.sub[:], VEC1.sub[:]):
         assert np.all(vec_ans == alpha*vec)
 
     alpha = np.float64(5.0)
     ans = alpha*VEC1
-    for vec_ans, vec in zip(ans, VEC1):
+    for vec_ans, vec in zip(ans.sub[:], VEC1.sub[:]):
         assert np.all(vec_ans == alpha*vec)
 
 def test_vec_set():
