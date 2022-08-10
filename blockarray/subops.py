@@ -116,11 +116,11 @@ class GenericSubarray(Generic[T]):
     def __init__(self, array: T):
         self._data = array
 
-    # def __getitem__(self, key):
-    #     raise NotImplementedError()
+    def __getitem__(self, key):
+        raise NotImplementedError(f"Can't index values from array wrapper type {type(self)}")
 
-    # def __setitem__(self, key, value):
-    #     raise NotImplementedError()
+    def __setitem__(self, key, value):
+        raise NotImplementedError(f"Can't set at index to array wrapper type {type(self)}")
 
     def set(self, value):
         """
@@ -136,6 +136,12 @@ class PETScVector(GenericSubarray[PETScVec]):
     def __init__(self, array: PETScVec):
         super().__init__(array)
         assert isinstance(self.data, PETScVector)
+
+    def __getitem__(self, key):
+        return self.data.array[key]
+
+    def __setitem__(self, key, value):
+        self.data.array[key] = value
 
     @property
     def shape(self):
@@ -157,6 +163,12 @@ class PETScMatrix(GenericSubarray[PETScMat]):
         super().__init__(array)
         assert isinstance(self.data, PETScMatrix)
 
+    # def __getitem__(self, key):
+    #     return self.data[key]
+
+    # def __setitem__(self, key, value):
+    #     self.data[key] = value
+
     @property
     def shape(self):
         return self.data.getSize()
@@ -173,6 +185,12 @@ class DfnVector(GenericSubarray[DfnVec]):
     def __init__(self, array: DfnVec):
         super().__init__(array)
         assert isinstance(self.data, DfnVec)
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def __setitem__(self, key, value):
+        self.data[key] = value
 
     @property
     def shape(self):
@@ -194,6 +212,12 @@ class DfnMatrix(GenericSubarray[DfnMat]):
         super().__init__(array)
         assert isinstance(self.data, DfnMat)
 
+    # def __getitem__(self, key):
+    #     return self.data[key]
+
+    # def __setitem__(self, key, value):
+    #     self.data[key] = value
+
     @property
     def shape(self):
         return tuple(self.data.size(ii) for ii in range(2))
@@ -208,6 +232,12 @@ class DfnMatrix(GenericSubarray[DfnMat]):
 
 V = TypeVar('V', *NDARRAY_TYPES)
 class NumpyArrayLike(GenericSubarray[V]):
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def __setitem__(self, key, value):
+        self.data[key] = value
 
     @property
     def shape(self):
