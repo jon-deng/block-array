@@ -26,10 +26,10 @@ def test_create_collapsed():
     assert (A is a)
 
 def test_index():
-    assert np.all(B[0, 0] == a)
-    assert np.all(B[0, 1] == b)
-    assert np.all(B[1, 0] == c)
-    assert np.all(B[1, 1] == d)
+    assert np.all(B.sub[0, 0] == a)
+    assert np.all(B.sub[0, 1] == b)
+    assert np.all(B.sub[1, 0] == c)
+    assert np.all(B.sub[1, 1] == d)
 
 def _test_elementwise_binary_op(sub_op, a, b, block_op=None):
     """
@@ -40,12 +40,13 @@ def _test_elementwise_binary_op(sub_op, a, b, block_op=None):
     """
     if block_op is None:
         block_op = sub_op
-    c_array_result = block_op(a, b).array.flat
-    c_array_reference = tuple([sub_op(ai, bi) for ai, bi in zip(a.array.flat, b.array.flat)])
+    c_array_result = block_op(a, b).sub[:].flat
+    c_array_reference = tuple([sub_op(ai, bi) for ai, bi in zip(a.sub[:].flat, b.sub[:].flat)])
 
     correct_subarrays = [
         np.all(sub_res == sub_ref)
-        for sub_res, sub_ref in zip(c_array_result, c_array_reference)]
+        for sub_res, sub_ref in zip(c_array_result, c_array_reference)
+    ]
 
     assert all(correct_subarrays)
 

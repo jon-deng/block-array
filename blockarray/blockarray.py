@@ -299,6 +299,25 @@ class BlockArray(Generic[T]):
     def __copy__(self):
         return self.copy()
 
+    @property
+    def sub(self):
+        """
+        Return an object that allows indexing into unwrapped subarrays
+        """
+        class SubIndex:
+            """
+            Object to allow indexing into unwrapped subarrays
+            """
+            def __init__(self, barray: BlockArray):
+                self._barray = barray
+
+            def __getitem__(self, key: MultiGenIndex):
+                result = self._barray[key]
+                if isinstance(result, BlockArray):
+                    result = result.array
+                return gops.unwrap(result)
+        return SubIndex(self)
+
     def __getitem__(self, key: MultiGenIndex):
         """
         Return the vector or BlockVector corresponding to the index
@@ -647,7 +666,7 @@ def _elementwise_binary_op(
     a, b: BlockArray
     """
     _validate_elementwise_binary_op(a, b)
-    array = tuple([op(ai, bi) for ai, bi in zip(a.array.flat, b.array.flat)])
+    array = tuple([op(ai, bi) for ai, bi in zip(a.sub[:].flat, b.sub[:].flat)])
     larrayay = larr.LabelledArray(array, a.f_shape, a.f_labels)
     return type(a)(larrayay)
 
@@ -684,7 +703,7 @@ def _elementwise_unary_op(
     BlockArray
         The resultant block array
     """
-    array = larr.LabelledArray([op(ai) for ai in a.array.flat], a.f_shape, a.f_labels)
+    array = larr.LabelledArray([op(ai) for ai in a.sub[:].flat], a.f_shape, a.f_labels)
     return type(a)(array)
 
 neg = functools.partial(_elementwise_unary_op, operator.neg)
@@ -737,6 +756,6 @@ def to_mono_ndarray(barray: BlockArray[T]) -> np.ndarray:
         midx = [slice(None)]*len(barray.f_shape)
         for ii, idx in zip(barray.dims, idxs):
             midx[ii] = idx
-        ret_array[tuple(midx)] = barray[block_idx]
+        ret_array[tuple(midx)] = barray.sub[block_idx]
 
     return ret_array

@@ -5,6 +5,7 @@ from PETSc, numpy, and FEniCS.
 
 from typing import TypeVar, Union, Tuple, Optional, Generic
 import math
+import functools
 
 import numpy as np
 from . import _HAS_PETSC, _HAS_FENICS, _HAS_JAX, require_petsc, require_fenics
@@ -54,7 +55,9 @@ else:
 ## Wrapper array objects
 @np.vectorize
 def wrap(array):
-    if isinstance(array, NDARRAY_TYPES):
+    if isinstance(array, GenericSubarray):
+        return array
+    elif isinstance(array, NDARRAY_TYPES):
         return NumpyArrayLike(array)
     elif isinstance(array, PETScMat):
         return PETScMatrix(array)
@@ -67,12 +70,13 @@ def wrap(array):
     else:
         raise TypeError(f"Couldn't find wrapper array type for array of type {type(array)}")
 
-@np.vectorize
+# @np.vectorize
 def unwrap(array):
     if isinstance(array, GenericSubarray):
         return array.data
     else:
         return array
+unwrap = np.vectorize(unwrap, otypes=[object])
 
 T = TypeVar('T')
 class GenericSubarray(Generic[T]):
