@@ -360,7 +360,7 @@ class BlockArray(Generic[T]):
             if isinstance(value, BlockArray):
                 if value.bshape != _array.bshape:
                     raise ValueError(f"Can't assign input values with bshape {value.bshape} to array with bshape {_array.bshape}")
-                for subarray, sub_value in zip(_array, value):
+                for subarray, sub_value in zip(_array, value.sub_blocks):
                     subarray.set(sub_value)
             elif isinstance(value, (list, tuple)):
                 # Only allow assigning from flat lists to flat indexed `BlockArray`
