@@ -30,7 +30,7 @@ import functools
 from typing import Tuple, List, Mapping, TypeVar, Union, Callable
 import numpy as np
 
-from . import blockarray as ba, blockmat as bm, blockvec as bv
+from . import blockarray as ba, blockmat as bm, blockvec as bv, subops
 from . import typing
 
 Signature = Tuple[str, ...]
@@ -120,8 +120,8 @@ def interpret_ufunc_signature(
 
         This maps the dimension name to a tuple of 2 integers `(nin, dim)`
         containing the input number (`nin`) and core dimension (`dim`)
-        that the free label corresponds to. 
-        For example, a signature '(i,j),(j,k)->(i,k)' has free dimension names 
+        that the free label corresponds to.
+        For example, a signature '(i,j),(j,k)->(i,k)' has free dimension names
         of 'i,k' and would have
             `free_dname_to_ins = {'i': [(0, 0)], 'k': [(1, 1)]}`
         The same signature has reduced dimension names of 'j' and would have
@@ -164,7 +164,7 @@ def make_gen_in_multi_index(
     ----------
     std_shape_ins :
         A list of input shapes in 'standard' order; all loop dimensions should
-        be the first axes followed by all the core dimensions. 
+        be the first axes followed by all the core dimensions.
     sig_ins :
         Signatures (as returned by `parse_ufunc_signature`) for inputs
     sig_out :
@@ -172,7 +172,7 @@ def make_gen_in_multi_index(
 
     Returns
     -------
-    gen_in_multi_index : 
+    gen_in_multi_index :
         Function that returns indices for each input corresponding to an output
         index.
     """
@@ -192,7 +192,7 @@ def make_gen_in_multi_index(
             `(1,)` and `(5,)`
         and a `ufunc` with signature
             `'(),()->()'`.
-        Then the output shape is broadcast to 
+        Then the output shape is broadcast to
             `(5,)`.
         The output subarray at `(4,)` is computed from the input subarrays
         at `(0,)` and `(4,)`, which are the corresponding input
@@ -249,7 +249,7 @@ def apply_permutation(arg: Union[List[T], Tuple[T]], perm: Perm) -> Union[List[T
     ----------
     arg : List or Tuple
         The list/tuple to permute
-    perm : 
+    perm :
         The permutation to apply. This should be a tuple containing integers
         between `0` to `len(arg)-1` ordered according to the desired permutation.
 
@@ -278,7 +278,7 @@ def undo_permutation(arg: Union[List[T], Tuple[T]], perm: Perm) -> Union[List[T]
     ----------
     arg : List or Tuple
         The list/tuple to permute
-    perm : 
+    perm :
         The permutation to undo. This should be a tuple containing integers
         between `0` to `len(arg)-1` ordered according to the desired permutation.
 
@@ -364,7 +364,7 @@ def broadcast_axis_size(a: typing.AxisSize, b: typing.AxisSize) -> typing.AxisSi
 
     Returns
     -------
-    int 
+    int
         Broadcasted block axis size
     """
     if isinstance(a, int) and isinstance(b, int):
@@ -415,7 +415,7 @@ def broadcast(broadcast_op: Callable[[V, V], V], *inputs: Tuple[V, ...]) -> Tupl
 
     The `broadcast_op` is used to broadcast each dimension/axis of the input
     tuples against each other, similar to broadcasting of numpy shape tuples.
-    
+
     Parameters
     ----------
     broadcast_op :
@@ -455,7 +455,7 @@ def broadcast_dims(
     sig_ins, sig_outs:
         Input and output signatures (see `parse_ufunc_signature`)
     free_name_to_ins:
-        A mapping from free axis labels to associated inputs (see 
+        A mapping from free axis labels to associated inputs (see
         `interpret_ufunc_signature`).
     """
     loop_dims = [dims[:len(dims)-len(sig)] for dims, sig in zip(std_in_dims, sig_ins)]
@@ -536,7 +536,7 @@ def apply_ufunc_array(ufunc: np.ufunc, method: str, *inputs: Input[T], **kwargs)
         (see documentation of `np.ufunc`).
     inputs : List of BlockArray or scalar
         The inputs to apply the ufunc on
-    kwargs : 
+    kwargs :
         Keyword arguments for `np.ufunc` (see documentation of `np.ufunc`).
     """
     ## Validate inputs
@@ -647,23 +647,23 @@ def _apply_op_core(
         **kwargs
     ) -> List[Tuple[List[T], typing.Shape, typing.Labels]]:
     """
-    Return the result of applying a function of `numpy` subarrays 
+    Return the result of applying a function of `numpy` subarrays
 
     Parameters
     ----------
     ufunc :
-        The numpy ufunc-like function to apply on the inputs. This includes the 
+        The numpy ufunc-like function to apply on the inputs. This includes the
         ufunc methods `ufunc.reduce`, `ufunc.accumulate`, etc...
     signature :
         The signature of the ufunc (see documentation for generalized universal
         functions in numpy).
     baxes :
-        The equivalent of the 'axes' keyword argument for `np.ufunc`. `baxes` 
-        and `kwargs['axes']` must be consistent for the resulting operation to 
-        make sense as the axes of the blocks and the axes of the subarrays are 
+        The equivalent of the 'axes' keyword argument for `np.ufunc`. `baxes`
+        and `kwargs['axes']` must be consistent for the resulting operation to
+        make sense as the axes of the blocks and the axes of the subarrays are
         the same.
 
-        This is included as a separate argument since ufunc methods 
+        This is included as a separate argument since ufunc methods
         (`ufunc.reduce`, etc.) don't have an `axes` keyword argument, although
         they can be modelled in the same way as the direct `ufunc.__call__`
         method. To see how 'axes' is defined in these cases, see
@@ -681,7 +681,7 @@ def _apply_op_core(
     if 'axes' in kwargs:
         ncore_dims = [len(sig) for sig in sig_ins+sig_outs]
         sub_baxes = [
-            tuple(conv_neg(ii, ndim) for ii in axs) 
+            tuple(conv_neg(ii, ndim) for ii in axs)
             for axs, ndim in zip(kwargs['axes'], ncore_dims)
         ]
         if sub_baxes != baxes:
@@ -776,13 +776,13 @@ def _apply_op_blockwise(
 
     This roughly works as follow:
         - Output subarrays along loop dimensions result from applying `ufunc`
-        blockwise along corresponding loop dimensions on inputs. 
+        blockwise along corresponding loop dimensions on inputs.
         - Output subarrays along core free dimensions result from applying `ufunc`
         elementwise along corresponding core free dimensions on inputs. That is
         core free dimensions are treated like loop dimensions.
         - Output subarrays along reduced dimensions are not present, since these
-        dimensions are collapsed/reduced. To perform the collapsed/reducing 
-        operation for each subarray along elementwise blocks, subarrays are 
+        dimensions are collapsed/reduced. To perform the collapsed/reducing
+        operation for each subarray along elementwise blocks, subarrays are
         concatenated along the reduced dimensions and ufuncs are then applied on
         the single concatenated subarray.
     """
@@ -806,7 +806,7 @@ def _apply_op_blockwise(
         subarray_ins = [
             subarray.to_mono_ndarray()
             if isinstance(subarray, ba.BlockArray)
-            else subarray
+            else subops.unwrap(subarray)
             for subarray in subarray_ins
         ]
 
