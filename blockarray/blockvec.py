@@ -113,7 +113,7 @@ def concatenate_vec(args, labels=None):
     if labels is None:
         labels = [ftls.reduce(lambda a, b: a+b, [bvec.labels[0] for bvec in args])]
 
-    vecs = np.concatenate([bvec.array for bvec in args])
+    vecs = np.concatenate([bvec.blocks for bvec in args])
 
     return BlockVector(vecs, labels=labels)
 
