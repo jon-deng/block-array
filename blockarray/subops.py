@@ -128,6 +128,15 @@ class GenericSubarray(Generic[T]):
         """
         raise NotImplementedError(f"Can't set values to array wrapper type {type(self)}")
 
+    ## Methods that are usually well defined
+
+    def __len__(self):
+        return self.data.__len__()
+
+    def copy(self) -> 'GenericSubarray[T]':
+        """Return a copy"""
+        return type(self)(self.data.copy())
+
     @property
     def data(self) -> T:
         return self._data
@@ -194,7 +203,7 @@ class DfnVector(GenericSubarray[DfnVec]):
 
     @property
     def shape(self):
-        return tuple(self.data.size(ii) for ii in range(1))
+        return (self.data.size(),)
 
     @property
     def size(self):

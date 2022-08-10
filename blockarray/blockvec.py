@@ -32,11 +32,6 @@ class BlockVector(BlockArray[T]):
         if len(self.shape) > 1:
             raise ValueError(f"BlockVector must have dimension == 1, not {len(self.shape)}")
 
-    ## Add vecs property for special case/backwards compatibilty
-    @property
-    def vecs(self):
-        return self.array.tolist()
-
     ## Basic string representation functions
     def stats(self, stats):
         """

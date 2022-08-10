@@ -170,17 +170,24 @@ class BlockArray(Generic[T]):
 
     ## String representation functions
     def __repr__(self):
-        return f"{self.__class__.__name__}({repr(self.array)}, {self.f_shape}, {self.f_labels})"
+        return f"{self.__class__.__name__}({repr(self.blocks)}, {self.f_shape}, {self.f_labels})"
 
     def __str__(self):
         return f"{self.__class__.__name__}(bshape={self.f_bshape} labels={self.f_labels})"
 
     @property
-    def array(self) -> np.ndarray:
+    def blocks(self) -> np.ndarray:
         """
         Return the numpy object array containing subarrays
         """
         return self.larray.array
+
+    @property
+    def sub_blocks(self) -> np.ndarray:
+        """
+        Return the numpy object array containing subarrays
+        """
+        return gops.unwrap(self.larray.array)
 
     @property
     def larray(self) -> larr.LabelledArray:
@@ -314,7 +321,7 @@ class BlockArray(Generic[T]):
             def __getitem__(self, key: MultiGenIndex):
                 result = self._barray[key]
                 if isinstance(result, BlockArray):
-                    result = result.array
+                    result = result.blocks
                 return gops.unwrap(result)
         return SubIndex(self)
 
@@ -387,7 +394,7 @@ class BlockArray(Generic[T]):
         new_fshape = tuple(new_fshape)
         new_flabels = tuple(new_flabels)
 
-        return BlockArray(self.array.reshape(-1), new_fshape, new_flabels)
+        return BlockArray(self.blocks.reshape(-1), new_fshape, new_flabels)
 
     def unsqueeze(self, f_axes=None):
         """
@@ -400,7 +407,7 @@ class BlockArray(Generic[T]):
         # Unsqueezing `f_labels` doesn't require any modification
         new_flabels = self.f_labels
 
-        return BlockArray(self.array.reshape(-1), new_fshape, new_flabels)
+        return BlockArray(self.blocks.reshape(-1), new_fshape, new_flabels)
 
     ## Dict-like interface over the first dimension
     def keys(self):
@@ -415,6 +422,12 @@ class BlockArray(Generic[T]):
         Return an iterable of label, value pairs along the first axis
         """
         return zip(self.f_labels[0], self)
+
+    def sub_items(self):
+        """
+        Return an iterable of label, value (nonwrapped) pairs along the first axis
+        """
+        return zip(self.f_labels[0], self.sub[:])
 
     ## Iterable interface over the first non-reduced axis
     def __iter__(self):
