@@ -245,7 +245,6 @@ class LabelledArray(Generic[T]):
     multi_label_to_idx :
         A mapping of labels to indices for each axis
     """
-
     def __init__(
             self,
             array: Union[FlatArray[T], np.ndarray],
@@ -270,12 +269,15 @@ class LabelledArray(Generic[T]):
         if isinstance(array, np.ndarray):
             self._array = array.reshape(self.shape)
         else:
-            self._array = np.ndarray(self.shape, object)
+            self._array = np.empty(self.shape, dtype=object)
             self._array.reshape(-1)[:] = array
 
         self._MULTI_LABEL_TO_IDX = tuple(
-            {label: ii for label, ii in zip(axis_labels, idxs)}
-            for axis_labels, idxs in zip(self.labels, [range(axis_size) for axis_size in self.shape])
+            {label: ii for label, ii in zip(axis_labels, range(axis_size))}
+            for axis_labels, axis_size in zip(
+                self.labels,
+                [axis_size for axis_size in self.shape]
+            )
         )
 
     @property
