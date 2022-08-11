@@ -520,11 +520,11 @@ def _f_bshape_from_larray(larray: larr.LabelledArray[T]) -> BlockShape:
         else:
             midx = [0]*f_ndim
             midx[dim] = slice(None)
-            midx = tuple(midx[ii] for ii in larray.dims)
+            midx = tuple([midx[ii] for ii in larray.dims])
             # Directly access subarrays in `.array` to avoid slow `LabelledArray.__getitem__`
-            axis_sizes = tuple(subarray.shape[dim] for subarray in larray.array[midx])
+            axis_sizes = tuple([subarray.shape[dim] for subarray in larray.array[midx]])
 
-            ret_bshape.append(tuple(axis_sizes))
+            ret_bshape.append(axis_sizes)
 
     return tuple(ret_bshape)
 
@@ -550,7 +550,7 @@ def _validate_f_bshape_from_larray(
     # Check that `array` and f_shape have the right number of dimensions
     # and number of blocks
     assert len(larray.f_shape) == len(f_bshape)
-    _f_shape = tuple(-1 if isinstance(bax_size, int) else len(bax_size) for bax_size in f_bshape)
+    _f_shape = tuple([-1 if isinstance(bax_size, int) else len(bax_size) for bax_size in f_bshape])
     assert larray.f_shape == _f_shape
 
     # To validate subarray shapes, loop through each entry and note subarray
@@ -558,9 +558,9 @@ def _validate_f_bshape_from_larray(
     # `subarray[i, j, k, ...]` requires shape `(bshape[i], bshape[j], bshape[k], ...)`
     # where `bshape` has any collapsed axes removed (this works because
     # `subarray[i, j, k, ...]` implicts selects only non-collapsed axes).
-    dims =  tuple(ii for ii, bsize in enumerate(f_bshape) if not isinstance(bsize, int))
-    bshape = tuple(f_bshape[ii] for ii in dims)
-    shape = tuple(len(bsize) for bsize in bshape)
+    dims =  tuple([ii for ii, bsize in enumerate(f_bshape) if not isinstance(bsize, int)])
+    bshape = tuple([f_bshape[ii] for ii in dims])
+    shape = tuple([len(bsize) for bsize in bshape])
     midxs = [range(size) for size in shape]
 
     ref_subarray_shape = list(f_bshape)
@@ -651,9 +651,9 @@ def make_create_array(create_numpy_array):
             return create_block_array(sub_shape)
 
     def create_block_array(bshape):
-        shape = tuple(axis_bsize(ax_bshape) for ax_bshape in bshape)
+        shape = tuple([axis_bsize(ax_bshape) for ax_bshape in bshape])
 
-        _bshape = tuple(_require_tuple(ax_bshape) for ax_bshape in bshape)
+        _bshape = tuple([_require_tuple(ax_bshape) for ax_bshape in bshape])
 
         subarrays = [create_subarray(sub_shape) for sub_shape in product(*_bshape)]
 

@@ -23,7 +23,7 @@ def setup_labelledarray():
     strides = [
         stride for stride
         in accumulate(shape[-1:0:-1], lambda a, b: a*b, initial=1)]
-    strides = tuple(strides)[::-1]
+    strides = tuple(strides[::-1])
 
     elements = string.ascii_lowercase[:math.prod(shape)]
     elements = [char for char in elements]

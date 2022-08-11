@@ -257,7 +257,7 @@ class LabelledArray(Generic[T]):
         # otherwise use supplied labels
         else:
             # Convert any lists to tuples in labels
-            labels = tuple(tuple(dim_labels) for dim_labels in labels)
+            labels = tuple([tuple(dim_labels) for dim_labels in labels])
 
         # Validate the array shape and labels
         validate_labels(labels, shape)
@@ -300,12 +300,12 @@ class LabelledArray(Generic[T]):
     @property
     def f_dims(self) -> Tuple[int, ...]:
         """Return the axis/dimensions indices"""
-        return tuple(range(self.f_ndim))
+        return tuple(list(range(self.f_ndim)))
 
     @property
     def dims(self) -> Tuple[int, ...]:
         """Return the reduced axis/dimensions indices"""
-        return tuple(ii for ii, ax_size in zip(self.f_dims, self.f_shape) if ax_size != -1)
+        return tuple([ii for ii, ax_size in zip(self.f_dims, self.f_shape) if ax_size != -1])
 
     @property
     def f_labels(self) -> MultiLabels:
@@ -354,7 +354,7 @@ class LabelledArray(Generic[T]):
             f_shape = (-1,)*self.f_ndim
             f_labels = ()
         elif (n_str == len(multi_idx) and self.f_ndim == 1):
-            _multi_idx = tuple(label_to_idx[label] for label_to_idx, label in zip(self._MULTI_LABEL_TO_IDX, multi_idx))
+            _multi_idx = tuple([label_to_idx[label] for label_to_idx, label in zip(self._MULTI_LABEL_TO_IDX, multi_idx)])
             ret_array = [self.array[_multi_idx]]
             f_shape = (-1,)*self.f_ndim
             f_labels = ()
@@ -394,12 +394,12 @@ class LabelledArray(Generic[T]):
                 return -1
             else:
                 assert False
-        ret_shape = tuple(_ax_size_from_idx(axis_idx) for axis_idx in multi_idx)
+        ret_shape = tuple([_ax_size_from_idx(axis_idx) for axis_idx in multi_idx])
 
         def _ax_labels_from_idx(axis_idx, ax_labels):
             if isinstance(axis_idx, list):
                 if ax_labels != ():
-                    return tuple(ax_labels[ii] for ii in axis_idx)
+                    return tuple([ax_labels[ii] for ii in axis_idx])
                 else:
                     return ()
             elif isinstance(axis_idx, int):

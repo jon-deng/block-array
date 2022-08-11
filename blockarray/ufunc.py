@@ -145,7 +145,7 @@ def interpret_ufunc_signature(
         for ii_input, sig_input in enumerate(sig_ins):
             for ii_ax, name in enumerate(sig_input):
                 if name in dname_to_ins:
-                    dname_to_ins[name].append(tuple([ii_input, ii_ax]))
+                    dname_to_ins[name].append((ii_input, ii_ax))
     assert set(free_dname_to_ins.keys()) == free_names
     assert set(redu_dname_to_ins.keys()) == redu_names
 
@@ -370,16 +370,16 @@ def broadcast_axis_size(a: typing.AxisSize, b: typing.AxisSize) -> typing.AxisSi
     if isinstance(a, int) and isinstance(b, int):
         return broadcast_size(a, b)
     elif isinstance(a, int) and isinstance(b, tuple):
-        return tuple(broadcast_axis_size(a, bb) for bb in b)
+        return tuple([broadcast_axis_size(a, bb) for bb in b])
     elif isinstance(a, tuple) and isinstance(b, int):
-        return tuple(broadcast_axis_size(aa, b) for aa in a)
+        return tuple([broadcast_axis_size(aa, b) for aa in a])
     elif isinstance(a, tuple) and isinstance(b, tuple):
         if len(a) == 1:
-            return tuple(broadcast_axis_size(a[0], bb) for bb in b)
+            return tuple([broadcast_axis_size(a[0], bb) for bb in b])
         elif len(b) == 1:
-            return tuple(broadcast_axis_size(aa, b[0]) for aa in a)
+            return tuple([broadcast_axis_size(aa, b[0]) for aa in a])
         elif len(b) == len(a):
-            return tuple(broadcast_axis_size(aa, bb) for aa, bb in zip(a, b))
+            return tuple([broadcast_axis_size(aa, bb) for aa, bb in zip(a, b)])
         else:
             raise ValueError(f"{a} and {b} are not broadcastable")
     else:
@@ -681,7 +681,7 @@ def _apply_op_core(
     if 'axes' in kwargs:
         ncore_dims = [len(sig) for sig in sig_ins+sig_outs]
         sub_baxes = [
-            tuple(conv_neg(ii, ndim) for ii in axs)
+            tuple([conv_neg(ii, ndim) for ii in axs])
             for axs, ndim in zip(kwargs['axes'], ncore_dims)
         ]
         if sub_baxes != baxes:

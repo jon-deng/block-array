@@ -140,7 +140,7 @@ def to_mono_petsc(bvec, comm=None, finalize=True):
 @require_petsc
 def to_block_rowmat(bvec):
     mats = tuple(
-        tuple(gops.convert_vec_to_rowmat(subvec) for subvec in bvec.sub_blocks)
+        tuple([gops.convert_vec_to_rowmat(subvec) for subvec in bvec.sub_blocks])
     )
     return BlockMatrix(mats)
 
