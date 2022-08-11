@@ -28,9 +28,10 @@ class BlockMatrix(ba.BlockArray[T]):
     Represents a block matrix with blocks indexed by keys
     """
     def __init__(self,
-        subarrays,
-        shape=None,
-        labels=None):
+            subarrays,
+            shape=None,
+            labels=None
+        ):
         super().__init__(subarrays, shape, labels)
 
         if len(self.f_shape) != 2:
@@ -53,11 +54,11 @@ class BlockMatrix(ba.BlockArray[T]):
         # change the fastet; this ensures that the flat tensor represent the
         # transpose
         ret_subtensors = [
-            self.sub[multi_idx[::-1]].copy().transpose()
+            self.sub_blocks[multi_idx[::-1]].copy().transpose()
             for multi_idx in itertools.product(
                 *[range(ax_size) for ax_size in self.shape[::-1]]
-                )
-            ]
+            )
+        ]
 
         return BlockMatrix(ret_subtensors, ret_shape, ret_labels)
 
@@ -78,7 +79,7 @@ def norm(A: BlockMatrix[T]):
     A : BlockMatrix
     """
     frobenius_norm = np.sum([
-        gops.norm_mat(A[mm, nn])**2
+        gops.norm_mat(A.sub_blocks[mm, nn])**2
         for nn in range(A.shape[1])
         for mm in range(A.shape[0])])**0.5
     return frobenius_norm
@@ -101,7 +102,7 @@ def concatenate_mat(bmats: List[List[BlockMatrix[T]]], labels: MultiLabels=None)
         for row in range(bmats[brow][0].shape[0]):
             mats_row = []
             for bcol in range(NUM_BCOL):
-                mats_row.extend(bmats[brow][bcol][row, :])
+                mats_row.extend(bmats[brow][bcol].blocks[row, :])
             mats.append(mats_row)
 
     if labels is None:
@@ -119,7 +120,7 @@ def convert_subtype_to_petsc(bmat: BlockMatrix[T]):
     ----------
     bmat: BlockMatrix
     """
-    mats = [gops.convert_mat_to_petsc(mat) for mat in bmat.blocks.flat]
+    mats = [gops.convert_mat_to_petsc(mat) for mat in bmat.sub_blocks.flat]
     barray = LabelledArray(mats, bmat.shape, bmat.labels)
     return BlockMatrix(barray)
 
@@ -199,7 +200,7 @@ def get_blocks_csr(bmat: ba.BlockArray[PETScMat]) -> Tuple[List[List[Icsr]], Lis
         j_block_row = []
         v_block_row = []
         for col in range(N_BLOCK):
-            i, j, v = bmat.sub[row, col].getValuesCSR()
+            i, j, v = bmat.sub_blocks[row, col].getValuesCSR()
             i_block_row.append(i)
             j_block_row.append(j)
             v_block_row.append(v)

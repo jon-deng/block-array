@@ -3,6 +3,8 @@
 *.lprof
 *.prof
 *.profile
+*.Profile
+*.stats
 *.out
 *.txt
 *.log

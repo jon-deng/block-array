@@ -43,7 +43,7 @@ def mult_mat_vec(mat: bm.BlockMatrix[T], vec: bv.BlockVector[T]) -> bv.BlockVect
             lambda a, b: a+b,
             [
                 gops.mult_mat_vec(submat, subvec)
-                for submat, subvec in zip(submat_row.sub[:], vec)
+                for submat, subvec in zip(submat_row.sub_blocks, vec)
             ]
         )
         ret_subvecs.append(ret_subvec)
@@ -81,7 +81,7 @@ def mult_mat_mat(mat_a: bm.BlockMatrix[T], mat_b: bm.BlockMatrix[T]) -> bm.Block
         reduce(
             lambda a, b: a+b,
             [
-                gops.mult_mat_mat(mat_a.sub[ii, kk], mat_b.sub[kk, jj])
+                gops.mult_mat_mat(mat_a.sub_blocks[ii, kk], mat_b.sub_blocks[kk, jj])
                 for kk in range(NREDUCE)
             ]
         )

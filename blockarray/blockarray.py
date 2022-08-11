@@ -394,6 +394,7 @@ class BlockArray(Generic[T]):
         new_fshape = tuple(new_fshape)
         new_flabels = tuple(new_flabels)
 
+        # TODO: This should return the type of the instance
         return BlockArray(self.blocks.reshape(-1), new_fshape, new_flabels)
 
     def unsqueeze(self, f_axes=None):
@@ -407,6 +408,7 @@ class BlockArray(Generic[T]):
         # Unsqueezing `f_labels` doesn't require any modification
         new_flabels = self.f_labels
 
+        # TODO: This should return the type of the instance
         return BlockArray(self.blocks.reshape(-1), new_fshape, new_flabels)
 
     ## Dict-like interface over the first dimension
@@ -427,12 +429,16 @@ class BlockArray(Generic[T]):
         """
         Return an iterable of label, value (nonwrapped) pairs along the first axis
         """
-        return zip(self.f_labels[0], self.sub[:])
+        return zip(self.f_labels[0], self.sub_blocks)
 
     ## Iterable interface over the first non-reduced axis
     def __iter__(self):
         for ii in range(self.shape[0]):
             yield self[ii]
+
+    def __sub_iter__(self):
+        for ii in range(self.shape[0]):
+            yield self.sub[ii]
 
     ## common operator overloading
     def __eq__(self, other):
@@ -487,7 +493,7 @@ class BlockArray(Generic[T]):
         from . import ufunc as _ufunc
         return _ufunc.apply_ufunc_array(ufunc, method, *inputs, **kwargs)
 
-def _f_bshape_from_larray(array: larr.LabelledArray[T]) -> BlockShape:
+def _f_bshape_from_larray(larray: larr.LabelledArray[T]) -> BlockShape:
     """
     Return the block shape from subarrays in a `LabelledArray`
 
@@ -495,29 +501,30 @@ def _f_bshape_from_larray(array: larr.LabelledArray[T]) -> BlockShape:
     array of subtensors with shape `(2, 3, 4)` ...
     """
     ret_bshape = []
-    f_ndim = len(array.f_shape)
-    for dim, num_ax_blocks in enumerate(array.f_shape):
+    f_ndim = len(larray.f_shape)
+    for dim, num_ax_blocks in enumerate(larray.f_shape):
         # If there are no blocks along a dimension,
         # the block axis size is an int
         # If there are >= 1 blocks along a dimension,
         # the block axis size is a tuple of ints for
         # axis size for each block along that dim
         if num_ax_blocks <= 0:
-            axis_sizes = array.array.flat[0].shape[dim]
+            axis_sizes = larray.array.flat[0].shape[dim]
 
             ret_bshape.append(axis_sizes)
         else:
             midx = [0]*f_ndim
             midx[dim] = slice(None)
-            midx = tuple(midx[ii] for ii in array.dims)
-            axis_sizes = tuple(subarray.shape[dim] for subarray in array[midx])
+            midx = tuple(midx[ii] for ii in larray.dims)
+            # Directly access subarrays in `.array` to avoid slow `LabelledArray.__getitem__`
+            axis_sizes = tuple(subarray.shape[dim] for subarray in larray.array[midx])
 
             ret_bshape.append(tuple(axis_sizes))
 
     return tuple(ret_bshape)
 
 def _validate_f_bshape_from_larray(
-        array: larr.LabelledArray[T],
+        larray: larr.LabelledArray[T],
         f_bshape: BlockShape
     ):
     """
@@ -537,9 +544,9 @@ def _validate_f_bshape_from_larray(
     # f_shape = array.shape
     # Check that `array` and f_shape have the right number of dimensions
     # and number of blocks
-    assert len(array.f_shape) == len(f_bshape)
+    assert len(larray.f_shape) == len(f_bshape)
     _f_shape = tuple(-1 if isinstance(bax_size, int) else len(bax_size) for bax_size in f_bshape)
-    assert array.f_shape == _f_shape
+    assert larray.f_shape == _f_shape
 
     # To validate subarray shapes, loop through each entry and note subarray
     # shapes have to satisfy a multiplication table type rule:
@@ -553,7 +560,8 @@ def _validate_f_bshape_from_larray(
 
     ref_subarray_shape = list(f_bshape)
     for midx, _ref_subarray_shape in zip(product(*midxs), product(*bshape)):
-        subarray_shape = array[midx].shape
+        # Directly access subarrays in `.array` to avoid slow `LabelledArray.__getitem__`
+        subarray_shape = larray.array[midx].shape
         # This only contains the shape along non-collapsed axes so you have to
         # insert the collapsed size
         for ii, jj in enumerate(dims):
@@ -681,7 +689,7 @@ def _elementwise_binary_op(
     a, b: BlockArray
     """
     _validate_elementwise_binary_op(a, b)
-    array = tuple([op(ai, bi) for ai, bi in zip(a.sub[:].flat, b.sub[:].flat)])
+    array = tuple([op(ai, bi) for ai, bi in zip(a.sub_blocks.flat, b.sub_blocks.flat)])
     larrayay = larr.LabelledArray(array, a.f_shape, a.f_labels)
     return type(a)(larrayay)
 
@@ -718,7 +726,7 @@ def _elementwise_unary_op(
     BlockArray
         The resultant block array
     """
-    array = larr.LabelledArray([op(ai) for ai in a.sub[:].flat], a.f_shape, a.f_labels)
+    array = larr.LabelledArray([op(ai) for ai in a.sub_blocks.flat], a.f_shape, a.f_labels)
     return type(a)(array)
 
 neg = functools.partial(_elementwise_unary_op, operator.neg)
@@ -771,6 +779,6 @@ def to_mono_ndarray(barray: BlockArray[T]) -> np.ndarray:
         midx = [slice(None)]*len(barray.f_shape)
         for ii, idx in zip(barray.dims, idxs):
             midx[ii] = idx
-        ret_array[tuple(midx)] = barray.sub[block_idx]
+        ret_array[tuple(midx)] = barray.sub_blocks[block_idx]
 
     return ret_array

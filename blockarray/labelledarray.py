@@ -255,6 +255,7 @@ class LabelledArray(Generic[T]):
         # If no labels are supplied, use empty label tuples for each axis
         if labels is None:
             labels = ((),)*len(shape)
+        # otherwise use supplied labels
         else:
             # Convert any lists to tuples in labels
             labels = tuple(tuple(dim_labels) for dim_labels in labels)
@@ -392,7 +393,7 @@ class LabelledArray(Generic[T]):
             np.array(idx, dtype=np.intp)[(slice(None),)+(None,)*n]
             for n, idx in zip(range(ndim-1, -1, -1), midx)
         ]
-        ret_array = self._array[tuple(midx)].reshape(-1)
+        ret_array = self.array[tuple(midx)].reshape(-1)
 
         if f_shape == (-1,) * self.f_ndim:
             assert len(ret_array) == 1
