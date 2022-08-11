@@ -116,6 +116,9 @@ class GenericSubarray(Generic[T]):
     def __init__(self, array: T):
         self._data = array
 
+    def __array__(self, dtype=None):
+        raise NotImplementedError(f"`__array__` interface not implemented for array wrapper type {type(self)}")
+
     def __getitem__(self, key):
         raise NotImplementedError(f"Can't index values from array wrapper type {type(self)}")
 
@@ -146,6 +149,9 @@ class PETScVector(GenericSubarray[PETScVec]):
         super().__init__(array)
         assert isinstance(self.data, PETScVector)
 
+    def __array__(self, dtype=None):
+        return np.array(self.data.array, dtype=dtype)
+
     def __getitem__(self, key):
         return self.data.array[key]
 
@@ -172,6 +178,9 @@ class PETScMatrix(GenericSubarray[PETScMat]):
         super().__init__(array)
         assert isinstance(self.data, PETScMat)
 
+    def __array__(self, dtype=None):
+        return np.array(self.data[:], dtype=dtype)
+
     # def __getitem__(self, key):
     #     return self.data[key]
 
@@ -194,6 +203,9 @@ class DfnVector(GenericSubarray[DfnVec]):
     def __init__(self, array: DfnVec):
         super().__init__(array)
         assert isinstance(self.data, DfnVec)
+
+    def __array__(self, dtype=None):
+        return np.array(self.data[:], dtype=dtype)
 
     def __getitem__(self, key):
         return self.data[key]
@@ -221,6 +233,9 @@ class DfnMatrix(GenericSubarray[DfnMat]):
         super().__init__(array)
         assert isinstance(self.data, DfnMat)
 
+    def __array__(self, dtype=None):
+        return np.array(self.data[:], dtype=dtype)
+
     # def __getitem__(self, key):
     #     return self.data[key]
 
@@ -247,6 +262,9 @@ class NumpyArrayLike(GenericSubarray[V]):
 
     def __setitem__(self, key, value):
         self.data[key] = value
+
+    def __array__(self, dtype=None):
+        return np.array(self.data, dtype=dtype)
 
     @property
     def shape(self):
