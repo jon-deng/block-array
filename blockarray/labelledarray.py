@@ -367,6 +367,7 @@ class LabelledArray(Generic[T]):
                 f_labels[ii] = ax_labels[ax_idx]
             f_shape = tuple(f_shape)
             f_labels = tuple(f_labels)
+            ret_array = ret_array.reshape(-1)
         else:
             ret_array, f_shape, f_labels = self._getitem_general(multi_idx)
 
