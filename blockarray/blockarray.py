@@ -2,6 +2,7 @@
 This module contains the block array definition and defines some basic operations
 """
 
+from numbers import Number
 from typing import TypeVar, Optional, Union, Callable, Generic, Tuple
 from itertools import product, accumulate
 import functools
@@ -355,26 +356,28 @@ class BlockArray(Generic[T]):
         value :
             The desired value to set
         """
-        _array = self[key]
-        if isinstance(_array, BlockArray):
+        barray = self[key]
+        if isinstance(barray, BlockArray):
             if isinstance(value, BlockArray):
-                if value.bshape != _array.bshape:
-                    raise ValueError(f"Can't assign input values with bshape {value.bshape} to array with bshape {_array.bshape}")
-                for subarray, sub_value in zip(_array, value.sub_blocks):
+                if value.bshape != barray.bshape:
+                    raise ValueError(f"Can't assign input values with bshape {value.bshape} to array with bshape {barray.bshape}")
+                for subarray, sub_value in zip(barray, value.sub_blocks):
                     subarray.set(sub_value)
             elif isinstance(value, (list, tuple)):
                 # Only allow assigning from flat lists to flat indexed `BlockArray`
-                if _array.ndim != 1:
-                    raise ValueError(f"Can't assign list of input values to `BlockArray` with ndim {_array.ndim}")
-                elif len(_array) != len(value):
-                    raise ValueError(f"Can't assign list with {len(value)} items to `BlockArray` with {len(_array)} blocks")
+                if barray.ndim != 1:
+                    raise ValueError(f"Can't assign list of input values to `BlockArray` with ndim {barray.ndim}")
+                elif len(barray) != len(value):
+                    raise ValueError(f"Can't assign list with {len(value)} items to `BlockArray` with {len(barray)} blocks")
                 else:
-                    for subarray in _array:
-                        subarray.set(value)
+                    for subarray, subvalue in zip(barray.blocks, value):
+                        subarray.set(subvalue)
+            # In this case `value` is a single value and should be assigned to each block
             else:
-                raise TypeError(f"Can't assign input of type {type(value)} to {type(self)}")
+                for subarray in barray.blocks.flat:
+                    subarray.set(value)
         else:
-            _array.set(value)
+            barray.set(value)
 
     ## Reshape type methods
     def squeeze(self, axes=None):

@@ -342,6 +342,36 @@ class LabelledArray(Generic[T]):
         # converted to a size 1 tuple; the indexing functions all expect
         # multi index tuples
         multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
+
+        n_slice = [isinstance(idx, slice) for idx in multi_idx].count(True)
+        n_ellipsis = [idx == Ellipsis for idx in multi_idx].count(True)
+        n_int = [isinstance(idx, int) for idx in multi_idx].count(True)
+        n_str = [isinstance(idx, str) for idx in multi_idx].count(True)
+        n_list = [isinstance(idx, list) for idx in multi_idx].count(True)
+
+        # TODO: Make indexing faster but handling special index cases
+        if (n_int == len(multi_idx) and self.f_ndim == 1):
+            ret_array = [self.array[multi_idx]]
+            f_shape = (-1,)*self.f_ndim
+            f_labels = ()
+        elif (n_str == len(multi_idx) and self.f_ndim == 1):
+            _multi_idx = tuple(label_to_idx[label] for label_to_idx, label in zip(self._MULTI_LABEL_TO_IDX, multi_idx))
+            ret_array = [self.array[_multi_idx]]
+            f_shape = (-1,)*self.f_ndim
+            f_labels = ()
+        else:
+            ret_array, f_shape, f_labels = self._getitem_general(multi_idx)
+
+        if f_shape == (-1,) * self.f_ndim:
+            assert len(ret_array) == 1
+            return ret_array[0]
+        else:
+            return LabelledArray(ret_array, f_shape, f_labels)
+
+    def _getitem_general(self, multi_idx) -> Tuple[FlatArray[T], Shape, MultiLabels]:
+        """
+        Return the subarrays, shape and labels corresponding to a multi-index
+        """
         multi_idx = expand_multi_gen_idx(multi_idx, self.shape)
         validate_multi_gen_index_range(multi_idx, self._MULTI_LABEL_TO_IDX, self.shape)
         multi_idx = conv_multi_gen_to_std_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
@@ -394,12 +424,7 @@ class LabelledArray(Generic[T]):
             for n, idx in zip(range(ndim-1, -1, -1), midx)
         ]
         ret_array = self.array[tuple(midx)].reshape(-1)
-
-        if f_shape == (-1,) * self.f_ndim:
-            assert len(ret_array) == 1
-            return ret_array[0]
-        else:
-            return LabelledArray(ret_array, f_shape, f_labels)
+        return ret_array, f_shape, f_labels
 
     ## Copy methods
     def copy(self):

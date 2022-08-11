@@ -211,6 +211,7 @@ def get_blocks_csr(bmat: ba.BlockArray[PETScMat]) -> Tuple[List[List[Icsr]], Lis
 
     return i_block, j_block, v_block
 
+# TODO: Rename `blocks_sizes` better
 def get_block_matrix_csr(blocks_csr: CSR, blocks_shape: Shape, blocks_sizes: BlockShape) -> CSR:
     """
     Return csr data associated with monolithic block matrix
