@@ -38,7 +38,7 @@ class BlockVector(BlockArray[T]):
         Return a dictionary of summary statistics for each subvector
         """
         return {
-            key: tuple([stat(subvec[:]) for stat in stats])
+            key: tuple(stat(subvec[:]) for stat in stats)
             for key, subvec in self.sub_items()
         }
 
@@ -140,7 +140,7 @@ def to_mono_petsc(bvec, comm=None, finalize=True):
 @require_petsc
 def to_block_rowmat(bvec):
     mats = tuple(
-        tuple([gops.convert_vec_to_rowmat(subvec) for subvec in bvec.sub_blocks])
+        tuple(gops.convert_vec_to_rowmat(subvec) for subvec in bvec.sub_blocks)
     )
     return BlockMatrix(mats)
 

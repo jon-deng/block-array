@@ -370,16 +370,16 @@ def broadcast_axis_size(a: typing.AxisSize, b: typing.AxisSize) -> typing.AxisSi
     if isinstance(a, int) and isinstance(b, int):
         return broadcast_size(a, b)
     elif isinstance(a, int) and isinstance(b, tuple):
-        return tuple([broadcast_axis_size(a, bb) for bb in b])
+        return tuple(broadcast_axis_size(a, bb) for bb in b)
     elif isinstance(a, tuple) and isinstance(b, int):
-        return tuple([broadcast_axis_size(aa, b) for aa in a])
+        return tuple(broadcast_axis_size(aa, b) for aa in a)
     elif isinstance(a, tuple) and isinstance(b, tuple):
         if len(a) == 1:
-            return tuple([broadcast_axis_size(a[0], bb) for bb in b])
+            return tuple(broadcast_axis_size(a[0], bb) for bb in b)
         elif len(b) == 1:
-            return tuple([broadcast_axis_size(aa, b[0]) for aa in a])
+            return tuple(broadcast_axis_size(aa, b[0]) for aa in a)
         elif len(b) == len(a):
-            return tuple([broadcast_axis_size(aa, bb) for aa, bb in zip(a, b)])
+            return tuple(broadcast_axis_size(aa, bb) for aa, bb in zip(a, b))
         else:
             raise ValueError(f"{a} and {b} are not broadcastable")
     else:
@@ -605,7 +605,7 @@ def _apply_ufunc_call(ufunc: np.ufunc, *inputs: Input[T], **kwargs):
         axes = kwargs['axes']
     else:
         axes = [
-            tuple([-ii for ii in range(len(sig), 0, -1)])
+            tuple(-ii for ii in range(len(sig), 0, -1))
             for sig in sig_ins+sig_outs
         ]
 
@@ -681,7 +681,7 @@ def _apply_op_core(
     if 'axes' in kwargs:
         ncore_dims = [len(sig) for sig in sig_ins+sig_outs]
         sub_baxes = [
-            tuple([conv_neg(ii, ndim) for ii in axs])
+            tuple(conv_neg(ii, ndim) for ii in axs)
             for axs, ndim in zip(kwargs['axes'], ncore_dims)
         ]
         if sub_baxes != baxes:
@@ -702,7 +702,7 @@ def _apply_op_core(
 
     # Note that `axs` refers to axes of the full shape
     axes = [
-        tuple([conv_neg(ii, ndim) for ii in axs])
+        tuple(conv_neg(ii, ndim) for ii in axs)
         for ndim, axs in zip(ndim_ins+ndim_outs, baxes)
     ]
 
@@ -711,7 +711,7 @@ def _apply_op_core(
     # and loop dimensions are at the beginning
     # dimensions tuples that are in this format are prefixed by `std_`
     permuts = [
-        tuple([ii for ii in range(ndim) if ii not in set(axs)]) + axs
+        tuple(ii for ii in range(ndim) if ii not in set(axs)) + axs
         for axs, ndim in zip(axes, ndims)
     ]
     permut_ins = permuts[:-nout]

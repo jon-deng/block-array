@@ -76,7 +76,7 @@ def vectorize_func(func):
         elif isinstance(input, list):
             return [vfunc(x) for x in input]
         elif isinstance(input, tuple):
-            return tuple([vfunc(x) for x in input])
+            return tuple(vfunc(x) for x in input)
         # For all other subarray types, just apply `func` to them
         else:
             return func(input)
@@ -229,7 +229,7 @@ class DfnMatrix(GenericSubarray[DfnMat]):
 
     @property
     def shape(self):
-        return tuple([self.data.size(ii) for ii in range(2)])
+        return tuple(self.data.size(ii) for ii in range(2))
 
     @property
     def size(self):
