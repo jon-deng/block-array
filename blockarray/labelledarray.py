@@ -344,12 +344,12 @@ class LabelledArray(Generic[T]):
         multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
 
         n_slice = [isinstance(idx, slice) for idx in multi_idx].count(True)
-        n_ellipsis = [idx == Ellipsis for idx in multi_idx].count(True)
+        # n_ellipsis = [idx == Ellipsis for idx in multi_idx].count(True)
         n_int = [isinstance(idx, int) for idx in multi_idx].count(True)
         n_str = [isinstance(idx, str) for idx in multi_idx].count(True)
-        n_list = [isinstance(idx, list) for idx in multi_idx].count(True)
+        # n_list = [isinstance(idx, list) for idx in multi_idx].count(True)
 
-        # TODO: Make indexing faster but handling special index cases
+        # TODO: Make indexing faster by handling special indexing cases
         if (n_int == len(multi_idx) and self.f_ndim == 1):
             ret_array = [self.array[multi_idx]]
             f_shape = (-1,)*self.f_ndim
@@ -359,6 +359,15 @@ class LabelledArray(Generic[T]):
             ret_array = [self.array[_multi_idx]]
             f_shape = (-1,)*self.f_ndim
             f_labels = ()
+        elif n_slice == len(multi_idx):
+            ret_array = self.array[multi_idx]
+            f_shape = list(self.f_shape)
+            f_labels = list(self.f_labels)
+            for ii, ax_idx, ax_size, ax_labels in zip(self.dims, multi_idx, ret_array.shape, self.labels):
+                f_shape[ii] = ax_size
+                f_labels[ii] = ax_labels[ax_idx]
+            f_shape = tuple(f_shape)
+            f_labels = tuple(f_labels)
         else:
             ret_array, f_shape, f_labels = self._getitem_general(multi_idx)
 
