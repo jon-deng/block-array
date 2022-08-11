@@ -157,7 +157,7 @@ def dot(a, b):
     """
     c = a*b
     ret = 0
-    for vec in c:
+    for vec in c.sub_blocks:
         # using the [:] indexing notation makes sum interpret the different data types as np arrays
         # which can improve performance a lot
         ret += sum(vec[:])
