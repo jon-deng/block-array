@@ -12,8 +12,6 @@ import math
 
 import numpy as np
 
-from .blockarray import axis_size
-
 from .typing import (
     T,
     NestedArray,
@@ -276,10 +274,7 @@ class LabelledArray(Generic[T]):
 
         self._MULTI_LABEL_TO_IDX = tuple(
             dict(zip(axis_labels, range(axis_size)))
-            for axis_labels, axis_size in zip(
-                self.labels,
-                [axis_size for axis_size in self.shape]
-            )
+            for axis_labels, axis_size in zip(self.labels, self.shape)
         )
 
     @property
