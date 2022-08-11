@@ -371,6 +371,8 @@ class BlockArray(Generic[T]):
                 else:
                     for subarray in _array:
                         subarray.set(value)
+            else:
+                raise TypeError(f"Can't assign input of type {type(value)} to {type(self)}")
         else:
             _array.set(value)
 
