@@ -91,7 +91,8 @@ class BlockArray(Generic[T]):
             subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
             shape: Optional[Shape]=None,
             labels: Optional[MultiLabels]=None,
-            wrap: Callable[[T], gops.GenericSubarray[T]]=gops.wrap
+            wrap: Callable[[T], gops.GenericSubarray[T]]=gops.wrap,
+            check_bshape: bool=True
         ):
         # Return a subarray instance if an explicit `shape` indicates all
         # block axes are collapsed
@@ -110,7 +111,8 @@ class BlockArray(Generic[T]):
             subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
             shape: Optional[Shape]=None,
             labels: Optional[MultiLabels]=None,
-            wrap: Callable[[T], gops.GenericSubarray[T]]=gops.wrap
+            wrap: Callable[[T], gops.GenericSubarray[T]]=gops.wrap,
+            check_bshape: bool=True
         ):
 
         self._larray = larr.LabelledArray(
@@ -118,7 +120,8 @@ class BlockArray(Generic[T]):
         )
         self._bshape = _f_bshape_from_larray(self._larray)
 
-        _validate_f_bshape_from_larray(self._larray, self.f_bshape)
+        if check_bshape:
+            _validate_f_bshape_from_larray(self._larray, self.f_bshape)
 
     @staticmethod
     def _process_subarrays(

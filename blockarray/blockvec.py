@@ -26,8 +26,8 @@ class BlockVector(BlockArray[T]):
     """
     Represents a block vector with blocks indexed by labels
     """
-    def __init__(self, subarrays, shape=None, labels=None):
-        super().__init__(subarrays, shape, labels)
+    def __init__(self, subarrays, shape=None, labels=None, wrap=gops.wrap, check_bshape=True):
+        super().__init__(subarrays, shape, labels, wrap=wrap, check_bshape=check_bshape)
 
         if len(self.shape) > 1:
             raise ValueError(f"BlockVector must have dimension == 1, not {len(self.shape)}")

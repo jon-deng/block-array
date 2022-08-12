@@ -4,15 +4,16 @@ This module contains the block matrix definition
 
 from typing import Tuple, List, TypeVar
 import itertools
-import numpy as np
-from blockarray import blockarray as ba
-from . import require_petsc, _HAS_PETSC
-if _HAS_PETSC:
-    from petsc4py import PETSc
 
+import numpy as np
+
+from blockarray import blockarray as ba
 from . import subops as gops
 from .labelledarray import LabelledArray, flatten_array
 from .typing import (Shape, BlockShape, MultiLabels, PETScMat)
+from . import require_petsc, _HAS_PETSC
+if _HAS_PETSC:
+    from petsc4py import PETSc
 
 # pylint: disable=no-member, abstract-method
 #
@@ -27,12 +28,8 @@ class BlockMatrix(ba.BlockArray[T]):
     """
     Represents a block matrix with blocks indexed by keys
     """
-    def __init__(self,
-            subarrays,
-            shape=None,
-            labels=None
-        ):
-        super().__init__(subarrays, shape, labels)
+    def __init__(self, subarrays, shape=None, labels=None, wrap=gops.wrap, check_bshape=True):
+        super().__init__(subarrays, shape, labels, wrap=wrap, check_bshape=check_bshape)
 
         if len(self.f_shape) != 2:
             raise ValueError(f"BlockMatrix must have dimension == 2, not {len(self.shape)}")
