@@ -128,7 +128,7 @@ def convert_subtype_to_petsc(bvec):
     ----------
     bmat: BlockMatrix
     """
-    vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.sub_blocks]
+    vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.blocks]
     return BlockVector(vecs, labels=bvec.labels)
 
 # Converting to monolithic vectors

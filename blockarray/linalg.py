@@ -43,7 +43,7 @@ def mult_mat_vec(mat: bm.BlockMatrix[T], vec: bv.BlockVector[T]) -> bv.BlockVect
             lambda a, b: a+b,
             [
                 gops.mult_mat_vec(submat, subvec)
-                for submat, subvec in zip(submat_row.sub_blocks, vec)
+                for submat, subvec in zip(submat_row.sub_blocks, vec.sub_blocks)
             ]
         )
         ret_subvecs.append(ret_subvec)
@@ -69,7 +69,7 @@ def mult_mat_mat(mat_a: bm.BlockMatrix[T], mat_b: bm.BlockMatrix[T]) -> bm.Block
         )
 
     ret_shape = (mat_a.f_shape[0], mat_b.f_shape[1])
-    ret_labels = tuple(mat_a.f_labels[0], mat_b.f_labels[1])
+    ret_labels = (mat_a.f_labels[0], mat_b.f_labels[1])
 
     ## ii/jj denote the current row/col indices
     NROW, NCOL = mat_a.f_shape[0], mat_b.f_shape[1]

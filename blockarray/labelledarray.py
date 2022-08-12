@@ -270,7 +270,9 @@ class LabelledArray(Generic[T]):
             self._array = array.reshape(self.shape)
         else:
             self._array = np.empty(self.shape, dtype=object)
-            self._array.reshape(-1)[:] = array
+            _flat_array = self._array.reshape(-1)
+            for ii in range(_flat_array.size):
+                _flat_array[ii] = array[ii]
 
         self._MULTI_LABEL_TO_IDX = tuple(
             dict(zip(axis_labels, range(axis_size)))

@@ -147,7 +147,7 @@ class GenericSubarray(Generic[T]):
 class PETScVector(GenericSubarray[PETScVec]):
     def __init__(self, array: PETScVec):
         super().__init__(array)
-        assert isinstance(self.data, PETScVector)
+        assert isinstance(self.data, PETScVec)
 
     def __array__(self, dtype=None):
         return np.array(self.data.array, dtype=dtype)
@@ -160,7 +160,7 @@ class PETScVector(GenericSubarray[PETScVec]):
 
     @property
     def shape(self):
-        return (self.size)
+        return (self.size,)
 
     @property
     def size(self):
@@ -179,7 +179,7 @@ class PETScMatrix(GenericSubarray[PETScMat]):
         assert isinstance(self.data, PETScMat)
 
     def __array__(self, dtype=None):
-        return np.array(self.data[:], dtype=dtype)
+        return np.array(self.data[:, :], dtype=dtype)
 
     # def __getitem__(self, key):
     #     return self.data[key]
@@ -234,7 +234,7 @@ class DfnMatrix(GenericSubarray[DfnMat]):
         assert isinstance(self.data, DfnMat)
 
     def __array__(self, dtype=None):
-        return np.array(self.data[:], dtype=dtype)
+        return np.array(self.data[:, :], dtype=dtype)
 
     # def __getitem__(self, key):
     #     return self.data[key]
@@ -422,7 +422,11 @@ def convert_vec_to_petsc(vec: V, comm=None) -> PETScVec:
     """
     Return a `PETScVec` representation of `vec`
     """
-    n = size(vec)
+    if not isinstance(vec, GenericSubarray):
+        vec = wrap(vec)
+
+    n = vec.size
+    vec = vec.data
     if isinstance(vec, PETScVec):
         out = vec
     elif isinstance(vec, DfnVec):
@@ -441,7 +445,7 @@ def convert_vec_to_petsc(vec: V, comm=None) -> PETScVec:
 def _numpy_mat_to_petsc_mat_via_csr(mat: np.ndarray, comm=None, keep_diagonal: bool=True):
     # converting mat to a numpy array seems to signifcantly affect speed
     mat = np.array(mat)
-    mat_shape = shape(mat)
+    mat_shape = mat.shape
 
     # Build the CSR format of the resulting matrix by adding only non-zero values
     COL_IDXS = np.arange(mat_shape[1], dtype=np.int32)
