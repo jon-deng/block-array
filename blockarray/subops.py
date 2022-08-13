@@ -209,6 +209,8 @@ class DfnVector(GenericSubarray[DfnVec]):
         super().__init__(array)
         assert isinstance(self.data, DfnVec)
 
+        self._shape = (self.data.size(),)
+
     def __array__(self, dtype=None):
         return np.array(self.data[:], dtype=dtype)
 
@@ -220,7 +222,7 @@ class DfnVector(GenericSubarray[DfnVec]):
 
     @property
     def shape(self):
-        return (self.data.size(),)
+        return self._shape
 
     @property
     def size(self):

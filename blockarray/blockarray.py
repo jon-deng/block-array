@@ -2,7 +2,6 @@
 This module contains the block array definition and defines some basic operations
 """
 
-from numbers import Number
 from typing import TypeVar, Optional, Union, Callable, Generic, Tuple
 from itertools import product, accumulate
 import functools
@@ -11,7 +10,8 @@ import numpy as np
 
 from . import labelledarray as larr
 from . import subops as gops
-from .typing import (BlockShape, Shape, MultiLabels, Scalar, MultiGenIndex, AxisSize)
+from .typing import (BlockShape, FlatArray, Shape, MultiLabels, Scalar, MultiGenIndex, AxisSize)
+from .misc import replace
 
 T = TypeVar('T')
 V = TypeVar('V')
@@ -508,24 +508,26 @@ def _f_bshape_from_larray(larray: larr.LabelledArray[T]) -> BlockShape:
     The block shape is based on the subtensors along the 'boundary'. For an
     array of subtensors with shape `(2, 3, 4)` ...
     """
+    blocks = larray.array
+    f_ndim = larray.f_ndim
+    dims = larray.dims
+    _midx = [0]*f_ndim
+
     ret_bshape = []
-    f_ndim = len(larray.f_shape)
     for dim, ax_size in enumerate(larray.f_shape):
         # If there are no blocks along a dimension,
         # the block axis size is an int
-        # If there are >= 1 blocks along a dimension,
-        # the block axis size is a tuple of ints for
-        # axis size for each block along that dim
         if ax_size <= 0:
             axis_sizes = larray.array.flat[0].shape[dim]
 
             ret_bshape.append(axis_sizes)
+        # If there are >= 1 blocks along a dimension, the block axis size is a
+        # tuple of ints for each block along that dim
         else:
-            midx = [0]*f_ndim
-            midx[dim] = slice(None)
-            midx = tuple(midx[ii] for ii in larray.dims)
+            midx = replace(_midx, [dim], [slice(None)])
+            midx = tuple(midx[ii] for ii in dims)
             # Directly access subarrays in `.array` to avoid slow `LabelledArray.__getitem__`
-            axis_sizes = tuple(subarray.shape[dim] for subarray in larray.array[midx])
+            axis_sizes = tuple(subarray.shape[dim] for subarray in blocks[midx])
 
             ret_bshape.append(axis_sizes)
 
@@ -549,6 +551,7 @@ def _validate_f_bshape_from_larray(
     f_bshape : BlockShape
         The 'full' block shape to validate
     """
+    # TODO: Try to make this faster/cleaner?
     # f_shape = array.shape
     # Check that `array` and f_shape have the right number of dimensions
     # and number of blocks
