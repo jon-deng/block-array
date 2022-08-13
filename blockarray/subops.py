@@ -67,7 +67,12 @@ def vectorize_func(func):
             # Treat numpy object arrays as containers of subarrays
             if input.dtype == object:
                 ret = np.empty(input.shape, dtype=object)
-                ret.reshape(-1)[:] = [func(x) for x in input.flat]
+                _ret = ret.reshape(-1)
+                # Doing this avoids numpy accessing `x.__array__` while assigning
+                # as in `ret.reshape(-1)[:] = [func(x) for x in input.flat]`
+                # This can save a reasonable amount of time
+                for ii, x in enumerate(input.flat):
+                    _ret[ii] = func(x)
                 return ret
             # Treat numpy arrays (not object dtype) as a single subarray
             else:

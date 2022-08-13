@@ -342,7 +342,8 @@ class LabelledArray(Generic[T]):
         # This ensures that single axis indices (i.e. `x[1]`, `x[:]`) are
         # converted to a size 1 tuple; the indexing functions all expect
         # multi index tuples
-        multi_idx = (multi_idx,) if not isinstance(multi_idx, tuple) else multi_idx
+        if not isinstance(multi_idx, tuple):
+            multi_idx = (multi_idx,)
 
         n_slice = [isinstance(idx, slice) for idx in multi_idx].count(True)
         # n_ellipsis = [idx == Ellipsis for idx in multi_idx].count(True)

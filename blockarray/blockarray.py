@@ -510,13 +510,13 @@ def _f_bshape_from_larray(larray: larr.LabelledArray[T]) -> BlockShape:
     """
     ret_bshape = []
     f_ndim = len(larray.f_shape)
-    for dim, num_ax_blocks in enumerate(larray.f_shape):
+    for dim, ax_size in enumerate(larray.f_shape):
         # If there are no blocks along a dimension,
         # the block axis size is an int
         # If there are >= 1 blocks along a dimension,
         # the block axis size is a tuple of ints for
         # axis size for each block along that dim
-        if num_ax_blocks <= 0:
+        if ax_size <= 0:
             axis_sizes = larray.array.flat[0].shape[dim]
 
             ret_bshape.append(axis_sizes)
