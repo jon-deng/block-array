@@ -2,6 +2,7 @@
 This module contains the block array definition and defines some basic operations
 """
 
+from numbers import Number
 from typing import TypeVar, Optional, Union, Callable, Generic, Tuple
 from itertools import product, accumulate
 import functools
@@ -330,7 +331,7 @@ class BlockArray(Generic[T]):
                 return gops.unwrap(result)
         return SubIndex(self)
 
-    def __getitem__(self, key: MultiGenIndex):
+    def __getitem__(self, key: MultiGenIndex) -> Union['BlockArray[T]', T]:
         """
         Return the vector or BlockVector corresponding to the index
 
@@ -363,28 +364,32 @@ class BlockArray(Generic[T]):
         value :
             The desired value to set
         """
-        barray = self[key]
-        if isinstance(barray, BlockArray):
+        set_array = self[key]
+        if isinstance(set_array, BlockArray):
+            # Set values to a `BlockArray` from a `BlockArray`
             if isinstance(value, BlockArray):
-                if value.bshape != barray.bshape:
-                    raise ValueError(f"Can't assign input values with bshape {value.bshape} to array with bshape {barray.bshape}")
-                for subarray, sub_value in zip(barray, value.sub_blocks):
+                if value.bshape != set_array.bshape:
+                    raise ValueError(f"Can't assign input values with bshape {value.bshape} to array with bshape {set_array.bshape}")
+                for subarray, sub_value in zip(set_array, value.sub_blocks):
                     subarray.set(sub_value)
+            # Set values to a flat `BlockArray` from a flat container
             elif isinstance(value, (list, tuple)):
-                # Only allow assigning from flat lists to flat indexed `BlockArray`
-                if barray.ndim != 1:
-                    raise ValueError(f"Can't assign list of input values to `BlockArray` with ndim {barray.ndim}")
-                elif len(barray) != len(value):
-                    raise ValueError(f"Can't assign list with {len(value)} items to `BlockArray` with {len(barray)} blocks")
+                # Only allow assigning from flat lists to flat `set_array`
+                if set_array.ndim != 1:
+                    raise ValueError(f"Can't assign list of input values to `BlockArray` with ndim {set_array.ndim}")
+                elif len(set_array) != len(value):
+                    raise ValueError(f"Can't assign list with {len(value)} items to `BlockArray` with {len(set_array)} blocks")
                 else:
-                    for subarray, subvalue in zip(barray.blocks, value):
+                    for subarray, subvalue in zip(set_array.blocks.flat, value):
                         subarray.set(subvalue)
-            # In this case `value` is a single value and should be assigned to each block
-            else:
-                for subarray in barray.blocks.flat:
+            # Set values to a `BlockArray` from a single number
+            elif isinstance(value, Number):
+                for subarray in set_array.blocks.flat:
                     subarray.set(value)
+            else:
+                raise TypeError(f"Can't assign value of type {type(value)}")
         else:
-            barray.set(value)
+            set_array.set(value)
 
     ## Reshape type methods
     def squeeze(self, axes=None):
