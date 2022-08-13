@@ -551,33 +551,29 @@ def _validate_f_bshape_from_larray(
     f_bshape : BlockShape
         The 'full' block shape to validate
     """
-    # TODO: Try to make this faster/cleaner?
-    # f_shape = array.shape
-    # Check that `array` and f_shape have the right number of dimensions
-    # and number of blocks
+    # Check that `larray.f_shape` and `f_bshape` agree
     assert len(larray.f_shape) == len(f_bshape)
     _f_shape = tuple(-1 if isinstance(bax_size, int) else len(bax_size) for bax_size in f_bshape)
     assert larray.f_shape == _f_shape
 
-    # To validate subarray shapes, loop through each entry and note subarray
-    # shapes have to satisfy a multiplication table type rule:
-    # `subarray[i, j, k, ...]` requires shape `(bshape[i], bshape[j], bshape[k], ...)`
+    # Check that subarray shapes agree with `f_bshape`
+    # To validate subarray shapes, iterate through each block and check shapes
+    # satisfy a multiplication table type rule:
+    # `subarray[i, j, k, ...].shape == (bshape[i], bshape[j], bshape[k], ...)`
     # where `bshape` has any collapsed axes removed (this works because
-    # `subarray[i, j, k, ...]` implicts selects only non-collapsed axes).
+    # `subarray[i, j, k, ...]` selects from non-collapsed axes).
     dims =  tuple(ii for ii, bsize in enumerate(f_bshape) if not isinstance(bsize, int))
     bshape = tuple(f_bshape[ii] for ii in dims)
     shape = tuple(len(bsize) for bsize in bshape)
     midxs = [range(size) for size in shape]
 
-    ref_subarray_shape = list(f_bshape)
-    for midx, _ref_subarray_shape in zip(product(*midxs), product(*bshape)):
+    ref_subarr_shape = list(f_bshape)
+    for midx, ref_shape in zip(product(*midxs), product(*bshape)):
         # Directly access subarrays in `.array` to avoid slow `LabelledArray.__getitem__`
         subarray_shape = larray.array[midx].shape
-        # This only contains the shape along non-collapsed axes so you have to
-        # insert the collapsed size
-        for ii, jj in enumerate(dims):
-            ref_subarray_shape[jj] = _ref_subarray_shape[ii]
-        if subarray_shape != tuple(ref_subarray_shape):
+        # Update the axis size along non-collapsed axes
+        ref_subarr_shape = replace(ref_subarr_shape, dims, ref_shape)
+        if subarray_shape != tuple(ref_subarr_shape):
             raise ValueError(
                 f"Subarray at {midx} with shape {subarray_shape} is inconsistent"
                 f" with `f_bshape` {f_bshape}"
