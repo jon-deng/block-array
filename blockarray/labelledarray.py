@@ -317,8 +317,7 @@ class LabelledArray(Generic[T]):
     @property
     def shape(self) -> Shape:
         """Return the reduced array shape"""
-        ret_rshape = [axis_size for axis_size in self.f_shape if axis_size != -1]
-        return tuple(ret_rshape)
+        return tuple(axis_size for axis_size in self.f_shape if axis_size != -1)
 
     @property
     def labels(self) -> MultiLabels:
