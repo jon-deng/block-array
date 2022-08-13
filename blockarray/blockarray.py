@@ -305,7 +305,8 @@ class BlockArray(Generic[T]):
     def copy(self):
         """Return a copy"""
         labels = self.f_labels
-        return self.__class__(self.larray.copy(), labels=labels)
+        # Set `check_bshape=False` since the bshape was already checked
+        return self.__class__(self.larray.copy(), labels=labels, check_bshape=False)
 
     def __copy__(self):
         return self.copy()
@@ -340,7 +341,10 @@ class BlockArray(Generic[T]):
         """
         ret = self.larray[key]
         if isinstance(ret, larr.LabelledArray):
-            return self.__class__(ret)
+            # Set `check_bshape=False` since the bshape was already checked
+            # As long as `self.larray[key]` returns a propertly shaped selection
+            # the bshape should already be valid
+            return self.__class__(ret, check_bshape=False)
         else:
             return ret
 
