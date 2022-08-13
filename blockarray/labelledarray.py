@@ -352,14 +352,15 @@ class LabelledArray(Generic[T]):
         # n_list = [isinstance(idx, list) for idx in multi_idx].count(True)
 
         # TODO: Make indexing faster by handling special indexing cases
-        if (n_int == len(multi_idx) and self.f_ndim == 1):
+        f_ndim = self.f_ndim
+        if (n_int == len(multi_idx) and f_ndim == 1):
             ret_array = [self.array[multi_idx]]
-            f_shape = (-1,)*self.f_ndim
+            f_shape = (-1,)*f_ndim
             f_labels = ()
-        elif (n_str == len(multi_idx) and self.f_ndim == 1):
+        elif (n_str == len(multi_idx) and f_ndim == 1):
             _multi_idx = tuple(label_to_idx[label] for label_to_idx, label in zip(self._MULTI_LABEL_TO_IDX, multi_idx))
             ret_array = [self.array[_multi_idx]]
-            f_shape = (-1,)*self.f_ndim
+            f_shape = (-1,)*f_ndim
             f_labels = ()
         elif n_slice == len(multi_idx):
             ret_array = self.array[multi_idx]
@@ -374,7 +375,7 @@ class LabelledArray(Generic[T]):
         else:
             ret_array, f_shape, f_labels = self._getitem_general(multi_idx)
 
-        if f_shape == (-1,) * self.f_ndim:
+        if f_shape == (-1,) * f_ndim:
             assert len(ret_array) == 1
             return ret_array[0]
         else:
