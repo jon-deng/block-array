@@ -12,6 +12,7 @@ import math
 
 import numpy as np
 
+from .misc import replace
 from .typing import (
     T,
     NestedArray,
@@ -344,35 +345,24 @@ class LabelledArray(Generic[T]):
         if not isinstance(multi_idx, tuple):
             multi_idx = (multi_idx,)
 
-        n_slice = [isinstance(idx, slice) for idx in multi_idx].count(True)
+        f_ndim = self.f_ndim
+        multi_idx_types = [type(idx) for idx in multi_idx]
+        n_slice = multi_idx_types.count(slice)
+        n_int = multi_idx_types.count(int)
+        n_str = multi_idx_types.count(str)
         # n_ellipsis = [idx == Ellipsis for idx in multi_idx].count(True)
-        n_int = [isinstance(idx, int) for idx in multi_idx].count(True)
-        n_str = [isinstance(idx, str) for idx in multi_idx].count(True)
         # n_list = [isinstance(idx, list) for idx in multi_idx].count(True)
 
-        # TODO: Make indexing faster by handling special indexing cases
-        f_ndim = self.f_ndim
-        if (n_int == len(multi_idx) and f_ndim == 1):
-            ret_array = [self.array[multi_idx]]
-            f_shape = (-1,)*f_ndim
-            f_labels = ()
-        elif (n_str == len(multi_idx) and f_ndim == 1):
-            _multi_idx = tuple(label_to_idx[label] for label_to_idx, label in zip(self._MULTI_LABEL_TO_IDX, multi_idx))
-            ret_array = [self.array[_multi_idx]]
-            f_shape = (-1,)*f_ndim
-            f_labels = ()
-        elif n_slice == len(multi_idx):
-            ret_array = self.array[multi_idx]
-            f_shape = list(self.f_shape)
-            f_labels = list(self.f_labels)
-            for ii, ax_idx, ax_size, ax_labels in zip(self.dims, multi_idx, ret_array.shape, self.labels):
-                f_shape[ii] = ax_size
-                f_labels[ii] = ax_labels[ax_idx]
-            f_shape = tuple(f_shape)
-            f_labels = tuple(f_labels)
-            ret_array = ret_array.reshape(-1)
+        # Makes indexing slightly faster by handling special indexing cases
+        n_idx = len(multi_idx)
+        if (n_int == n_idx and f_ndim == 1):
+            ret_array, f_shape, f_labels = self._getitem_from_int(multi_idx)
+        elif (n_str == n_idx and f_ndim == 1):
+            ret_array, f_shape, f_labels = self._getitem_from_label(multi_idx)
+        elif n_slice == n_idx:
+            ret_array, f_shape, f_labels = self._getitem_from_slice(multi_idx)
         else:
-            ret_array, f_shape, f_labels = self._getitem_general(multi_idx)
+            ret_array, f_shape, f_labels = self._getitem_from_general(multi_idx)
 
         if f_shape == (-1,) * f_ndim:
             assert len(ret_array) == 1
@@ -380,7 +370,40 @@ class LabelledArray(Generic[T]):
         else:
             return LabelledArray(ret_array, f_shape, f_labels)
 
-    def _getitem_general(self, multi_idx) -> Tuple[FlatArray[T], Shape, MultiLabels]:
+    def _getitem_from_label(self, multi_idx) -> Tuple[FlatArray[T], Shape, MultiLabels]:
+        # Convert the label based index to an integer index
+        _multi_idx = tuple(
+            label_to_idx[label] for label_to_idx, label
+            in zip(self._MULTI_LABEL_TO_IDX, multi_idx)
+        )
+        ret_array = [self.array[_multi_idx]]
+        f_shape = (-1,)*self.f_ndim
+        f_labels = ()
+        return ret_array, f_shape, f_labels
+
+    def _getitem_from_slice(self, multi_idx) -> Tuple[FlatArray[T], Shape, MultiLabels]:
+        """
+        Return the subarrays, shape and labels corresponding to a multi-index
+        """
+        ret_array = self.array[multi_idx]
+        f_shape = replace(list(self.f_shape), self.dims, ret_array.shape)
+        f_labels = replace(
+            list(self.f_labels),
+            self.dims,
+            [ax_labels[ax_slice] for ax_slice, ax_labels in zip(multi_idx, self.labels)]
+        )
+        return ret_array.reshape(-1), tuple(f_shape), tuple(f_labels)
+
+    def _getitem_from_int(self, multi_idx) -> Tuple[FlatArray[T], Shape, MultiLabels]:
+        """
+        Return the subarrays, shape and labels corresponding to a multi-index
+        """
+        ret_array = [self.array[multi_idx]]
+        f_shape = (-1,)*self.f_ndim
+        f_labels = ()
+        return ret_array, f_shape, f_labels
+
+    def _getitem_from_general(self, multi_idx) -> Tuple[FlatArray[T], Shape, MultiLabels]:
         """
         Return the subarrays, shape and labels corresponding to a multi-index
         """
