@@ -538,9 +538,7 @@ def zero_mat(n: int, m: int, comm=None) -> PETScMat:
     """
     Return a null matrix
     """
-    mat = PETScMat().create(comm=comm)
-    mat.setSizes([n, m])
-    mat.setUp()
+    mat = PETScMat().createAIJ((n, m), nnz=0, comm=comm)
     mat.assemble()
     return mat
 
@@ -551,13 +549,19 @@ def diag_mat(n: int, diag: float=1.0, comm=None) -> PETScMat:
     """
     diag_vec = PETSc.Vec().create(comm=comm)
     diag_vec.setSizes(n)
+    # Calling `.setUp()` prevents a segmentation fault; I don't know enough
+    # about PETSc to know why/when `setUp()` must be called for vectors though
     diag_vec.setUp()
-    diag_vec.array[:] = diag
+    diag_vec.set(diag)
     diag_vec.assemble()
 
-    mat = PETScMat().create(comm=comm)
-    mat.setSizes([n, n])
-    mat.setUp()
+    # See https://petsc.org/release/docs/manual/mat/#sec-matsparse
+    # for a description of what `nnz` is
+    mat = PETScMat().createAIJ((n, n), nnz=1, comm=comm)
+
+    # Note that if `nz`/`nnz` is not specified, then `mat.setUp()` must be
+    # called, otherwise memory errors (seg fault) are usually triggered
+    # mat.setUp()
     mat.setDiagonal(diag_vec)
     mat.assemble()
     return mat
