@@ -377,7 +377,7 @@ class BlockArray(Generic[T]):
                 # Only allow assigning from flat lists to flat `set_array`
                 if set_array.ndim != 1:
                     raise ValueError(f"Can't assign list of input values to `BlockArray` with ndim {set_array.ndim}")
-                elif len(set_array) != len(value):
+                elif set_array.size != len(value):
                     raise ValueError(f"Can't assign list with {len(value)} items to `BlockArray` with {len(set_array)} blocks")
                 else:
                     for subarray, subvalue in zip(set_array.blocks.flat, value):
