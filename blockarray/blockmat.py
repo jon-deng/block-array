@@ -38,6 +38,9 @@ class BlockMatrix(ba.BlockArray[T]):
     def to_mono_petsc(self, comm=None):
         return to_mono_petsc(self, comm=comm)
 
+    def to_nest_petsc(self, comm=None):
+        return to_nest_petsc(self, comm=comm)
+
     ## Special matrix operations
     def norm(self):
         return norm(self)
@@ -137,30 +140,27 @@ def to_mono_petsc(bmat: ba.BlockArray[PETScMat], comm=None, finalize: bool=True)
              [  ..., ...,   ...],
              [matm0, ..., matmn]]
     """
-    if comm is None:
-        comm = PETSc.COMM_SELF
+    nest_mat = to_nest_petsc(bmat, comm=comm, finalize=finalize)
+    return nest_mat.convert(mat_type='aij')
 
-    shape = bmat.shape
-    bshape = bmat.bshape
-    bshape_row, bshape_col = bshape
+@require_petsc
+def to_nest_petsc(bmat: ba.BlockArray[PETScMat], comm=None, finalize: bool=True) -> PETScMat:
+    """
+    Form a nested block matrix in PETSc
 
-    blocks_csr = get_blocks_csr(bmat)
-    i_mono, j_mono, v_mono = get_block_matrix_csr(blocks_csr, shape, bshape)
+    Parameters
+    ----------
+    blocks : [[PETScMat, ...]]
+        A list of lists containing the matrices forming the blocks of the desired block matrix.
+        These are organized as:
+            [[mat00, ..., mat0n],
+             [mat10, ..., mat1n],
+             [  ..., ...,   ...],
+             [matm0, ..., matmn]]
+    """
 
-    ## Create a monolithic matrix to contain the block matrix
-    ret_mat = PETSc.Mat().createAIJ(
-        (np.sum(bshape_row), np.sum(bshape_col)), comm=comm
-    )
-    nnz = i_mono[1:] - i_mono[:-1]
-    ret_mat.setUp() # You have to do this if you don't preallocate I think
-    ret_mat.setPreallocationNNZ(nnz)
-
-    ## Insert the values into the matrix
-    ret_mat.setValuesCSR(i_mono, j_mono, v_mono)
-
-    if finalize:
-        ret_mat.assemble()
-
+    submats = bmat.sub_blocks
+    ret_mat = PETSc.Mat().createNest(submats)
     return ret_mat
 
 @require_petsc
