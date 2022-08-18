@@ -71,6 +71,18 @@ class BlockVector(BlockArray[T]):
         vec.assemble()
         return vec
 
+    def set_mono(self, vec: T):
+        """
+        Set values from an equivalent monolithic vector
+        """
+        # Check sizes are compatible
+        assert vec.size == np.sum(self.bshape[0])
+
+        # indices of the boundaries of each block
+        n_blocks = np.concatenate(([0], np.cumsum(self.bshape[0])))
+        for i, (n_start, n_stop) in enumerate(zip(n_blocks[:-1], n_blocks[1:])):
+            self[i][:] = vec[n_start:n_stop]
+
     ## Special vector operations
     def norm(self):
         return dot(self, self)**0.5
