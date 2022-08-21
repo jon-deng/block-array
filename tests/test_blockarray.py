@@ -79,6 +79,7 @@ def test_squeeze():
     dd = A[0:1, :]
     assert dd.squeeze().f_bshape == (4, (4, 2))
 
+# TODO: This isn't the right way to parameterize a test function
 @pytest.fixture(params=[
     (5, 5, (1, 4)),
     ((2, 4), (2, 4), (1, 1)),
