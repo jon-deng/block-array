@@ -11,72 +11,93 @@ import numpy as np
 from blockarray import labelledarray as la
 from blockarray.labelledarray import LabelledArray, flatten_array
 
-@pytest.fixture()
-def setup_labelledarray():
-    """
-    Return a pre-defined `LabelledArray` and reference data
-    """
-    l, m, n = 2, 3, 4
-    shape = (l, m, n)
-    labels = (('a', 'b'), ('a', 'b', 'c'), ('a', 'b', 'c', 'd'))
-
-    strides = [
-        stride for stride
-        in accumulate(shape[-1:0:-1], lambda a, b: a*b, initial=1)]
-    strides = tuple(strides[::-1])
-
-    elements = string.ascii_lowercase[:math.prod(shape)]
-    elements = [char for char in elements]
-
-    return LabelledArray(elements, shape, labels), (elements, shape, labels, strides)
-
-
 def _flat(midx, strides):
-    return sum([idx*stride for idx, stride in zip(midx, strides)])
-
-def test_shape(setup_labelledarray):
     """
-    Test the LabelledArray has the correct shape
+    Return a flat index from a multi-index and strides
     """
-    array, (_, shape, *_) = setup_labelledarray
-    # print(f"test has shape {array.shape} and vals {array.array}")
-    assert array.shape == shape
+    return np.sum(np.multiply(midx, strides))
 
-def test_single_index(setup_labelledarray):
-    """Test that indexing a single element produces the correct result"""
-    array, (ARRAY, *_, CSTRIDES) = setup_labelledarray
-    # loop through each single index and check that the right element is selected
-    all_axis_int_indices = [range(axis_size) for axis_size in array.shape]
-    all_axis_str_indices = [axis_labels for axis_labels in array.labels]
-    for mindex_int, mindex_str in zip(
-        product(*all_axis_int_indices), product(*all_axis_str_indices)):
+class TestLabelledArray:
+    @pytest.fixture()
+    def setup_labelledarray(self):
+        """
+        Return a `LabelledArray` instance and reference data for testing
 
-        assert array[mindex_int] == ARRAY[_flat(mindex_int, CSTRIDES)]
-        assert array[mindex_str] == ARRAY[_flat(mindex_int, CSTRIDES)]
+        Returns
+        -------
+        LabelledArray
+            The labelled array instance to test
+        Tuple[elements, shape, labels, strides]
+            A tuple of reference quantities used in constructing the `LabelledArray`
+            instance. These should be used to test the array against.
+        """
+        l, m, n = 2, 3, 4
+        shape = (l, m, n)
+        labels = (('a', 'b'), ('a', 'b', 'c'), ('a', 'b', 'c', 'd'))
 
-def test_array_index(setup_labelledarray):
-    """Test that indexing a sub-array produces the correct result"""
-    array, _ = setup_labelledarray
-    assert array[:].shape == array.shape
-    assert np.all(array[:].array == array.array)
+        strides = [
+            stride for stride
+            in accumulate(shape[-1:0:-1], lambda a, b: a*b, initial=1)]
+        strides = tuple(strides[::-1])
 
-    assert array[...].shape == array.shape
-    assert np.all(array[...] == array.array)
+        elements = string.ascii_lowercase[:math.prod(shape)]
+        elements = [char for char in elements]
 
-    assert array[0:1, 0:1, 0:1].shape == (1, 1, 1)
-    assert array[0:1, 0:1, 0:3].shape == (1, 1, 3)
+        return LabelledArray(elements, shape, labels), (elements, shape, labels, strides)
 
-    axis_idxs = (0, slice(0, 1), slice(0, 1))
-    assert array[axis_idxs].f_shape == (-1, 1, 1)
-    assert array[axis_idxs].f_shape == (-1, 1, 1)
+    def test_shape(self, setup_labelledarray):
+        """
+        Test the `LabelledArray` instance has the correct shape
+        """
+        array, (_, ref_shape, *_) = setup_labelledarray
+        # print(f"test has shape {array.shape} and vals {array.array}")
+        assert array.shape == ref_shape
 
-    print(f"array[:, :, 0] has shape {array[:, :, 0].shape} and vals {array[:, :, 0].array}")
-    print(f"array[:, :, 1:2] has shape {array[:, :, 1:2].shape} and vals {array[:, :, 1:2].array}")
-    print(f"array[:, :, 0:1] has shape {array[:, :, 0:1].shape} and vals {array[:, :, 0:1].array}")
-    print(f"array[:, :, :] has shape {array[:, :, :].shape} and vals {array[:, :, :].array}")
-    print(f"array[:] has shape {array[:].shape} and vals {array[:].array}")
+    def test_single_index(self, setup_labelledarray):
+        """
+        Test indexing a single element from a `LabelledArray`
 
-    print(flatten_array([[1, 2, 3], [4, 5, 6]]))
+        Note that the test for label indices won't work if the array instance
+        doesn't have labels.
+        """
+        array, (ref_data, *_, ref_strides) = setup_labelledarray
+
+        # Loop through each single index and check that the right element is selected
+        # TODO: This won't work for arrays with axis labels
+        all_axis_int_indices = [range(axis_size) for axis_size in array.shape]
+        all_axis_str_indices = [axis_labels for axis_labels in array.labels]
+        for mindex_int, mindex_str in zip(
+                product(*all_axis_int_indices), product(*all_axis_str_indices)
+            ):
+
+            assert array[mindex_int] == ref_data[_flat(mindex_int, ref_strides)]
+            assert array[mindex_str] == ref_data[_flat(mindex_int, ref_strides)]
+
+    def test_array_index(self, setup_labelledarray):
+        """
+        Test indexing a subarray from a `LabelledArray`
+        """
+        array, _ = setup_labelledarray
+        assert array[:].shape == array.shape
+        assert np.all(array[:].array == array.array)
+
+        assert array[...].shape == array.shape
+        assert np.all(array[...] == array.array)
+
+        assert array[0:1, 0:1, 0:1].shape == (1, 1, 1)
+        assert array[0:1, 0:1, 0:3].shape == (1, 1, 3)
+
+        axis_idxs = (0, slice(0, 1), slice(0, 1))
+        assert array[axis_idxs].f_shape == (-1, 1, 1)
+        assert array[axis_idxs].f_shape == (-1, 1, 1)
+
+        print(f"array[:, :, 0] has shape {array[:, :, 0].shape} and vals {array[:, :, 0].array}")
+        print(f"array[:, :, 1:2] has shape {array[:, :, 1:2].shape} and vals {array[:, :, 1:2].array}")
+        print(f"array[:, :, 0:1] has shape {array[:, :, 0:1].shape} and vals {array[:, :, 0:1].array}")
+        print(f"array[:, :, :] has shape {array[:, :, :].shape} and vals {array[:, :, :].array}")
+        print(f"array[:] has shape {array[:].shape} and vals {array[:].array}")
+
+        print(flatten_array([[1, 2, 3], [4, 5, 6]]))
 
 
 ## Tests for indexing internals
