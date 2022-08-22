@@ -2,6 +2,7 @@
 Test the functionality of the lablleledarray.py module
 """
 import math
+from typing import TypeVar
 from itertools import accumulate, product
 import string
 
@@ -9,8 +10,8 @@ import pytest
 import numpy as np
 
 from blockarray import labelledarray as la
-from blockarray.labelledarray import LabelledArray, flatten_array
-from blockarray.typing import Shape
+from blockarray.labelledarray import LabelledArray, conv_multi_gen_to_std_idx, flatten_array
+from blockarray.typing import FlatArray, MultiLabelToStdIndex, Shape, MultiGenIndex
 
 def _flat(midx, strides):
     """
@@ -24,6 +25,7 @@ def _squeeze_shape(f_shape: Shape) -> Shape:
     """
     return tuple(ax_size for ax_size in f_shape if ax_size != -1)
 
+T = TypeVar('T')
 class TestLabelledArray:
     @pytest.fixture()
     def setup_labelledarray(self):
@@ -128,6 +130,28 @@ class TestLabelledArray:
 
         print(flatten_array([[1, 2, 3], [4, 5, 6]]))
 
+
+    @staticmethod
+    def _test_index(
+            array: LabelledArray[T],
+            elements: FlatArray[T],
+            midx: MultiGenIndex,
+            shape: Shape,
+            mlabel_to_idx: MultiLabelToStdIndex
+        ):
+        """
+        Test a generic indexing method
+        """
+        result = array[midx]
+
+        # TODO: Figure out the logic to get the right element(s) from the
+        # `LabelledArray` input
+        # ref_flat_idx = conv_multi_gen_to_std_idx(midx)
+        # ref_flat_idx
+        # ref_result = elements[]
+        ref_result = result
+
+        assert result == ref_result
 
 ## Tests for indexing internals
 def test_expand_multidx():
