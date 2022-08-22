@@ -10,12 +10,19 @@ import numpy as np
 
 from blockarray import labelledarray as la
 from blockarray.labelledarray import LabelledArray, flatten_array
+from blockarray.typing import Shape
 
 def _flat(midx, strides):
     """
     Return a flat index from a multi-index and strides
     """
     return np.sum(np.multiply(midx, strides))
+
+def _squeeze_shape(f_shape: Shape) -> Shape:
+    """
+    Return a shape without collapsed/reduced axes from a full shape
+    """
+    return tuple(ax_size for ax_size in f_shape if ax_size != -1)
 
 class TestLabelledArray:
     @pytest.fixture()
@@ -49,9 +56,31 @@ class TestLabelledArray:
         """
         Test the `LabelledArray` instance has the correct shape
         """
-        array, (_, ref_shape, *_) = setup_labelledarray
+        array, (_, ref_f_shape, *_) = setup_labelledarray
         # print(f"test has shape {array.shape} and vals {array.array}")
-        assert array.shape == ref_shape
+        assert array.shape == _squeeze_shape(ref_f_shape)
+
+    def test_f_shape(self, setup_labelledarray):
+        """
+        Test the `LabelledArray` instance has the correct shape
+        """
+        array, (_, ref_f_shape, *_) = setup_labelledarray
+        # print(f"test has shape {array.shape} and vals {array.array}")
+        assert array.f_shape == ref_f_shape
+
+    def test_ndim(self, setup_labelledarray):
+        """
+        Test the `LabelledArray` instance has the correct shape
+        """
+        array, (_, ref_f_shape, *_) = setup_labelledarray
+        assert array.ndim == len(ref_f_shape)
+
+    def test_f_ndim(self, setup_labelledarray):
+        """
+        Test the `LabelledArray` instance has the correct shape
+        """
+        array, (_, ref_f_shape, *_) = setup_labelledarray
+        assert array.f_ndim == len(_squeeze_shape(ref_f_shape))
 
     def test_single_index(self, setup_labelledarray):
         """
@@ -103,7 +132,7 @@ class TestLabelledArray:
 ## Tests for indexing internals
 def test_expand_multidx():
     """
-    Test that multi-index with ellipses/missing axes are expanded correctly
+    Test expansion of a multi-index with ellipses and/or missing axes
     """
     multidx = (..., slice(None))
     assert la.expand_multi_gen_idx(multidx, (1, 1, 1, 1)) == (slice(None),)*4
@@ -140,7 +169,7 @@ def test_conv_gen_to_std_idx():
 
 def test_conv_list_to_std_idx():
     """
-    Test conversion of a list of general indices to standard indices for a single axis
+    Test conversion of a list index to standard indices for a single axis
     """
     # Set the test case of a size 10 1-dimensional array
     N = 10
