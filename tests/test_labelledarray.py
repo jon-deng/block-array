@@ -10,7 +10,7 @@ import pytest
 import numpy as np
 
 from blockarray import labelledarray as la
-from blockarray.labelledarray import LabelledArray, conv_multi_gen_to_std_idx, flatten_array
+from blockarray.labelledarray import LabelledArray, expand_multi_gen_idx, conv_multi_gen_to_std_idx, flatten_array
 from blockarray.typing import FlatArray, MultiLabelToStdIndex, Shape, MultiGenIndex
 
 def _flat(midx, strides):
@@ -84,7 +84,7 @@ class TestLabelledArray:
         array, (_, ref_f_shape, *_) = setup_labelledarray
         assert array.f_ndim == len(_squeeze_shape(ref_f_shape))
 
-    def test_single_index(self, setup_labelledarray):
+    def test_single_elem_index(self, setup_labelledarray):
         """
         Test indexing a single element from a `LabelledArray`
 
@@ -104,9 +104,9 @@ class TestLabelledArray:
             assert array[mindex_int] == ref_data[_flat(mindex_int, ref_strides)]
             assert array[mindex_str] == ref_data[_flat(mindex_int, ref_strides)]
 
-    def test_array_index(self, setup_labelledarray):
+    def test_multi_elem_index(self, setup_labelledarray):
         """
-        Test indexing a subarray from a `LabelledArray`
+        Test multiple elements from a `LabelledArray`
         """
         array, _ = setup_labelledarray
         assert array[:].shape == array.shape
@@ -120,6 +120,8 @@ class TestLabelledArray:
 
         axis_idxs = (0, slice(0, 1), slice(0, 1))
         assert array[axis_idxs].f_shape == (-1, 1, 1)
+
+        axis_idxs = (0, slice(0, 1), slice(1, 2))
         assert array[axis_idxs].f_shape == (-1, 1, 1)
 
         print(f"array[:, :, 0] has shape {array[:, :, 0].shape} and vals {array[:, :, 0].array}")
@@ -129,6 +131,13 @@ class TestLabelledArray:
         print(f"array[:] has shape {array[:].shape} and vals {array[:].array}")
 
         print(flatten_array([[1, 2, 3], [4, 5, 6]]))
+
+    def test_index_generic(self, setup_labelledarray):
+        array, (elements, shape, labels, strides) = setup_labelledarray
+
+        mlabel_to_idx = array._MULTI_LABEL_TO_IDX
+        test_idx = (0, 0)
+        self._test_index(array, elements, test_idx, shape, mlabel_to_idx)
 
 
     @staticmethod
@@ -142,16 +151,32 @@ class TestLabelledArray:
         """
         Test a generic indexing method
         """
-        result = array[midx]
+        strides = np.cumprod((1,)+shape[:-1][::-1])[::-1]
 
-        # TODO: Figure out the logic to get the right element(s) from the
-        # `LabelledArray` input
-        # ref_flat_idx = conv_multi_gen_to_std_idx(midx)
-        # ref_flat_idx
-        # ref_result = elements[]
-        ref_result = result
+        ## Compute the reference result of the index
+        # Compute a flat reference index to get the 'correct' elements
+        def require_list(x):
+            if isinstance(x, (list, tuple)):
+                return x
+            else:
+                return [x]
 
-        assert result == ref_result
+        midx = expand_multi_gen_idx(midx, shape)
+        ref_multi_std_idx = conv_multi_gen_to_std_idx(midx, shape, mlabel_to_idx)
+        _ref_multi_std_idx = [require_list(x) for x in ref_multi_std_idx]
+
+        def to_flat(midx):
+            return np.sum(midx*strides)
+
+        ref_idx_elements = [
+            elements[to_flat(midx)] for midx in product(*_ref_multi_std_idx)
+        ]
+
+        ## Compute the `LabelledArray` index result
+        ref_idx_elements = array[midx].array.tolist()
+
+        ## Compare the reference and `LabelledArray` results to check
+        assert ref_idx_elements == ref_idx_elements
 
 ## Tests for indexing internals
 def test_expand_multidx():
