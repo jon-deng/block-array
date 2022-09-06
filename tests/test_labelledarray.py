@@ -4,6 +4,7 @@ Test the functionality of the lablleledarray.py module
 import math
 from typing import TypeVar
 from itertools import accumulate, product
+import operator
 import string
 
 import pytest
@@ -24,6 +25,12 @@ def _squeeze_shape(f_shape: Shape) -> Shape:
     Return a shape without collapsed/reduced axes from a full shape
     """
     return tuple(ax_size for ax_size in f_shape if ax_size != -1)
+
+def _strides_from_shape(shape: Shape) -> Shape:
+    """
+    Return a c-strides tuples from a shape
+    """
+    return tuple(i for i in accumulate(shape[::-1][:-1], operator.mul, initial=1))[::-1]
 
 T = TypeVar('T')
 class TestLabelledArray:
@@ -178,6 +185,8 @@ class TestLabelledArray:
         ## Compare the reference and `LabelledArray` results to check
         assert ref_idx_elements == ref_idx_elements
 
+# TODO: Add tests for `validate_*` functions
+
 def test_flatten_array():
     """
     Test the `flatten_array` function
@@ -200,14 +209,16 @@ def test_nest_array():
     """
     ref_array = [[1, 2, 3], [4, 5, 6]]
     ref_shape = (2, 3)
+    ref_strides = _strides_from_shape(ref_shape)
     ref_flat_array = [1, 2, 3, 4, 5, 6]
-    array = la.nest_array(ref_flat_array, ref_shape)
+    array = la.nest_array(ref_flat_array, ref_strides)
     assert array == ref_array
 
     ref_array = [[1, 2, 3, 4, 5, 6]]
     ref_shape = (1, 6)
+    ref_strides = _strides_from_shape(ref_shape)
     ref_flat_array = [1, 2, 3, 4, 5, 6]
-    array = la.nest_array(ref_flat_array, ref_shape)
+    array = la.nest_array(ref_flat_array, ref_strides)
     assert array == ref_array
 
 ## Tests for indexing internals
