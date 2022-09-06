@@ -178,6 +178,38 @@ class TestLabelledArray:
         ## Compare the reference and `LabelledArray` results to check
         assert ref_idx_elements == ref_idx_elements
 
+def test_flatten_array():
+    """
+    Test the `flatten_array` function
+    """
+    ref_array = [[1, 2, 3], [4, 5, 6]]
+    ref_shape = (2, 3)
+    ref_flat_array = [1, 2, 3, 4, 5, 6]
+    flat_array, shape = la.flatten_array(ref_array)
+    assert flat_array == ref_flat_array and shape == ref_shape
+
+    ref_array = [[1, 2, 3, 4, 5, 6]]
+    ref_shape = (1, 6)
+    ref_flat_array = [1, 2, 3, 4, 5, 6]
+    flat_array, shape = la.flatten_array(ref_array)
+    assert flat_array == ref_flat_array and shape == ref_shape
+
+def test_nest_array():
+    """
+    Test the `nest_array` function
+    """
+    ref_array = [[1, 2, 3], [4, 5, 6]]
+    ref_shape = (2, 3)
+    ref_flat_array = [1, 2, 3, 4, 5, 6]
+    array = la.nest_array(ref_flat_array, ref_shape)
+    assert array == ref_array
+
+    ref_array = [[1, 2, 3, 4, 5, 6]]
+    ref_shape = (1, 6)
+    ref_flat_array = [1, 2, 3, 4, 5, 6]
+    array = la.nest_array(ref_flat_array, ref_shape)
+    assert array == ref_array
+
 ## Tests for indexing internals
 def test_expand_multidx():
     """
