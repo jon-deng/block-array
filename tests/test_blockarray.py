@@ -42,6 +42,24 @@ class TestBlockArray:
         assert np.all(B.sub[1, 0] == c)
         assert np.all(B.sub[1, 1] == d)
 
+    def test_bshape(self, setup_barray_a):
+        A, *_ = setup_barray_a
+        assert A.f_bshape == ((4, 2), (4, 2))
+        print(f"A.bshape = {A.f_bshape}")
+        print(f"A[:, :].bshape = {A[:, :].f_bshape}")
+        print(f"A[:, 0].bshape = {A[:, 0].f_bshape}")
+        print(f"A[0, :].bshape = {A[0, :].f_bshape}")
+
+    def test_squeeze(self, setup_barray_a):
+        A, *_ = setup_barray_a
+        dd = A[0, :]
+        assert dd.unsqueeze().f_bshape == ((4,), (4, 2))
+
+        dd = A[0:1, :]
+        assert dd.squeeze().f_bshape == (4, (4, 2))
+
+class TestMath:
+
     @pytest.fixture(
         params=[
             operator.add, operator.sub,
@@ -77,21 +95,17 @@ class TestBlockArray:
 
         assert all(correct_subarrays)
 
-    def test_bshape(self, setup_barray_a):
+    def test_ufunc(self, setup_barray_a):
         A, *_ = setup_barray_a
-        assert A.f_bshape == ((4, 2), (4, 2))
-        print(f"A.bshape = {A.f_bshape}")
-        print(f"A[:, :].bshape = {A[:, :].f_bshape}")
-        print(f"A[:, 0].bshape = {A[:, 0].f_bshape}")
-        print(f"A[0, :].bshape = {A[0, :].f_bshape}")
+        for op in [np.add, np.multiply, np.divide]:
+            D = op(5.0, A)
+            _D = op(5.0, A.to_mono_ndarray())
+            assert np.all(np.isclose(D.to_mono_ndarray(), _D))
 
-    def test_squeeze(self, setup_barray_a):
-        A, *_ = setup_barray_a
-        dd = A[0, :]
-        assert dd.unsqueeze().f_bshape == ((4,), (4, 2))
-
-        dd = A[0:1, :]
-        assert dd.squeeze().f_bshape == (4, (4, 2))
+        for op in [np.add, np.multiply, np.divide]:
+            D = op(np.float64(5.0), A)
+            _D = op(np.float64(5.0), A.to_mono_ndarray())
+            assert np.all(np.isclose(D.to_mono_ndarray(), _D))
 
 # TODO: This isn't the right way to parameterize a test function
 @pytest.fixture(params=[
@@ -99,21 +113,26 @@ class TestBlockArray:
     ((2, 4), (2, 4), (1, 1)),
     ((2, 4), (2, 4), 1)
 ])
-def test_ones(request):
-    A = ba.zeros(request.param)
-    assert A.f_bshape == request.param
+def setup_bshape(request):
+    return request.param
 
-def test_ufunc(setup_barray_a):
-    A, *_ = setup_barray_a
-    for op in [np.add, np.multiply, np.divide]:
-        D = op(5.0, A)
-        _D = op(5.0, A.to_mono_ndarray())
-        assert np.all(np.isclose(D.to_mono_ndarray(), _D))
+def test_ones(setup_bshape):
+    bshape = setup_bshape
+    A = ba.zeros(bshape)
+    assert A.f_bshape == bshape
 
-    for op in [np.add, np.multiply, np.divide]:
-        D = op(np.float64(5.0), A)
-        _D = op(np.float64(5.0), A.to_mono_ndarray())
-        assert np.all(np.isclose(D.to_mono_ndarray(), _D))
+def test_zeros(setup_bshape):
+    bshape = setup_bshape
+    A = ba.zeros(bshape)
+    assert A.f_bshape == bshape
+
+def test_rand(setup_bshape):
+    bshape = setup_bshape
+    A = ba.zeros(bshape)
+    assert A.f_bshape == bshape
+
+
+
 
 # def test_to_ndarray():
 
