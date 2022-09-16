@@ -11,6 +11,9 @@ import blockarray.blockarray as ba
 
 @pytest.fixture()
 def setup_barray_a():
+    """
+    Return a `BlockArray` instance
+    """
     a = np.ones((4, 4))
     b = np.ones((4, 2))
     c = np.ones((2, 4))
@@ -19,6 +22,9 @@ def setup_barray_a():
 
 @pytest.fixture()
 def setup_barray_b():
+    """
+    Return a `BlockArray` instance
+    """
     a = np.ones((4, 4))
     b = np.ones((4, 2))
     c = np.ones((2, 4))
@@ -26,6 +32,9 @@ def setup_barray_b():
     return ba.BlockArray([[a, b], [c, d]]), (a, b, c, d)
 
 class TestBlockArray:
+    """
+    Test `BlockArray` functionality
+    """
 
     def test_create_collapsed(self):
         """
@@ -59,6 +68,9 @@ class TestBlockArray:
         assert dd.squeeze().f_bshape == (4, (4, 2))
 
 class TestMath:
+    """
+    Test math operations on `BlockArray`s
+    """
 
     @pytest.fixture(
         params=[
@@ -107,45 +119,37 @@ class TestMath:
             _D = op(np.float64(5.0), A.to_mono_ndarray())
             assert np.all(np.isclose(D.to_mono_ndarray(), _D))
 
-# TODO: This isn't the right way to parameterize a test function
 @pytest.fixture(params=[
     (5, 5, (1, 4)),
     ((2, 4), (2, 4), (1, 1)),
     ((2, 4), (2, 4), 1)
 ])
 def setup_bshape(request):
+    """
+    Return a block shape tuple
+    """
     return request.param
 
 def test_ones(setup_bshape):
+    """
+    Test `blockarray.ones` returns an array with the right shape
+    """
     bshape = setup_bshape
     A = ba.zeros(bshape)
     assert A.f_bshape == bshape
 
 def test_zeros(setup_bshape):
+    """
+    Test `blockarray.zeros` returns an array with the right shape
+    """
     bshape = setup_bshape
     A = ba.zeros(bshape)
     assert A.f_bshape == bshape
 
 def test_rand(setup_bshape):
+    """
+    Test `blockarray.rand` returns an array with the right shape
+    """
     bshape = setup_bshape
     A = ba.zeros(bshape)
     assert A.f_bshape == bshape
-
-
-
-
-# def test_to_ndarray():
-
-
-
-if __name__ == '__main__':
-    test_index()
-    test_add()
-    test_sub()
-    test_mul()
-    test_div()
-    test_bshape()
-    test_squeeze()
-    # test_ufunc()
-    # test_ones()
-    # test_power()
