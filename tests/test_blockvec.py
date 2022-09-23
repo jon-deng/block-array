@@ -1,79 +1,117 @@
+"""
+Test `blockarray.blockvec`
+"""
+
+from xml.etree.ElementPath import xpath_tokenizer, xpath_tokenizer_re
+import pytest
+import operator
+
 import numpy as np
 import petsc4py.PETSc as PETSc
 
-from blockarray import blockmat as bmat
-from blockarray import linalg as bla
 from blockarray import blockvec as bvec
 from blockarray import blockarray as btensor
 
 # pylint: disable=unused-import
 # pylint: disable=missing-function-docstring
 
-a = np.arange(2)
-b = np.arange(3)
-c = np.arange(4)
-VEC1 = bvec.BlockVector((a, b, c), labels=(('a', 'b', 'c'),))
+@pytest.fixture(
+    params=[
+        'numpy',
+        'petsc'
+    ]
+)
+def setup_vec(request):
+    if request.param == 'numpy':
+        a = np.arange(2)+1
+        b = np.arange(3)+1
+        c = np.arange(4)+1
 
-a = np.arange(2)+1
-b = np.arange(3)+1
-c = np.arange(4)+1
-VEC2 = bvec.BlockVector((a, b, c), labels=(('a', 'b', 'c'),))
+        vec = bvec.BlockVector((a, b, c), labels=(('a', 'b', 'c'),))
+        subvecs = (a, b, c)
+        bshape = ((2, 3, 4),)
+    else:
+        a = PETSc.Vec().createSeq(2)
+        b = PETSc.Vec().createSeq(3)
+        c = PETSc.Vec().createSeq(4)
 
-VEC3 = bvec.BlockVector((a, b, c))
+        a.array[:] = 2
+        b.array[:] = 3
+        c.array[:] = 4
+        a.assemble()
+        b.assemble()
+        c.assemble()
 
-def test_size_shape():
-    print(VEC1.size)
-    print(VEC1.f_shape)
-    print(VEC1.mshape)
-    print(VEC1.f_bshape)
-    VEC1.print_summary()
-    assert VEC1.size == 3
-    assert VEC1.f_shape == (3,)
-    assert VEC1.mshape == (2+3+4, )
-    assert VEC1.f_bshape == ((2, 3, 4),)
+        subvecs = (a, b, c)
+        bshape = ((2, 3, 4),)
+        vec = bvec.BlockVector((a, b, c), labels=(('a', 'b', 'c'),))
+    return vec, subvecs, bshape
 
-def _test_binary_op(op, vec_a, vec_b, element_op=None):
+@pytest.fixture()
+def setup_vec_pair(setup_vec):
+    veca, *_ = setup_vec
+    vecb = veca.copy()
+    return veca, vecb
+
+
+def test_size_shape(setup_vec):
+    vec, subvecs, bshape = setup_vec
+    assert vec.f_bshape == bshape
+
+
+def _test_binary_op(op, vec_pair, element_op=None):
+    """
+    Tests a binary operation against the equivalent operation on the subtensors
+    """
+    vec_a, vec_b = vec_pair
+    element_op = op if element_op is None else element_op
+    vec_c = op(vec_a, vec_b)
+    for subvec_c, subvec_a, subvec_b in zip(vec_c.sub[:], vec_a.sub[:], vec_b.sub[:]):
+        assert np.power(subvec_c-element_op(subvec_a, subvec_b), 2).sum() == 0
+
+def test_add(setup_vec_pair):
+    _test_binary_op(operator.add, setup_vec_pair)
+
+def test_div(setup_vec_pair):
+    _test_binary_op(operator.truediv, setup_vec_pair)
+
+def test_mul(setup_vec_pair):
+    _test_binary_op(operator.mul, setup_vec_pair)
+
+# def test_power(setup_vec_pair):
+#     _test_binary_op(operator.pow, setup_vec_pair)
+
+
+def _test_unary_op(op, vec, element_op=None):
     """
     Tests a binary operation against the equivalent operation on the subtensors
     """
     element_op = op if element_op is None else element_op
-    vec_c = op(vec_a, vec_b)
-    for subvec_c, subvec_a, subvec_b in zip(vec_c.sub[:], vec_a.sub[:], vec_b.sub[:]):
-        assert np.all(subvec_c == element_op(subvec_a, subvec_b))
+    vec_c = op(vec)
+    for subvec_c, subvec_a in zip(vec_c.sub[:], vec.sub[:]):
+        assert np.power(subvec_c-element_op(subvec_a), 2).sum() == 0
 
-def test_add():
-    _test_binary_op(lambda x, y: x+y, VEC1, VEC2)
+@pytest.fixture(
+    params=[
+        5.0,
+        5,
+        np.float64(2.0)
+        #, 5, 0
+    ]
+)
+def setup_scalar(request):
+    return request.param
 
-def test_div():
-    _test_binary_op(lambda x, y: x/y, VEC1, VEC2)
+def test_scalar_mul(setup_scalar, setup_vec):
+    vec, *_ = setup_vec
+    alpha = setup_scalar
 
-def test_mul():
-    _test_binary_op(lambda x, y: x*y, VEC1, VEC2)
+    def scalar_mul(x):
+        return alpha*x
+    _test_unary_op(scalar_mul, vec)
 
-def test_power():
-    _test_binary_op(btensor.power, VEC1, VEC2, element_op=lambda x, y: x**y)
-
-def test_scalar_mul():
-    alpha = 5.0
-    ans = alpha*VEC1
-    for vec_ans, vec in zip(ans.sub[:], VEC1.sub[:]):
-        assert np.all(vec_ans == alpha*vec)
-
-    alpha = np.float64(5.0)
-    ans = alpha*VEC1
-    for vec_ans, vec in zip(ans.sub[:], VEC1.sub[:]):
-        assert np.all(vec_ans == alpha*vec)
-
-def test_vec_set():
-    VEC1['a'] = 5
-    assert np.all(VEC1.sub['a'] == 5)
-    print(VEC1)
-
-if __name__ == '__main__':
-    test_size_shape()
-    test_add()
-    test_div()
-    test_mul()
-    test_power()
-    test_scalar_mul()
-    test_vec_set()
+def test_vec_set(setup_vec):
+    vec, *_ = setup_vec
+    vec['a'] = 5
+    print(vec['a'])
+    assert np.sum(np.power(vec.sub['a'] - 5, 2)) == 0
