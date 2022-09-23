@@ -67,7 +67,7 @@ def _test_binary_op(op, vec_pair, element_op=None):
     element_op = op if element_op is None else element_op
     vec_c = op(vec_a, vec_b)
     for subvec_c, subvec_a, subvec_b in zip(vec_c.sub[:], vec_a.sub[:], vec_b.sub[:]):
-        assert np.power(subvec_c-element_op(subvec_a, subvec_b), 2).sum() == 0
+        assert np.power(np.subtract(subvec_c, element_op(subvec_a, subvec_b)), 2).sum() == 0
 
 def test_add(setup_vec_pair):
     _test_binary_op(operator.add, setup_vec_pair)
@@ -89,7 +89,7 @@ def _test_unary_op(op, vec, element_op=None):
     element_op = op if element_op is None else element_op
     vec_c = op(vec)
     for subvec_c, subvec_a in zip(vec_c.sub[:], vec.sub[:]):
-        assert np.power(subvec_c-element_op(subvec_a), 2).sum() == 0
+        assert np.power(np.subtract(subvec_c, element_op(subvec_a)), 2).sum() == 0
 
 @pytest.fixture(
     params=[
