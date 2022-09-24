@@ -1,5 +1,5 @@
 """
-Test the functionality of the lablleledarray.py module
+Test functionality of `blockarray.labelledarray`
 """
 import math
 from typing import TypeVar
@@ -11,7 +11,12 @@ import pytest
 import numpy as np
 
 from blockarray import labelledarray as la
-from blockarray.labelledarray import LabelledArray, expand_multi_gen_idx, conv_multi_gen_to_std_idx, flatten_array
+from blockarray.labelledarray import (
+    LabelledArray, 
+    expand_multi_gen_idx, 
+    conv_multi_gen_to_std_idx, 
+    flatten_array
+)
 from blockarray.typing import FlatArray, MultiLabelToStdIndex, Shape, MultiGenIndex
 
 def flat_idx(midx, strides):
@@ -34,8 +39,12 @@ def strides_from_shape(shape: Shape) -> Shape:
 
 T = TypeVar('T')
 class TestLabelledArray:
+    """
+    Test `LabelledArray` functionality
+    """
+
     @pytest.fixture()
-    def setup_labelledarray(self):
+    def setup_array(self):
         """
         Return a `LabelledArray` instance and reference data for testing
 
@@ -44,61 +53,59 @@ class TestLabelledArray:
         LabelledArray
             The labelled array instance to test
         Tuple[elements, shape, labels, strides]
-            A tuple of reference quantities used in constructing the `LabelledArray`
-            instance. These should be used to test the array against.
+            A tuple of reference quantities used in constructing the 
+            `LabelledArray` instance. These should be used to test correctness
+            of the array instance.
         """
         l, m, n = 2, 3, 4
         shape = (l, m, n)
         labels = (('a', 'b'), ('a', 'b', 'c'), ('a', 'b', 'c', 'd'))
 
-        strides = [
-            stride for stride
-            in accumulate(shape[-1:0:-1], lambda a, b: a*b, initial=1)]
-        strides = tuple(strides[::-1])
+        strides = strides_from_shape(shape)
 
         elements = string.ascii_lowercase[:math.prod(shape)]
         elements = [char for char in elements]
 
         return LabelledArray(elements, shape, labels), (elements, shape, labels, strides)
 
-    def test_shape(self, setup_labelledarray):
+    def test_shape(self, setup_array):
         """
         Test the `LabelledArray` instance has the correct shape
         """
-        array, (_, ref_f_shape, *_) = setup_labelledarray
+        array, (_, ref_f_shape, *_) = setup_array
         # print(f"test has shape {array.shape} and vals {array.array}")
         assert array.shape == squeeze_shape(ref_f_shape)
 
-    def test_f_shape(self, setup_labelledarray):
+    def test_f_shape(self, setup_array):
         """
-        Test the `LabelledArray` instance has the correct shape
+        Test the `LabelledArray` instance has the correct (full) shape
         """
-        array, (_, ref_f_shape, *_) = setup_labelledarray
+        array, (_, ref_f_shape, *_) = setup_array
         # print(f"test has shape {array.shape} and vals {array.array}")
         assert array.f_shape == ref_f_shape
 
-    def test_ndim(self, setup_labelledarray):
+    def test_ndim(self, setup_array):
         """
-        Test the `LabelledArray` instance has the correct shape
+        Test `LabelledArray.ndim` is correct
         """
-        array, (_, ref_f_shape, *_) = setup_labelledarray
+        array, (_, ref_f_shape, *_) = setup_array
         assert array.ndim == len(ref_f_shape)
 
-    def test_f_ndim(self, setup_labelledarray):
+    def test_f_ndim(self, setup_array):
         """
-        Test the `LabelledArray` instance has the correct shape
+        Test `LabelledArray.f_ndim` is correct
         """
-        array, (_, ref_f_shape, *_) = setup_labelledarray
+        array, (_, ref_f_shape, *_) = setup_array
         assert array.f_ndim == len(squeeze_shape(ref_f_shape))
 
-    def test_single_elem_index(self, setup_labelledarray):
+    def test_single_elem_index(self, setup_array):
         """
         Test indexing a single element from a `LabelledArray`
 
         Note that the test for label indices won't work if the array instance
         doesn't have labels.
         """
-        array, (ref_data, *_, ref_strides) = setup_labelledarray
+        array, (ref_data, *_, ref_strides) = setup_array
 
         # Loop through each single index and check that the right element is selected
         # TODO: This won't work for arrays with axis labels
@@ -111,11 +118,11 @@ class TestLabelledArray:
             assert array[mindex_int] == ref_data[flat_idx(mindex_int, ref_strides)]
             assert array[mindex_str] == ref_data[flat_idx(mindex_int, ref_strides)]
 
-    def test_multi_elem_index(self, setup_labelledarray):
+    def test_multi_elem_index(self, setup_array):
         """
         Test multiple elements from a `LabelledArray`
         """
-        array, _ = setup_labelledarray
+        array, _ = setup_array
         assert array[:].shape == array.shape
         assert np.all(array[:].array == array.array)
 
@@ -137,30 +144,32 @@ class TestLabelledArray:
         print(f"array[:, :, :] has shape {array[:, :, :].shape} and vals {array[:, :, :].array}")
         print(f"array[:] has shape {array[:].shape} and vals {array[:].array}")
 
-        print(flatten_array([[1, 2, 3], [4, 5, 6]]))
-
-    def test_index_generic(self, setup_labelledarray):
-        array, (elements, shape, labels, strides) = setup_labelledarray
+    def test_generic_index(self, setup_array):
+        """
+        Test a generic multi-index
+        """
+        array, (elements, shape, *_) = setup_array
 
         mlabel_to_idx = array._MULTI_LABEL_TO_IDX
         test_idx = (0, 0)
-        self._test_index(array, elements, test_idx, shape, mlabel_to_idx)
+        assert self._test_midx(test_idx, array, elements, shape, mlabel_to_idx)
 
 
     @staticmethod
-    def _test_index(
+    def _test_midx(
+            midx: MultiGenIndex,
             array: LabelledArray[T],
             elements: FlatArray[T],
-            midx: MultiGenIndex,
             shape: Shape,
             mlabel_to_idx: MultiLabelToStdIndex
         ):
         """
-        Test a generic indexing method
-        """
-        strides = np.cumprod((1,)+shape[:-1][::-1])[::-1]
+        Test a multi-index returns the correct values
 
-        ## Compute the reference result of the index
+        This compares the result of `array[midx]` against the results of
+        indexing the reference data `(elements, shape, mlabel_to_idx)`.
+        """
+        ## Compute the indexed result from the reference data
         # Compute a flat reference index to get the 'correct' elements
         def require_list(x):
             if isinstance(x, (list, tuple)):
@@ -169,21 +178,22 @@ class TestLabelledArray:
                 return [x]
 
         midx = expand_multi_gen_idx(midx, shape)
-        ref_multi_std_idx = conv_multi_gen_to_std_idx(midx, shape, mlabel_to_idx)
-        _ref_multi_std_idx = [require_list(x) for x in ref_multi_std_idx]
+        ref_midx = conv_multi_gen_to_std_idx(midx, shape, mlabel_to_idx)
+        _ref_midx = [require_list(x) for x in ref_midx]
 
+        strides = strides_from_shape(shape)
         def to_flat(midx):
-            return np.sum(midx*strides)
+            return np.sum(np.multiply(midx, strides))
 
         ref_idx_elements = [
-            elements[to_flat(midx)] for midx in product(*_ref_multi_std_idx)
+            elements[to_flat(midx)] for midx in product(*_ref_midx)
         ]
 
-        ## Compute the `LabelledArray` index result
-        ref_idx_elements = array[midx].array.tolist()
+        ## Compute the indexed result from the `LabelledArray`
+        array_idx_elements = array[midx].array.tolist()
 
         ## Compare the reference and `LabelledArray` results to check
-        assert ref_idx_elements == ref_idx_elements
+        return ref_idx_elements == array_idx_elements
 
 # TODO: Add tests for `validate_*` functions
 
@@ -325,21 +335,3 @@ def test_conv_slice_stop_to_idx():
 
     stop = -2
     assert la.conv_slice_stop_to_idx(stop, N) == N - 2
-
-
-if __name__ == '__main__':
-    test_shape(setup_labelledarray())
-    test_single_index(setup_labelledarray())
-    test_array_index(setup_labelledarray())
-
-    test_expand_multidx()
-
-    test_conv_gen_to_std_idx()
-
-    test_conv_list_to_std_idx()
-    test_conv_slice_to_std_idx()
-
-    test_conv_label_to_std_idx()
-    test_conv_neg_to_std_idx()
-    test_conv_slice_start_to_idx()
-    test_conv_slice_stop_to_idx()
