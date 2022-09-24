@@ -14,23 +14,23 @@ from blockarray import labelledarray as la
 from blockarray.labelledarray import LabelledArray, expand_multi_gen_idx, conv_multi_gen_to_std_idx, flatten_array
 from blockarray.typing import FlatArray, MultiLabelToStdIndex, Shape, MultiGenIndex
 
-def _flat(midx, strides):
+def flat_idx(midx, strides):
     """
     Return a flat index from a multi-index and strides
     """
     return np.sum(np.multiply(midx, strides))
 
-def _squeeze_shape(f_shape: Shape) -> Shape:
+def squeeze_shape(f_shape: Shape) -> Shape:
     """
-    Return a shape without collapsed/reduced axes from a full shape
+    Return a shape without reduced axes from a full shape
     """
     return tuple(ax_size for ax_size in f_shape if ax_size != -1)
 
-def _strides_from_shape(shape: Shape) -> Shape:
+def strides_from_shape(shape: Shape) -> Shape:
     """
-    Return a c-strides tuples from a shape
+    Return a c-strides tuple from a shape
     """
-    return tuple(i for i in accumulate(shape[::-1][:-1], operator.mul, initial=1))[::-1]
+    return tuple(accumulate(shape[1:][::-1], operator.mul, initial=1))[::-1]
 
 T = TypeVar('T')
 class TestLabelledArray:
@@ -67,7 +67,7 @@ class TestLabelledArray:
         """
         array, (_, ref_f_shape, *_) = setup_labelledarray
         # print(f"test has shape {array.shape} and vals {array.array}")
-        assert array.shape == _squeeze_shape(ref_f_shape)
+        assert array.shape == squeeze_shape(ref_f_shape)
 
     def test_f_shape(self, setup_labelledarray):
         """
@@ -89,7 +89,7 @@ class TestLabelledArray:
         Test the `LabelledArray` instance has the correct shape
         """
         array, (_, ref_f_shape, *_) = setup_labelledarray
-        assert array.f_ndim == len(_squeeze_shape(ref_f_shape))
+        assert array.f_ndim == len(squeeze_shape(ref_f_shape))
 
     def test_single_elem_index(self, setup_labelledarray):
         """
@@ -108,8 +108,8 @@ class TestLabelledArray:
                 product(*all_axis_int_indices), product(*all_axis_str_indices)
             ):
 
-            assert array[mindex_int] == ref_data[_flat(mindex_int, ref_strides)]
-            assert array[mindex_str] == ref_data[_flat(mindex_int, ref_strides)]
+            assert array[mindex_int] == ref_data[flat_idx(mindex_int, ref_strides)]
+            assert array[mindex_str] == ref_data[flat_idx(mindex_int, ref_strides)]
 
     def test_multi_elem_index(self, setup_labelledarray):
         """
@@ -209,14 +209,14 @@ def test_nest_array():
     """
     ref_array = [[1, 2, 3], [4, 5, 6]]
     ref_shape = (2, 3)
-    ref_strides = _strides_from_shape(ref_shape)
+    ref_strides = strides_from_shape(ref_shape)
     ref_flat_array = [1, 2, 3, 4, 5, 6]
     array = la.nest_array(ref_flat_array, ref_strides)
     assert array == ref_array
 
     ref_array = [[1, 2, 3, 4, 5, 6]]
     ref_shape = (1, 6)
-    ref_strides = _strides_from_shape(ref_shape)
+    ref_strides = strides_from_shape(ref_shape)
     ref_flat_array = [1, 2, 3, 4, 5, 6]
     array = la.nest_array(ref_flat_array, ref_strides)
     assert array == ref_array
