@@ -6,23 +6,60 @@ import pytest
 import numpy as np
 from blockarray import blockarray as btensor, ufunc
 
-SIGNATURE = '(i,j),(j,k)->(i, k)'
-
 # pylint: disable=missing-function-docstring
 
-def test_parse_ufunc_signature():
-    sig = SIGNATURE
-    input_sigs, output_sigs = ufunc.parse_ufunc_signature(sig)
+@pytest.fixture(params=[
+    ('(i)->()', [('i',)], [()]),
+    ('(i),(i)->()', [('i',), ('i',)], [()]),
+    ('(i,j),(j,k)->(i,k)', [('i', 'j'), ('j', 'k')], [('i', 'k')]),
+    ('(j,i),(k,j)->(i,k)', [('j', 'i'), ('k', 'j')], [('i', 'k')]),
+])
+def setup_input_output_signatures(request):
+    sig_str, in_sigs, out_sigs = request.param
+    return sig_str, in_sigs, out_sigs
+
+def test_parse_ufunc_signature(setup_input_output_signatures):
+    sig_str, in_sigs, out_sigs = setup_input_output_signatures
+    input_sigs, output_sigs = ufunc.parse_ufunc_signature(sig_str)
 
     assert (
-        input_sigs == [('i', 'j'), ('j', 'k')] 
-        and output_sigs == [('i', 'k')]
+        input_sigs == in_sigs
+        and output_sigs == out_sigs
     )
 
-def test_interpret_ufunc_signature():
-    sig_inputs = [('i', 'j'), ('j', 'k')]
-    sig_outputs = [('i', 'k')]
-    print(ufunc.interpret_ufunc_signature(sig_inputs, sig_outputs))
+
+@pytest.fixture(params=[
+    (
+        [('i',)], [()],
+        {},
+        {'i': [(0, 0)]}
+    ),
+    (
+        [('i',), ('i',)], [()],
+        {},
+        {'i': [(0, 0), (1, 0)]}
+    ),
+    (
+        [('i', 'j'), ('j', 'k')], [('i', 'k')],
+        {'i': [(0, 0)], 'k': [(1, 1)]},
+        {'j': [(0, 1), (1, 0)]}
+    ),
+    (
+        [('j', 'i'), ('k', 'j')], [('i', 'k')],
+        {'i': [(0, 1)], 'k': [(1, 0)]},
+        {'j': [(0, 0), (1, 1)]}
+    ),
+])
+def setup_signature_descr(request):
+    sig_ins, sig_outs, free_name_descr, redu_name_descr = request.param
+    return sig_ins, sig_outs, free_name_descr, redu_name_descr
+
+def test_interpret_ufunc_signature(setup_signature_descr):
+    sig_ins, sig_outs, free_name_descr, redu_name_descr = setup_signature_descr
+    _free_name_descr, _redu_name_descr = ufunc.interpret_ufunc_signature(sig_ins, sig_outs)
+
+    assert free_name_descr == _free_name_descr
+    assert redu_name_descr == _redu_name_descr
 
 def test_gen_in_multi_index():
     sig_inputs = [('i', 'j'), ('j', 'k')]
@@ -85,7 +122,15 @@ class TestBroadcast:
             print(d)
 
 class TestUfunc:
-    @pytest.fixture(params=[np.matmul, np.add, np.subtract, np.multiply, np.divide])
+    @pytest.fixture(
+        params=[
+            np.add, np.subtract, np.multiply, np.divide,
+            np.power
+            # np.matmul
+            # This one should be it's own special thing since it's not a
+            # simple signature
+        ]
+    )
     def setup_ufunc(self, request):
         """
         Return a pre-defined `LabelledArray` and reference data
@@ -151,6 +196,7 @@ class TestUfunc:
 
         D = np.add.accumulate(A, axis=-1)
         D_ = np.add.accumulate(A.to_mono_ndarray(), axis=-1)
+        print(D, D_)
         assert compare_blockarray_to_monoarray(D, D_)
 
 def compare_blockarray_to_monoarray(barray, marray):
@@ -158,7 +204,3 @@ def compare_blockarray_to_monoarray(barray, marray):
         return np.all(np.isclose(barray.to_mono_ndarray(), marray))
     else:
         return np.all(np.isclose(barray, marray))
-
-
-if __name__ == '__main__':
-    pass
