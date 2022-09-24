@@ -232,15 +232,34 @@ def test_nest_array():
     assert array == ref_array
 
 ## Tests for indexing internals
-def test_expand_multidx():
+@pytest.fixture(
+    params=[
+        ( (..., slice(None)), 1, (slice(None),) ),
+        ( (slice(None), ...), 1, (slice(None),) ),
+
+        ( (..., slice(None)), 4, (slice(None),)*4 ),
+        ( (slice(None), ...), 4, (slice(None),)*4 ),
+
+        ( (..., 3), 4, (slice(None),)*3 + (3,) ),
+        ( (3, ...), 4, (3,) + (slice(None),)*3 ),
+
+        ( (..., slice(None), 3), 4, (slice(None),)*2 + (slice(None), 3) ),
+        ( (slice(None), 3, ...), 4, (slice(None), 3) + (slice(None),)*2 ),
+    ]
+)
+def setup_idx(request):
+    """
+    Return and index and the correct 'expanded' index
+    """
+    idx, ndim, expanded_idx = request.param
+    return idx, ndim, expanded_idx
+
+def test_expand_multidx(setup_idx):
     """
     Test expansion of a multi-index with ellipses and/or missing axes
     """
-    multidx = (..., slice(None))
-    assert la.expand_multi_gen_idx(multidx, (1, 1, 1, 1)) == (slice(None),)*4
-
-    multidx = (slice(None),)
-    assert la.expand_multi_gen_idx(multidx, (1, 1, 1, 1)) == (slice(None),)*4
+    midx, ndim, ref_midx = setup_idx
+    assert la.expand_multi_gen_idx(midx, ndim) == ref_midx
 
 # Tests for lists (and/or single) indexes along a single axis
 def test_conv_gen_to_std_idx():

@@ -407,7 +407,7 @@ class LabelledArray(Generic[T]):
         """
         Return the subarrays, shape and labels corresponding to a multi-index
         """
-        multi_idx = expand_multi_gen_idx(multi_idx, self.shape)
+        multi_idx = expand_multi_gen_idx(multi_idx, self.ndim)
         validate_multi_gen_index_range(multi_idx, self._MULTI_LABEL_TO_IDX, self.shape)
         multi_idx = conv_multi_gen_to_std_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
 
@@ -489,7 +489,8 @@ class LabelledArray(Generic[T]):
 # dnote multi-indexes by `multidx`
 # use `gen_` and `std_` to denote general and standard indexes
 def expand_multi_gen_idx(
-        multidx: MultiGenIndex, shape: Shape
+        multidx: MultiGenIndex, 
+        ndim: int
     ) -> MultiGenIndex:
     """
     Expands missing axis indices and/or ellipses in a general multi-index
@@ -504,24 +505,25 @@ def expand_multi_gen_idx(
     shape: tuple(int)
         The shape of the array being indexed
     """
-    # Check that there are fewer dimensions indexed than number of dimensions
-    assert len(multidx) <= len(shape)
-
     num_ellipse = multidx.count(...)
     assert num_ellipse <= 1
 
     if num_ellipse == 1:
-        num_ax_expand = len(shape) - len(multidx) + 1
+        num_ax_expand = ndim - len(multidx) + 1
         axis_expand = multidx.index(...)
     else:
-        num_ax_expand = len(shape) - len(multidx)
+        num_ax_expand = ndim - len(multidx)
         axis_expand = len(multidx)
+
+    # NOTE: This should check that the number of `...` axes doesn't exceed
+    # the number of dimensions
+    assert num_ax_expand >= 0
 
     new_multi_gidx = (
         multidx[:axis_expand]
         + tuple(num_ax_expand*[slice(None)])
         + multidx[axis_expand+num_ellipse:]
-        )
+    )
     return new_multi_gidx
 
 # This function handles conversion of any of the general index/indices
