@@ -247,46 +247,59 @@ def test_nest_array():
         ( (slice(None), 3, ...), 4, (slice(None), 3) + (slice(None),)*2 ),
     ]
 )
-def setup_idx(request):
+def setup_expand_multidx(request):
     """
-    Return and index and the correct 'expanded' index
+    Return test cases for `test_expand_multidx`
     """
     idx, ndim, expanded_idx = request.param
     return idx, ndim, expanded_idx
 
-def test_expand_multidx(setup_idx):
+def test_expand_multidx(setup_expand_multidx):
     """
     Test expansion of a multi-index with ellipses and/or missing axes
     """
-    midx, ndim, ref_midx = setup_idx
+    midx, ndim, ref_midx = setup_expand_multidx
     assert la.expand_multi_gen_idx(midx, ndim) == ref_midx
 
 # Tests for lists (and/or single) indexes along a single axis
-def test_conv_gen_to_std_idx():
+@pytest.fixture(
+    params=[
+        ( slice(None), 2, [0, 1] ),
+        ( slice(None), 5, [0, 1, 2, 3, 4] ),
+        ( slice(1, -1), 5, [1, 2, 3] ),
+        ( slice(1, -1, 2), 5, [1, 3] ),
+
+        ( 0, 5, 0 ),
+        ( 3, 5, 3 ),
+        ( 4, 5, 4 ),
+        ( 0, 2, 0 ),
+        ( [1, 2, 3], 3, [1, 2, 3] ),
+        ( [1, 2, 3], 5, [1, 2, 3] ),
+
+        ( 'a', 5, 0 ),
+        ( 'c', 5, 2 ),
+        ( 'd', 5, 3 ),
+        ( 'a', 2, 0 ),
+        ( ['a', 'b', 'c'], 3, [0, 1, 2] ),
+        ( ['a', 'b', 'c'], 5, [0, 1, 2] ),
+    ]
+)
+def setup_conv_gen_to_std_idx(request):
+    """
+    Return test cases for `test_conv_gen_to_std_idx`
+    """
+    idx, size, std_idx = request.param
+    label_to_idx = {
+        label: idx for idx, label in zip(range(size), string.ascii_lowercase)
+    }
+    return idx, size, label_to_idx, std_idx
+
+def test_conv_gen_to_std_idx(setup_conv_gen_to_std_idx):
     """
     Test conversion of general to standard indices for a single axis
     """
-    # Set the test case of a size 10 1-dimensional array
-    N = 10
-    LABEL_TO_IDX = {label: idx for idx, label in enumerate(string.ascii_lowercase[:N])}
-
-    # In each case below, `std_idx` is the correct output standard index based
-    # on the known array size of 10
-    gen_idx = ['a', 'b', 4, -5]
-    std_idx =  [0, 1, 4, 10-5]
-    assert la.conv_gen_to_std_idx(gen_idx, LABEL_TO_IDX, N) == std_idx
-
-    gen_idx = slice(1, 10)
-    std_idx =  list(range(1, 10))
-    assert la.conv_gen_to_std_idx(gen_idx, LABEL_TO_IDX, N) == std_idx
-
-    gen_idx = 5
-    std_idx =  5
-    assert la.conv_gen_to_std_idx(gen_idx, LABEL_TO_IDX, N) == std_idx
-
-    gen_idx = 'a'
-    std_idx =  0
-    assert la.conv_gen_to_std_idx(gen_idx, LABEL_TO_IDX, N) == std_idx
+    idx, size, label_to_idx, std_idx = setup_conv_gen_to_std_idx
+    assert la.conv_gen_to_std_idx(idx, label_to_idx, size) == std_idx
 
 def test_conv_list_to_std_idx():
     """
