@@ -11,13 +11,9 @@ import pytest
 import numpy as np
 
 from blockarray import labelledarray as la
-from blockarray.labelledarray import (
-    LabelledArray, 
-    expand_multi_gen_idx, 
-    conv_multi_gen_to_std_idx, 
-    flatten_array
+from blockarray.typing import (
+    FlatArray, MultiLabelToStdIndex, Shape, MultiGenIndex
 )
-from blockarray.typing import FlatArray, MultiLabelToStdIndex, Shape, MultiGenIndex
 
 def flat_idx(midx, strides):
     """
@@ -66,7 +62,7 @@ class TestLabelledArray:
         elements = string.ascii_lowercase[:math.prod(shape)]
         elements = [char for char in elements]
 
-        return LabelledArray(elements, shape, labels), (elements, shape, labels, strides)
+        return la.LabelledArray(elements, shape, labels), (elements, shape, labels, strides)
 
     def test_shape(self, setup_array):
         """
@@ -158,7 +154,7 @@ class TestLabelledArray:
     @staticmethod
     def _test_midx(
             midx: MultiGenIndex,
-            array: LabelledArray[T],
+            array: la.LabelledArray[T],
             elements: FlatArray[T],
             shape: Shape,
             mlabel_to_idx: MultiLabelToStdIndex
@@ -177,8 +173,8 @@ class TestLabelledArray:
             else:
                 return [x]
 
-        midx = expand_multi_gen_idx(midx, len(shape))
-        ref_midx = conv_multi_gen_to_std_idx(midx, shape, mlabel_to_idx)
+        midx = la.expand_multi_gen_idx(midx, len(shape))
+        ref_midx = la.conv_multi_gen_to_std_idx(midx, shape, mlabel_to_idx)
         _ref_midx = [require_list(x) for x in ref_midx]
 
         strides = strides_from_shape(shape)
