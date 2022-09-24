@@ -177,7 +177,7 @@ class TestLabelledArray:
             else:
                 return [x]
 
-        midx = expand_multi_gen_idx(midx, shape)
+        midx = expand_multi_gen_idx(midx, len(shape))
         ref_midx = conv_multi_gen_to_std_idx(midx, shape, mlabel_to_idx)
         _ref_midx = [require_list(x) for x in ref_midx]
 
