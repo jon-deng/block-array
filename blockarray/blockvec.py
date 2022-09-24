@@ -4,7 +4,6 @@ This module contains the block vector definition
 
 from typing import TypeVar
 import functools as ftls
-import pprint as pp
 
 import numpy as np
 
@@ -31,21 +30,6 @@ class BlockVector(BlockArray[T]):
 
         if len(self.shape) > 1:
             raise ValueError(f"BlockVector must have dimension == 1, not {len(self.shape)}")
-
-    ## Basic string representation functions
-    def stats(self, stats):
-        """
-        Return a dictionary of summary statistics for each subvector
-        """
-        return {
-            key: tuple(stat(subvec[:]) for stat in stats)
-            for key, subvec in self.sub_items()
-        }
-
-    def print_summary(self):
-        summary_dict = self.stats((np.min, np.max, np.mean))
-        print('(min/max/mean):')
-        pp.pprint(summary_dict)
 
     ## Conversion to monolithic formats
     def to_mono_ndarray(self):

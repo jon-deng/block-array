@@ -7,11 +7,16 @@ from typing import TypeVar, Optional, Union, Callable, Generic, Tuple
 from itertools import product, accumulate
 import functools
 import operator
+
 import numpy as np
 
 from . import labelledarray as larr
 from . import subops as gops
-from .typing import (BlockShape, FlatArray, Shape, MultiLabels, Scalar, MultiGenIndex, AxisSize)
+from .typing import (
+    BlockShape,
+    FlatArray, Labels, Shape, MultiLabels,
+    Scalar, MultiGenIndex, AxisSize
+)
 from .misc import replace
 
 T = TypeVar('T')
@@ -179,6 +184,37 @@ class BlockArray(Generic[T]):
 
     def __str__(self):
         return f"{self.__class__.__name__}(bshape={self.f_bshape} labels={self.f_labels})"
+
+    ## Basic string representation functions
+    def stats(self, stats=(np.min, np.max, np.mean)):
+        """
+        Return a dictionary of summary statistics for each subarray
+        """
+        multi_label_to_idx = self.larray._MULTI_LABEL_TO_IDX
+        if any([
+                axis_label_to_idx == ()
+                for axis_label_to_idx in multi_label_to_idx
+            ]):
+            raise ValueError("Can't print state due to missing axis labels")
+
+        dim_labels = [x.keys() for x in multi_label_to_idx]
+        dim_idxs = [x.values() for x in multi_label_to_idx]
+        return {
+            idx_labels: tuple(stat(self[idx_ints]) for stat in stats)
+            for idx_labels, idx_ints in zip(
+                product(*dim_labels),
+                product(*dim_idxs)
+            )
+        }
+
+    def print_summary(self):
+        """
+        Pretty-print the stats
+        """
+        import pprint as pp
+        summary_dict = self.stats((np.min, np.max, np.mean))
+        print('(min/max/mean):')
+        pp.pprint(summary_dict)
 
     @property
     def blocks(self) -> np.ndarray:
