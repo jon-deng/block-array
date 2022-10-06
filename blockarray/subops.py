@@ -448,6 +448,26 @@ def convert_vec_to_petsc(vec: V, comm=None) -> PETScVec:
 
     return out
 
+def convert_vec_to_numpy(vec: V) -> np.ndarray:
+    """
+    Return a `np.ndarray` representation of `vec`
+    """
+    if not isinstance(vec, GenericSubarray):
+        vec = wrap(vec)
+
+    n = vec.size
+    vec = vec.data
+    if isinstance(vec, PETScVec):
+        out = np.array(vec)
+    elif isinstance(vec, DfnVec):
+        out = np.array(vec)
+    elif isinstance(vec, NDARRAY_TYPES):
+        out = np.array(vec)
+    else:
+        raise TypeError(f"Can't convert vector of type {type(vec)} to numpy")
+
+    return out
+
 @require_petsc
 def _numpy_mat_to_petsc_mat_via_csr(mat: np.ndarray, comm=None, keep_diagonal: bool=True):
     # converting mat to a numpy array seems to signifcantly affect speed

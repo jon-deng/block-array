@@ -143,6 +143,17 @@ def convert_subtype_to_petsc(bvec):
     vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.blocks]
     return BlockVector(vecs, labels=bvec.labels)
 
+def convert_subtype_to_numpy(bvec):
+    """
+    Converts a block matrix from one submatrix type to the PETSc submatrix type
+
+    Parameters
+    ----------
+    bmat: BlockMatrix
+    """
+    vecs = [gops.convert_vec_to_numpy(subvec) for subvec in bvec.blocks]
+    return BlockVector(vecs, labels=bvec.labels)
+
 # Converting to monolithic vectors
 @require_petsc
 def to_mono_petsc(bvec, comm=None, finalize=True):
