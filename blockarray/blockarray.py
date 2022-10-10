@@ -753,12 +753,14 @@ def scalar_mul(alpha: Scalar, a: BlockArray[T]) -> BlockArray[T]:
     """
     Multiply a block array by a scalar
     """
+    alpha = float(alpha)
     return _elementwise_unary_op(lambda subvec: alpha*subvec, a)
 
 def scalar_div(alpha: Scalar, a: BlockArray[T]) -> BlockArray[T]:
     """
     Divide a block array by a scalar
     """
+    alpha = float(alpha)
     return _elementwise_unary_op(lambda subvec: subvec/alpha, a)
 
 def to_mono_ndarray(barray: BlockArray[T]) -> np.ndarray:
