@@ -7,11 +7,16 @@ from typing import TypeVar, Optional, Union, Callable, Generic, Tuple
 from itertools import product, accumulate
 import functools
 import operator
+
 import numpy as np
 
 from . import labelledarray as larr
 from . import subops as gops
-from .typing import (BlockShape, FlatArray, Shape, MultiLabels, Scalar, MultiGenIndex, AxisSize)
+from .typing import (
+    BlockShape,
+    FlatArray, Labels, Shape, MultiLabels,
+    Scalar, MultiGenIndex, AxisSize
+)
 from .misc import replace
 
 T = TypeVar('T')
@@ -50,8 +55,20 @@ class BlockArray(Generic[T]):
         The total number of subarrays contained in the block array.
 
     f_shape :
-        The number of blocks (subarrays) along each axis. For example, a matrix
-        with 2 row blocks and 2 column blocks has shape `(2, 2)`.
+        The number of blocks (or subarrays) along each axis. For example, a
+        block matrix with 2 row blocks and 3 column blocks has shape `(2, 3)`.
+
+        A special size of -1 indicates a "reduced" block axis. Similar to
+        an axis size of 1, an axis size of -1 contains 1 block; however,
+        the dimension is implictly ignored for indexing.
+
+        Similar to scalar `numpy` arrays, reduced axes are created by
+        indexing a single element from the given axis (i.e. `[..., 0]` creates
+        a reduced axis for the last axis). While reduced axes don't need to
+        be tracked for scalar arrays, it is useful to track reduced axes for
+        block arrays because reducing a block axis does not reduce corresponding
+        subarray axes and the number of block and subarray dimensions should
+        match.
     f_bshape :
         The 'block shape' (or nested shape) of the block array. This stores the
         axis sizes of subarrays along each axis. For example, a block shape
@@ -60,6 +77,14 @@ class BlockArray(Generic[T]):
             - (0, 1) is a 120x4 matrix
             - (1, 0) is a 6x5 matrix
             - (1, 1) is a 6x4 matrix
+
+        A reduced axis contains a single integer representing its shape. For
+        example, a block shape `((120, 6), (5, 4), 2)` represents a 2-by-2 block
+        array with a reduced final axis and has entries:
+            - (0, 0) is a 120x5x2 matrix
+            - (0, 1) is a 120x4x2 matrix
+            - (1, 0) is a 6x5x2 matrix
+            - (1, 1) is a 6x4x2 matrix
     f_labels :
         A tuple of labels for each block along each axis
     f_ndim :
@@ -180,6 +205,37 @@ class BlockArray(Generic[T]):
     def __str__(self):
         return f"{self.__class__.__name__}(bshape={self.f_bshape} labels={self.f_labels})"
 
+    ## Basic string representation functions
+    def stats(self, stats=(np.min, np.max, np.mean)):
+        """
+        Return a dictionary of summary statistics for each subarray
+        """
+        multi_label_to_idx = self.larray._MULTI_LABEL_TO_IDX
+        if any([
+                axis_label_to_idx == ()
+                for axis_label_to_idx in multi_label_to_idx
+            ]):
+            raise ValueError("Can't print state due to missing axis labels")
+
+        dim_labels = [x.keys() for x in multi_label_to_idx]
+        dim_idxs = [x.values() for x in multi_label_to_idx]
+        return {
+            idx_labels: tuple(stat(self[idx_ints]) for stat in stats)
+            for idx_labels, idx_ints in zip(
+                product(*dim_labels),
+                product(*dim_idxs)
+            )
+        }
+
+    def print_summary(self):
+        """
+        Pretty-print the stats
+        """
+        import pprint as pp
+        summary_dict = self.stats((np.min, np.max, np.mean))
+        print('(min/max/mean):')
+        pp.pprint(summary_dict)
+
     @property
     def blocks(self) -> np.ndarray:
         """
@@ -202,14 +258,14 @@ class BlockArray(Generic[T]):
         return self._larray
 
     @property
-    def size(self):
+    def size(self) -> int:
         """
         Return the size (total number of blocks/subarrays)
         """
         return self.larray.size
 
     @property
-    def f_shape(self):
+    def f_shape(self) -> Shape:
         """
         Return the shape
 
@@ -226,8 +282,8 @@ class BlockArray(Generic[T]):
         return self._bshape
 
     @property
-    def f_labels(self):
-        """Return the axis labels"""
+    def f_labels(self) -> MultiLabels:
+        """Return the block labels"""
         return self.larray.f_labels
 
     @property
@@ -250,11 +306,11 @@ class BlockArray(Generic[T]):
         return self.larray.f_dims
 
     @property
-    def shape(self):
+    def shape(self) -> Shape:
         """
         Return the reduced shape
 
-        This is the number of block along each non-reduced axis.
+        This is the number of blocks along each non-reduced axis.
         """
         return self.larray.shape
 
@@ -267,7 +323,10 @@ class BlockArray(Generic[T]):
         return tuple(ret_rbshape)
 
     @property
-    def labels(self):
+    def labels(self) -> MultiLabels:
+        """
+        Return the reduced block labels
+        """
         return self._larray.labels
 
     @property
@@ -411,7 +470,8 @@ class BlockArray(Generic[T]):
         new_fshape = tuple(new_fshape)
         new_flabels = tuple(new_flabels)
 
-        # TODO: This should return the type of the instance
+        # NOTE: Squeezing probably shouldn't make sense for `BlockMatrix` and
+        # `BlockVector` types
         return BlockArray(self.blocks.reshape(-1), new_fshape, new_flabels)
 
     def unsqueeze(self, f_axes=None):
@@ -425,7 +485,6 @@ class BlockArray(Generic[T]):
         # Unsqueezing `f_labels` doesn't require any modification
         new_flabels = self.f_labels
 
-        # TODO: This should return the type of the instance
         return BlockArray(self.blocks.reshape(-1), new_fshape, new_flabels)
 
     ## Dict-like interface over the first dimension
@@ -618,6 +677,21 @@ def unsqueeze_shape(
         shape: Shape,
         axes: Tuple[int, ...] = None
     ) -> Shape:
+    """
+    Return a shape tuple with unreduced axes
+
+    Parameters
+    ----------
+    shape :
+        A shape tuple with potentially reduced axes
+    axes :
+        A tuple of int corresponding to which should be unreduced
+
+    Returns
+    -------
+    ret_shape :
+        The shape tuple with size 1 axes replacing previous size -1 axes.
+    """
 
     if axes is None:
         axes = [ii for ii, size in enumerate(shape) if size == -1]
