@@ -55,8 +55,20 @@ class BlockArray(Generic[T]):
         The total number of subarrays contained in the block array.
 
     f_shape :
-        The number of blocks (subarrays) along each axis. For example, a matrix
-        with 2 row blocks and 2 column blocks has shape `(2, 2)`.
+        The number of blocks (or subarrays) along each axis. For example, a
+        block matrix with 2 row blocks and 3 column blocks has shape `(2, 3)`.
+
+        A special size of -1 indicates a "reduced" block axis. Similar to
+        an axis size of 1, an axis size of -1 contains 1 block; however,
+        the dimension is implictly ignored for indexing.
+
+        Similar to scalar `numpy` arrays, reduced axes are created by
+        indexing a single element from the given axis (i.e. `[..., 0]` creates
+        a reduced axis for the last axis). While reduced axes don't need to
+        be tracked for scalar arrays, it is useful to track reduced axes for
+        block arrays because reducing a block axis does not reduce corresponding
+        subarray axes and the number of block and subarray dimensions should
+        match.
     f_bshape :
         The 'block shape' (or nested shape) of the block array. This stores the
         axis sizes of subarrays along each axis. For example, a block shape
@@ -65,6 +77,14 @@ class BlockArray(Generic[T]):
             - (0, 1) is a 120x4 matrix
             - (1, 0) is a 6x5 matrix
             - (1, 1) is a 6x4 matrix
+
+        A reduced axis contains a single integer representing its shape. For
+        example, a block shape `((120, 6), (5, 4), 2)` represents a 2-by-2 block
+        array with a reduced final axis and has entries:
+            - (0, 0) is a 120x5x2 matrix
+            - (0, 1) is a 120x4x2 matrix
+            - (1, 0) is a 6x5x2 matrix
+            - (1, 1) is a 6x4x2 matrix
     f_labels :
         A tuple of labels for each block along each axis
     f_ndim :
