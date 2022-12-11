@@ -677,6 +677,21 @@ def unsqueeze_shape(
         shape: Shape,
         axes: Tuple[int, ...] = None
     ) -> Shape:
+    """
+    Return a shape tuple with unreduced axes
+
+    Parameters
+    ----------
+    shape :
+        A shape tuple with potentially reduced axes
+    axes :
+        A tuple of int corresponding to which should be unreduced
+
+    Returns
+    -------
+    ret_shape :
+        The shape tuple with size 1 axes replacing previous size -1 axes.
+    """
 
     if axes is None:
         axes = [ii for ii, size in enumerate(shape) if size == -1]
