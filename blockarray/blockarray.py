@@ -447,7 +447,8 @@ class BlockArray(Generic[T]):
         new_fshape = tuple(new_fshape)
         new_flabels = tuple(new_flabels)
 
-        # TODO: This should return the type of the instance
+        # NOTE: Squeezing probably shouldn't make sense for `BlockMatrix` and
+        # `BlockVector` types
         return BlockArray(self.blocks.reshape(-1), new_fshape, new_flabels)
 
     def unsqueeze(self, f_axes=None):
@@ -461,7 +462,6 @@ class BlockArray(Generic[T]):
         # Unsqueezing `f_labels` doesn't require any modification
         new_flabels = self.f_labels
 
-        # TODO: This should return the type of the instance
         return BlockArray(self.blocks.reshape(-1), new_fshape, new_flabels)
 
     ## Dict-like interface over the first dimension
