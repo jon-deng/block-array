@@ -238,14 +238,14 @@ class BlockArray(Generic[T]):
         return self._larray
 
     @property
-    def size(self):
+    def size(self) -> int:
         """
         Return the size (total number of blocks/subarrays)
         """
         return self.larray.size
 
     @property
-    def f_shape(self):
+    def f_shape(self) -> Shape:
         """
         Return the shape
 
@@ -262,8 +262,8 @@ class BlockArray(Generic[T]):
         return self._bshape
 
     @property
-    def f_labels(self):
-        """Return the axis labels"""
+    def f_labels(self) -> MultiLabels:
+        """Return the block labels"""
         return self.larray.f_labels
 
     @property
@@ -286,11 +286,11 @@ class BlockArray(Generic[T]):
         return self.larray.f_dims
 
     @property
-    def shape(self):
+    def shape(self) -> Shape:
         """
         Return the reduced shape
 
-        This is the number of block along each non-reduced axis.
+        This is the number of blocks along each non-reduced axis.
         """
         return self.larray.shape
 
@@ -303,7 +303,10 @@ class BlockArray(Generic[T]):
         return tuple(ret_rbshape)
 
     @property
-    def labels(self):
+    def labels(self) -> MultiLabels:
+        """
+        Return the reduced block labels
+        """
         return self._larray.labels
 
     @property
