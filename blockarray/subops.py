@@ -313,6 +313,31 @@ def solve_petsc_lu(
     ksp.solve(b, out)
     return out, ksp
 
+@require_petsc
+def solve_superlu(
+        mat: PETScMat,
+        b: PETScVec,
+        out: Optional[PETScVec]=None,
+        ksp: Optional['PETSc.KSP']=None
+    ) -> Tuple[PETScVec, 'PETSc.KSP']:
+    """
+    Solve Ax=b using PETSc's LU solver
+    """
+    if ksp is None:
+        ksp = PETSc.KSP().create()
+        ksp.setType(ksp.Type.PREONLY)
+        ksp.setOperators(mat)
+        ksp.setUp()
+
+        pc = ksp.getPC()
+        pc.setType(pc.Type.LU)
+        pc.setFactorSolverType('superlu')
+
+    if out is None:
+        out = mat.getVecRight()
+    ksp.solve(b, out)
+    return out, ksp
+
 def mult_mat_vec(mat: M, vec: V, out: Optional[V]=None) -> V:
     """
     Return a matrix-vector product
