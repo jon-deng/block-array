@@ -2,7 +2,7 @@
 This module contains the block vector definition
 """
 
-from typing import TypeVar
+from typing import TypeVar, List
 import functools as ftls
 
 import numpy as np
@@ -88,7 +88,8 @@ def validate_blockvec_size(*args):
     return all(valid_bsizes)
 
 # Utilities
-def split_bvec(bvec, block_sizes):
+
+def chunk(bvec, block_sizes):
     """
     Splits a block vector into multiple block vectors
     """
@@ -99,7 +100,7 @@ def split_bvec(bvec, block_sizes):
     ]
     return tuple(split_bvecs)
 
-def concatenate_vec(args, labels=None):
+def concatenate(args, labels=None):
     """
     Concatenate a series of BlockVecs into a single BlockVector
 
@@ -113,6 +114,16 @@ def concatenate_vec(args, labels=None):
     vecs = np.concatenate([bvec.blocks for bvec in args])
 
     return BlockVector(vecs, labels=labels)
+
+def concatenate_with_prefix(bvecs: List[BlockVector], prefix=''):
+    """
+    Concatenate a series of block vectors with a numbered prefix
+    """
+    labels = tuple(
+        f'{prefix}{n}.{label}' for n, bvec in enumerate(bvecs)
+        for label in bvec.labels[0]
+    )
+    return concatenate(bvecs, (labels,))
 
 # Converting subtypes
 @require_petsc
