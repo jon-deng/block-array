@@ -4,6 +4,7 @@ This module contains the block matrix definition
 
 from typing import Tuple, List, TypeVar
 import itertools
+import functools
 
 import numpy as np
 
@@ -84,6 +85,22 @@ def norm(A: BlockMatrix[T]):
         for mm in range(A.shape[0])])**0.5
     return frobenius_norm
 
+def zeros(bshape, labels: MultiLabels=None):
+    """
+    Return a block matrix with all zeros
+
+    Parameters
+    ----------
+    A : BlockMatrix
+    """
+    mats = [
+        gops.zero_mat(nrow, ncol)
+        for nrow, ncol in itertools.product(*bshape)
+    ]
+    shape = tuple(len(axis_sizes) for axis_sizes in bshape)
+    return BlockMatrix(mats, shape=shape, labels=labels)
+
+
 ## More utilities
 def concatenate_mat(bmats: List[List[BlockMatrix[T]]], labels: MultiLabels=None):
     """
@@ -110,6 +127,19 @@ def concatenate_mat(bmats: List[List[BlockMatrix[T]]], labels: MultiLabels=None)
         col_labels = [key for jj in range(NUM_BCOL) for key in bmats[0][jj].labels[1]]
         labels = (tuple(row_labels), tuple(col_labels))
     return BlockMatrix(mats, labels=labels)
+
+def concatenate_mat_diag(bmats: List[BlockMatrix[T]]):
+    bshapes_row = [mat.bshape[0] for mat in bmats]
+    bshapes_col = [mat.bshape[1] for mat in bmats]
+    mats = [[zeros((brow, bcol)) for bcol in bshapes_col] for brow in bshapes_row]
+
+    # n = len(bmats)
+    for ii, bmat in enumerate(bmats):
+        mats[ii][ii] = bmat
+
+    labels_row = functools.reduce(lambda x, y: x+y, [bmat.labels[0] for bmat in bmats])
+    labels_col = functools.reduce(lambda x, y: x+y, [bmat.labels[1] for bmat in bmats])
+    return concatenate_mat(mats, (labels_row, labels_col))
 
 ## Converting subtypes
 def convert_subtype_to_petsc(bmat: BlockMatrix[T]):
