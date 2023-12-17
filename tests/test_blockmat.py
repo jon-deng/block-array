@@ -80,7 +80,7 @@ def test_concatenate_mat(setup_mat_petsc_pair):
     Test concatenation of two `BlockMatrix` instances
     """
     mata, matb = setup_mat_petsc_pair
-    cbmat = bmat.concatenate_mat([[mata], [matb]], labels=[['a', 'b', 'c', 'd'], ['a', 'b']])
+    cbmat = bmat.concatenate([[mata], [matb]], labels=[['a', 'b', 'c', 'd'], ['a', 'b']])
     print(cbmat.f_shape)
 
 def test_mult_mat(setup_mat_petsc_pair):

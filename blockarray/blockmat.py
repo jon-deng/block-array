@@ -102,7 +102,7 @@ def zeros(bshape, labels: MultiLabels=None):
 
 
 ## More utilities
-def concatenate_mat(bmats: List[List[BlockMatrix[T]]], labels: MultiLabels=None):
+def concatenate(bmats: List[List[BlockMatrix[T]]], labels: MultiLabels=None):
     """
     Form a block matrix by joining other block matrices
 
@@ -128,7 +128,7 @@ def concatenate_mat(bmats: List[List[BlockMatrix[T]]], labels: MultiLabels=None)
         labels = (tuple(row_labels), tuple(col_labels))
     return BlockMatrix(mats, labels=labels)
 
-def concatenate_mat_diag(bmats: List[BlockMatrix[T]]):
+def concatenate_diag(bmats: List[BlockMatrix[T]]):
     bshapes_row = [mat.bshape[0] for mat in bmats]
     bshapes_col = [mat.bshape[1] for mat in bmats]
     mats = [[zeros((brow, bcol)) for bcol in bshapes_col] for brow in bshapes_row]
@@ -139,7 +139,7 @@ def concatenate_mat_diag(bmats: List[BlockMatrix[T]]):
 
     labels_row = functools.reduce(lambda x, y: x+y, [bmat.labels[0] for bmat in bmats])
     labels_col = functools.reduce(lambda x, y: x+y, [bmat.labels[1] for bmat in bmats])
-    return concatenate_mat(mats, (labels_row, labels_col))
+    return concatenate(mats, (labels_row, labels_col))
 
 ## Converting subtypes
 def convert_subtype_to_petsc(bmat: BlockMatrix[T]):
