@@ -1,6 +1,7 @@
 """
 Test functionality of `blockarray.labelledarray`
 """
+
 import math
 from typing import TypeVar
 from itertools import accumulate, product
@@ -11,9 +12,8 @@ import pytest
 import numpy as np
 
 from blockarray import labelledarray as la
-from blockarray.typing import (
-    FlatArray, MultiLabelToStdIndex, Shape, MultiGenIndex
-)
+from blockarray.typing import FlatArray, MultiLabelToStdIndex, Shape, MultiGenIndex
+
 
 def flat_idx(midx, strides):
     """
@@ -21,11 +21,13 @@ def flat_idx(midx, strides):
     """
     return np.sum(np.multiply(midx, strides))
 
+
 def squeeze_shape(f_shape: Shape) -> Shape:
     """
     Return a shape without reduced axes from a full shape
     """
     return tuple(ax_size for ax_size in f_shape if ax_size != -1)
+
 
 def strides_from_shape(shape: Shape) -> Shape:
     """
@@ -33,7 +35,10 @@ def strides_from_shape(shape: Shape) -> Shape:
     """
     return tuple(accumulate(shape[1:][::-1], operator.mul, initial=1))[::-1]
 
+
 T = TypeVar('T')
+
+
 class TestLabelledArray:
     """
     Test `LabelledArray` functionality
@@ -49,7 +54,7 @@ class TestLabelledArray:
         LabelledArray
             The labelled array instance to test
         Tuple[elements, shape, labels, strides]
-            A tuple of reference quantities used in constructing the 
+            A tuple of reference quantities used in constructing the
             `LabelledArray` instance. These should be used to test correctness
             of the array instance.
         """
@@ -59,10 +64,15 @@ class TestLabelledArray:
 
         strides = strides_from_shape(shape)
 
-        elements = string.ascii_lowercase[:math.prod(shape)]
+        elements = string.ascii_lowercase[: math.prod(shape)]
         elements = [char for char in elements]
 
-        return la.LabelledArray(elements, shape, labels), (elements, shape, labels, strides)
+        return la.LabelledArray(elements, shape, labels), (
+            elements,
+            shape,
+            labels,
+            strides,
+        )
 
     def test_shape(self, setup_array):
         """
@@ -108,8 +118,8 @@ class TestLabelledArray:
         all_axis_int_indices = [range(axis_size) for axis_size in array.shape]
         all_axis_str_indices = [axis_labels for axis_labels in array.labels]
         for mindex_int, mindex_str in zip(
-                product(*all_axis_int_indices), product(*all_axis_str_indices)
-            ):
+            product(*all_axis_int_indices), product(*all_axis_str_indices)
+        ):
 
             assert array[mindex_int] == ref_data[flat_idx(mindex_int, ref_strides)]
             assert array[mindex_str] == ref_data[flat_idx(mindex_int, ref_strides)]
@@ -134,10 +144,18 @@ class TestLabelledArray:
         axis_idxs = (0, slice(0, 1), slice(1, 2))
         assert array[axis_idxs].f_shape == (-1, 1, 1)
 
-        print(f"array[:, :, 0] has shape {array[:, :, 0].shape} and vals {array[:, :, 0].array}")
-        print(f"array[:, :, 1:2] has shape {array[:, :, 1:2].shape} and vals {array[:, :, 1:2].array}")
-        print(f"array[:, :, 0:1] has shape {array[:, :, 0:1].shape} and vals {array[:, :, 0:1].array}")
-        print(f"array[:, :, :] has shape {array[:, :, :].shape} and vals {array[:, :, :].array}")
+        print(
+            f"array[:, :, 0] has shape {array[:, :, 0].shape} and vals {array[:, :, 0].array}"
+        )
+        print(
+            f"array[:, :, 1:2] has shape {array[:, :, 1:2].shape} and vals {array[:, :, 1:2].array}"
+        )
+        print(
+            f"array[:, :, 0:1] has shape {array[:, :, 0:1].shape} and vals {array[:, :, 0:1].array}"
+        )
+        print(
+            f"array[:, :, :] has shape {array[:, :, :].shape} and vals {array[:, :, :].array}"
+        )
         print(f"array[:] has shape {array[:].shape} and vals {array[:].array}")
 
     def test_generic_index(self, setup_array):
@@ -150,21 +168,21 @@ class TestLabelledArray:
         test_idx = (0, 0)
         assert self._test_midx(test_idx, array, elements, shape, mlabel_to_idx)
 
-
     @staticmethod
     def _test_midx(
-            midx: MultiGenIndex,
-            array: la.LabelledArray[T],
-            elements: FlatArray[T],
-            shape: Shape,
-            mlabel_to_idx: MultiLabelToStdIndex
-        ):
+        midx: MultiGenIndex,
+        array: la.LabelledArray[T],
+        elements: FlatArray[T],
+        shape: Shape,
+        mlabel_to_idx: MultiLabelToStdIndex,
+    ):
         """
         Test a multi-index returns the correct values
 
         This compares the result of `array[midx]` against the results of
         indexing the reference data `(elements, shape, mlabel_to_idx)`.
         """
+
         ## Compute the indexed result from the reference data
         # Compute a flat reference index to get the 'correct' elements
         def require_list(x):
@@ -178,12 +196,11 @@ class TestLabelledArray:
         _ref_midx = [require_list(x) for x in ref_midx]
 
         strides = strides_from_shape(shape)
+
         def to_flat(midx):
             return np.sum(np.multiply(midx, strides))
 
-        ref_idx_elements = [
-            elements[to_flat(midx)] for midx in product(*_ref_midx)
-        ]
+        ref_idx_elements = [elements[to_flat(midx)] for midx in product(*_ref_midx)]
 
         ## Compute the indexed result from the `LabelledArray`
         array_idx_elements = array[midx].array.tolist()
@@ -191,7 +208,9 @@ class TestLabelledArray:
         ## Compare the reference and `LabelledArray` results to check
         return ref_idx_elements == array_idx_elements
 
+
 # TODO: Add tests for `validate_*` functions
+
 
 def test_flatten_array():
     """
@@ -208,6 +227,7 @@ def test_flatten_array():
     ref_flat_array = [1, 2, 3, 4, 5, 6]
     flat_array, shape = la.flatten_array(ref_array)
     assert flat_array == ref_flat_array and shape == ref_shape
+
 
 def test_nest_array():
     """
@@ -227,20 +247,18 @@ def test_nest_array():
     array = la.nest_array(ref_flat_array, ref_strides)
     assert array == ref_array
 
+
 ## Tests for indexing internals
 @pytest.fixture(
     params=[
-        ( (..., slice(None)), 1, (slice(None),) ),
-        ( (slice(None), ...), 1, (slice(None),) ),
-
-        ( (..., slice(None)), 4, (slice(None),)*4 ),
-        ( (slice(None), ...), 4, (slice(None),)*4 ),
-
-        ( (..., 3), 4, (slice(None),)*3 + (3,) ),
-        ( (3, ...), 4, (3,) + (slice(None),)*3 ),
-
-        ( (..., slice(None), 3), 4, (slice(None),)*2 + (slice(None), 3) ),
-        ( (slice(None), 3, ...), 4, (slice(None), 3) + (slice(None),)*2 ),
+        ((..., slice(None)), 1, (slice(None),)),
+        ((slice(None), ...), 1, (slice(None),)),
+        ((..., slice(None)), 4, (slice(None),) * 4),
+        ((slice(None), ...), 4, (slice(None),) * 4),
+        ((..., 3), 4, (slice(None),) * 3 + (3,)),
+        ((3, ...), 4, (3,) + (slice(None),) * 3),
+        ((..., slice(None), 3), 4, (slice(None),) * 2 + (slice(None), 3)),
+        ((slice(None), 3, ...), 4, (slice(None), 3) + (slice(None),) * 2),
     ]
 )
 def setup_expand_multidx(request):
@@ -250,6 +268,7 @@ def setup_expand_multidx(request):
     idx, ndim, expanded_idx = request.param
     return idx, ndim, expanded_idx
 
+
 def test_expand_multidx(setup_expand_multidx):
     """
     Test expansion of a multi-index with ellipses and/or missing axes
@@ -257,31 +276,30 @@ def test_expand_multidx(setup_expand_multidx):
     midx, ndim, ref_midx = setup_expand_multidx
     assert la.expand_multi_gen_idx(midx, ndim) == ref_midx
 
+
 # Tests for lists (and/or single) indexes along a single axis
 @pytest.fixture(
     params=[
-        ( slice(None), 2, [0, 1] ),
-        ( slice(None), 5, [0, 1, 2, 3, 4] ),
-        ( slice(1, -1), 5, [1, 2, 3] ),
-        ( slice(1, -1, 2), 5, [1, 3] ),
-
-        ( 0, 5, 0 ),
-        ( 3, 5, 3 ),
-        ( 4, 5, 4 ),
-        ( 0, 2, 0 ),
-        ( -1, 2, 1 ),
-        ( -2, 2, 0 ),
-        ( -1, 5, 4 ),
-        ( -2, 5, 3 ),
-        ( [1, 2, 3], 3, [1, 2, 3] ),
-        ( [1, 2, 3], 5, [1, 2, 3] ),
-
-        ( 'a', 5, 0 ),
-        ( 'c', 5, 2 ),
-        ( 'd', 5, 3 ),
-        ( 'a', 2, 0 ),
-        ( ['a', 'b', 'c'], 3, [0, 1, 2] ),
-        ( ['a', 'b', 'c'], 5, [0, 1, 2] ),
+        (slice(None), 2, [0, 1]),
+        (slice(None), 5, [0, 1, 2, 3, 4]),
+        (slice(1, -1), 5, [1, 2, 3]),
+        (slice(1, -1, 2), 5, [1, 3]),
+        (0, 5, 0),
+        (3, 5, 3),
+        (4, 5, 4),
+        (0, 2, 0),
+        (-1, 2, 1),
+        (-2, 2, 0),
+        (-1, 5, 4),
+        (-2, 5, 3),
+        ([1, 2, 3], 3, [1, 2, 3]),
+        ([1, 2, 3], 5, [1, 2, 3]),
+        ('a', 5, 0),
+        ('c', 5, 2),
+        ('d', 5, 3),
+        ('a', 2, 0),
+        (['a', 'b', 'c'], 3, [0, 1, 2]),
+        (['a', 'b', 'c'], 5, [0, 1, 2]),
     ]
 )
 def setup_conv_gen_to_std_idx(request):
@@ -294,12 +312,14 @@ def setup_conv_gen_to_std_idx(request):
     }
     return idx, size, label_to_idx, std_idx
 
+
 def test_conv_gen_to_std_idx(setup_conv_gen_to_std_idx):
     """
     Test conversion of general to standard indices for a single axis
     """
     idx, size, label_to_idx, std_idx = setup_conv_gen_to_std_idx
     assert la.conv_gen_to_std_idx(idx, label_to_idx, size) == std_idx
+
 
 def test_conv_list_to_std_idx():
     """
@@ -310,8 +330,9 @@ def test_conv_list_to_std_idx():
     LABEL_TO_IDX = {label: idx for idx, label in enumerate(string.ascii_lowercase[:N])}
 
     gen_idx = ['a', 'b', 4, -5]
-    std_idx =  [0, 1, 4, 10-5]
+    std_idx = [0, 1, 4, 10 - 5]
     assert la.conv_list_to_std_idx(gen_idx, LABEL_TO_IDX, N) == std_idx
+
 
 def test_conv_slice_to_std_idx():
     """
@@ -322,6 +343,7 @@ def test_conv_slice_to_std_idx():
     for idx in [slice(2, 5), slice(2, 6, 2), slice(None)]:
         assert la.conv_slice_to_std_idx(idx, N) == list(range(N))[idx]
 
+
 # Tests for single indexes along a single axis
 def test_conv_label_to_std_idx():
     """
@@ -330,9 +352,10 @@ def test_conv_label_to_std_idx():
     N = 10
     label_to_idx = {label: idx for idx, label in enumerate(string.ascii_lowercase[:N])}
 
-    std_idx = N-1
+    std_idx = N - 1
     gen_idx = string.ascii_lowercase[std_idx]
     assert la.conv_label_to_std_idx(gen_idx, label_to_idx, N) == std_idx
+
 
 def test_conv_neg_to_std_idx():
     """
@@ -341,6 +364,7 @@ def test_conv_neg_to_std_idx():
     N = 10
     assert la.conv_neg_to_std_idx(5, N) == 5
     assert la.conv_neg_to_std_idx(-5, N) == 5
+
 
 def test_conv_slice_start_to_idx():
     """
@@ -354,6 +378,7 @@ def test_conv_slice_start_to_idx():
 
     start = -2
     assert la.conv_slice_start_to_idx(start, N) == N - 2
+
 
 def test_conv_slice_stop_to_idx():
     """

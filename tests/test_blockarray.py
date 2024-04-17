@@ -9,6 +9,7 @@ import numpy as np
 
 import blockarray.blockarray as ba
 
+
 @pytest.fixture()
 def setup_barray_a():
     """
@@ -19,6 +20,7 @@ def setup_barray_a():
     c = np.ones((2, 4))
     d = np.ones((2, 2))
     return ba.BlockArray([[a, b], [c, d]]), (a, b, c, d)
+
 
 @pytest.fixture()
 def setup_barray_b():
@@ -31,6 +33,7 @@ def setup_barray_b():
     d = np.ones((2, 2))
     return ba.BlockArray([[a, b], [c, d]]), (a, b, c, d)
 
+
 class TestBlockArray:
     """
     Test `BlockArray` functionality
@@ -42,7 +45,7 @@ class TestBlockArray:
         """
         a = np.ones((2, 2))
         A = ba.BlockArray([a], shape=(-1, -1))
-        assert (A is a)
+        assert A is a
 
     def test_index(self, setup_barray_a):
         B, (a, b, c, d) = setup_barray_a
@@ -67,6 +70,7 @@ class TestBlockArray:
         dd = A[0:1, :]
         assert dd.squeeze().f_bshape == (4, (4, 2))
 
+
 class TestMath:
     """
     Test math operations on `BlockArray`s
@@ -74,8 +78,10 @@ class TestMath:
 
     @pytest.fixture(
         params=[
-            operator.add, operator.sub,
-            operator.mul, operator.truediv,
+            operator.add,
+            operator.sub,
+            operator.mul,
+            operator.truediv,
             # operator.pow
         ]
     )
@@ -119,16 +125,14 @@ class TestMath:
             _D = op(np.float64(5.0), A.to_mono_ndarray())
             assert np.all(np.isclose(D.to_mono_ndarray(), _D))
 
-@pytest.fixture(params=[
-    (5, 5, (1, 4)),
-    ((2, 4), (2, 4), (1, 1)),
-    ((2, 4), (2, 4), 1)
-])
+
+@pytest.fixture(params=[(5, 5, (1, 4)), ((2, 4), (2, 4), (1, 1)), ((2, 4), (2, 4), 1)])
 def setup_bshape(request):
     """
     Return a block shape tuple
     """
     return request.param
+
 
 def test_ones(setup_bshape):
     """
@@ -138,6 +142,7 @@ def test_ones(setup_bshape):
     A = ba.zeros(bshape)
     assert A.f_bshape == bshape
 
+
 def test_zeros(setup_bshape):
     """
     Test `blockarray.zeros` returns an array with the right shape
@@ -145,6 +150,7 @@ def test_zeros(setup_bshape):
     bshape = setup_bshape
     A = ba.zeros(bshape)
     assert A.f_bshape == bshape
+
 
 def test_rand(setup_bshape):
     """

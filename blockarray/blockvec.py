@@ -12,6 +12,7 @@ from .blockarray import BlockArray
 from .blockmat import BlockMatrix
 
 from . import require_petsc, _HAS_PETSC
+
 if _HAS_PETSC:
     from petsc4py import PETSc
 
@@ -21,15 +22,21 @@ if _HAS_PETSC:
 # Type variable for a 'sub'vector
 T = TypeVar('T')
 
+
 class BlockVector(BlockArray[T]):
     """
     Represents a block vector with blocks indexed by labels
     """
-    def __init__(self, subarrays, shape=None, labels=None, wrap=gops.wrap, check_bshape=True):
+
+    def __init__(
+        self, subarrays, shape=None, labels=None, wrap=gops.wrap, check_bshape=True
+    ):
         super().__init__(subarrays, shape, labels, wrap=wrap, check_bshape=check_bshape)
 
         if len(self.shape) > 1:
-            raise ValueError(f"BlockVector must have dimension == 1, not {len(self.shape)}")
+            raise ValueError(
+                f"BlockVector must have dimension == 1, not {len(self.shape)}"
+            )
 
     ## Conversion to monolithic formats
     def to_mono_ndarray(self):
@@ -69,13 +76,15 @@ class BlockVector(BlockArray[T]):
 
     ## Special vector operations
     def norm(self):
-        return dot(self, self)**0.5
+        return dot(self, self) ** 0.5
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         # Import this here to avoid ciruclar import errors
         # TODO: Fix bad module layout?
         from . import ufunc as _ufunc
+
         return _ufunc.apply_ufunc_mat_vec(ufunc, method, *inputs, **kwargs)
+
 
 # TODO: Remove this unused code?
 def validate_blockvec_size(*args):
@@ -87,7 +96,9 @@ def validate_blockvec_size(*args):
 
     return all(valid_bsizes)
 
+
 # Utilities
+
 
 def chunk(bvec, block_sizes):
     """
@@ -95,10 +106,10 @@ def chunk(bvec, block_sizes):
     """
     block_cumul_sizes = [0] + np.cumsum(block_sizes).tolist()
     split_bvecs = [
-        bvec[ii:jj]
-        for ii, jj in zip(block_cumul_sizes[:-1], block_cumul_sizes[1:])
+        bvec[ii:jj] for ii, jj in zip(block_cumul_sizes[:-1], block_cumul_sizes[1:])
     ]
     return tuple(split_bvecs)
+
 
 def concatenate(args, labels=None):
     """
@@ -109,21 +120,24 @@ def concatenate(args, labels=None):
     args : List of BlockVector
     """
     if labels is None:
-        labels = [ftls.reduce(lambda a, b: a+b, [bvec.labels[0] for bvec in args])]
+        labels = [ftls.reduce(lambda a, b: a + b, [bvec.labels[0] for bvec in args])]
 
     vecs = np.concatenate([bvec.blocks for bvec in args])
 
     return BlockVector(vecs, labels=labels)
+
 
 def concatenate_with_prefix(bvecs: List[BlockVector], prefix=''):
     """
     Concatenate a series of block vectors with a numbered prefix
     """
     labels = tuple(
-        f'{prefix}{n}.{label}' for n, bvec in enumerate(bvecs)
+        f'{prefix}{n}.{label}'
+        for n, bvec in enumerate(bvecs)
         for label in bvec.labels[0]
     )
     return concatenate(bvecs, (labels,))
+
 
 # Converting subtypes
 @require_petsc
@@ -138,6 +152,7 @@ def convert_subtype_to_petsc(bvec):
     vecs = [gops.convert_vec_to_petsc(subvec) for subvec in bvec.blocks]
     return BlockVector(vecs, labels=bvec.labels)
 
+
 def convert_subtype_to_numpy(bvec):
     """
     Converts a block matrix from one submatrix type to the PETSc submatrix type
@@ -149,32 +164,32 @@ def convert_subtype_to_numpy(bvec):
     vecs = [gops.convert_vec_to_numpy(subvec) for subvec in bvec.blocks]
     return BlockVector(vecs, labels=bvec.labels)
 
+
 # Converting to monolithic vectors
 @require_petsc
 def to_mono_petsc(bvec, comm=None, finalize=True):
     raise NotImplementedError()
 
+
 # Converting to block matrix formats
 @require_petsc
 def to_block_rowmat(bvec):
-    mats = tuple(
-        gops.convert_vec_to_rowmat(subvec) for subvec in bvec.sub_blocks
-    )
+    mats = tuple(gops.convert_vec_to_rowmat(subvec) for subvec in bvec.sub_blocks)
     return BlockMatrix(mats, shape=(1, len(mats)))
+
 
 @require_petsc
 def to_block_colmat(bvec):
-    mats = tuple(
-        gops.convert_vec_to_colmat(subvec) for subvec in bvec.sub_blocks
-    )
+    mats = tuple(gops.convert_vec_to_colmat(subvec) for subvec in bvec.sub_blocks)
     return BlockMatrix(mats, shape=(len(mats), 1))
+
 
 # Basic operations
 def dot(a, b):
     """
     Return the dot product of a and b
     """
-    c = a*b
+    c = a * b
     ret = 0
     for subvec in c.sub_blocks:
         # using the [:] indexing notation makes sum interpret the different data types as np arrays
@@ -182,9 +197,10 @@ def dot(a, b):
         ret += sum(subvec[:])
     return ret
 
+
 def norm(a):
     """Return the 2-norm of a vector"""
-    return dot(a, a)**0.5
+    return dot(a, a) ** 0.5
 
 
 class MonotoBlock:

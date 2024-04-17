@@ -3,6 +3,7 @@ Utilities for reading/writing BlockArray objects to hdf5
 """
 
 from . import _HAS_H5PY, require_h5py
+
 if _HAS_H5PY:
     import h5py
 else:
@@ -10,9 +11,11 @@ else:
 
 from blockarray import blockvec as bvec
 
+
 @require_h5py
 def create_resizable_block_vector_group(
-    f: 'h5py.Group', blocklabels, blockshape, dataset_kwargs=None):
+    f: 'h5py.Group', blocklabels, blockshape, dataset_kwargs=None
+):
     """
     Create a resizable datasets in a group to store the vector
     """
@@ -29,8 +32,12 @@ def create_resizable_block_vector_group(
 
     for subvec_label, subvec_size in zip(blocklabels[0], blockshape[0]):
         f.create_dataset(
-            subvec_label, (0, subvec_size), maxshape=(None, subvec_size),
-            **dataset_kwargs)
+            subvec_label,
+            (0, subvec_size),
+            maxshape=(None, subvec_size),
+            **dataset_kwargs,
+        )
+
 
 @require_h5py
 def append_block_vector_to_group(f: 'h5py.Group', vec: bvec.BlockVector):
@@ -40,13 +47,15 @@ def append_block_vector_to_group(f: 'h5py.Group', vec: bvec.BlockVector):
     # Loop through each block of the block vector to see if the dataset represents it
     _valid_blocks = [
         (subvec_label in f) and (subvec_size == f[subvec_label].shape[-1])
-        for subvec_label, subvec_size in zip(vec.f_labels[0], vec.f_bshape[0])]
+        for subvec_label, subvec_size in zip(vec.f_labels[0], vec.f_bshape[0])
+    ]
     assert all(_valid_blocks)
 
     for subvec_label, subvec_size, subvec in zip(vec.f_labels[0], vec.f_bshape[0], vec):
         axis0_size = f[subvec_label].shape[0] + 1
         f[subvec_label].resize(axis0_size, axis=0)
         f[subvec_label][-1, :] = subvec
+
 
 @require_h5py
 def read_block_vector_from_group(f: 'h5py.Group', nvec=0):
@@ -62,9 +71,8 @@ def read_block_vector_from_group(f: 'h5py.Group', nvec=0):
     shape = tuple(f.attrs['blocktensor_shape'])
     ndim = f.attrs['blocktensor_dim']
     labels = [
-        tuple(f.attrs[f'blocktensor_axis{naxis}_labels'])
-        for naxis in range(ndim)]
+        tuple(f.attrs[f'blocktensor_axis{naxis}_labels']) for naxis in range(ndim)
+    ]
 
     subvecs = [f[block_label][nvec, :] for block_label in labels[0]]
     return bvec.BlockVector(subvecs, shape, labels)
-

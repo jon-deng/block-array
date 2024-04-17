@@ -52,14 +52,14 @@ D.setUp()
 D.setValues([0], [0], [2.0])
 D.assemble()
 
-MATS = \
-    [[A, B],
-     [C, D]]
+MATS = [[A, B], [C, D]]
+
 
 def benchmark_create_bmat():
     """Create a BlockMatrix"""
     bmat.BlockMatrix(MATS, labels=(('a', 'b'), ('a', 'b')))
     return None
+
 
 if __name__ == '__main__':
     print(globals())

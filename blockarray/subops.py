@@ -9,6 +9,7 @@ import functools
 
 import numpy as np
 from . import _HAS_PETSC, _HAS_FENICS, _HAS_JAX, require_petsc, require_fenics
+
 if _HAS_JAX:
     from jax import numpy as jnp
 if _HAS_PETSC:
@@ -16,7 +17,7 @@ if _HAS_PETSC:
 if _HAS_FENICS:
     import dolfin as dfn
 
-from .typing import (Shape, DfnMat, DfnVec, PETScMat, PETScVec, JaxArray)
+from .typing import Shape, DfnMat, DfnVec, PETScMat, PETScVec, JaxArray
 
 # pylint: disable=no-member
 
@@ -34,9 +35,9 @@ if _HAS_JAX:
 
 # VECTOR_TYPES = NDARRAY_LIKE_TYPES + PETSC_VECTOR_TYPES
 
-ALL_TYPES = NDARRAY_TYPES+VECTOR_TYPES+MATRIX_TYPES
-ALL_VECTOR_TYPES = NDARRAY_TYPES+VECTOR_TYPES
-ALL_MATRIX_TYPES = NDARRAY_TYPES+MATRIX_TYPES
+ALL_TYPES = NDARRAY_TYPES + VECTOR_TYPES + MATRIX_TYPES
+ALL_VECTOR_TYPES = NDARRAY_TYPES + VECTOR_TYPES
+ALL_MATRIX_TYPES = NDARRAY_TYPES + MATRIX_TYPES
 if len(ALL_TYPES) == 1:
     T = TypeVar('T', bound=ALL_TYPES[0])
 else:
@@ -52,6 +53,7 @@ if len(ALL_MATRIX_TYPES) == 1:
 else:
     M = TypeVar('M', *ALL_MATRIX_TYPES)
 
+
 ## Wrapper array objects
 def vectorize_func(func):
     """
@@ -62,6 +64,7 @@ def vectorize_func(func):
     blocks) numpy tries to unpack inner arrays which is not the desired
     behaviour here.
     """
+
     def vfunc(input):
         if isinstance(input, np.ndarray):
             # Treat numpy object arrays as containers of subarrays
@@ -85,7 +88,9 @@ def vectorize_func(func):
         # For all other subarray types, just apply `func` to them
         else:
             return func(input)
+
     return vfunc
+
 
 @vectorize_func
 def wrap(array):
@@ -102,7 +107,10 @@ def wrap(array):
     elif isinstance(array, DfnVec):
         return DfnVector(array)
     else:
-        raise TypeError(f"Couldn't find wrapper array type for array of type {type(array)}")
+        raise TypeError(
+            f"Couldn't find wrapper array type for array of type {type(array)}"
+        )
+
 
 @vectorize_func
 def unwrap(array):
@@ -111,7 +119,10 @@ def unwrap(array):
     else:
         return array
 
+
 T = TypeVar('T')
+
+
 class GenericSubarray(Generic[T]):
     shape: Shape
     size: int
@@ -122,19 +133,27 @@ class GenericSubarray(Generic[T]):
         self._data = array
 
     def __array__(self, dtype=None):
-        raise NotImplementedError(f"`__array__` interface not implemented for array wrapper type {type(self)}")
+        raise NotImplementedError(
+            f"`__array__` interface not implemented for array wrapper type {type(self)}"
+        )
 
     def __getitem__(self, key):
-        raise NotImplementedError(f"Can't index values from array wrapper type {type(self)}")
+        raise NotImplementedError(
+            f"Can't index values from array wrapper type {type(self)}"
+        )
 
     def __setitem__(self, key, value):
-        raise NotImplementedError(f"Can't set at index to array wrapper type {type(self)}")
+        raise NotImplementedError(
+            f"Can't set at index to array wrapper type {type(self)}"
+        )
 
     def set(self, value):
         """
         Set the array to `value`
         """
-        raise NotImplementedError(f"Can't set values to array wrapper type {type(self)}")
+        raise NotImplementedError(
+            f"Can't set values to array wrapper type {type(self)}"
+        )
 
     ## Methods that are usually well defined
 
@@ -148,6 +167,7 @@ class GenericSubarray(Generic[T]):
     @property
     def data(self) -> T:
         return self._data
+
 
 class PETScVector(GenericSubarray[PETScVec]):
     def __init__(self, array: PETScVec):
@@ -178,6 +198,7 @@ class PETScVector(GenericSubarray[PETScVec]):
     def set(self, value):
         self.data.array[:] = value
 
+
 class PETScMatrix(GenericSubarray[PETScMat]):
     def __init__(self, array: PETScMat):
         super().__init__(array)
@@ -203,6 +224,7 @@ class PETScMatrix(GenericSubarray[PETScMat]):
     @property
     def ndim(self):
         return 2
+
 
 class DfnVector(GenericSubarray[DfnVec]):
     def __init__(self, array: DfnVec):
@@ -235,6 +257,7 @@ class DfnVector(GenericSubarray[DfnVec]):
     def set(self, value):
         self.data[:] = value
 
+
 class DfnMatrix(GenericSubarray[DfnMat]):
     def __init__(self, array: DfnMat):
         super().__init__(array)
@@ -261,7 +284,10 @@ class DfnMatrix(GenericSubarray[DfnMat]):
     def ndim(self):
         return 2
 
+
 V = TypeVar('V', *NDARRAY_TYPES)
+
+
 class NumpyArrayLike(GenericSubarray[V]):
 
     def __getitem__(self, key):
@@ -291,11 +317,11 @@ class NumpyArrayLike(GenericSubarray[V]):
 
 @require_petsc
 def solve_petsc_lu(
-        mat: PETScMat,
-        b: PETScVec,
-        out: Optional[PETScVec]=None,
-        ksp: Optional['PETSc.KSP']=None
-    ) -> Tuple[PETScVec, 'PETSc.KSP']:
+    mat: PETScMat,
+    b: PETScVec,
+    out: Optional[PETScVec] = None,
+    ksp: Optional['PETSc.KSP'] = None,
+) -> Tuple[PETScVec, 'PETSc.KSP']:
     """
     Solve Ax=b using PETSc's LU solver
     """
@@ -313,13 +339,14 @@ def solve_petsc_lu(
     ksp.solve(b, out)
     return out, ksp
 
+
 @require_petsc
 def solve_superlu(
-        mat: PETScMat,
-        b: PETScVec,
-        out: Optional[PETScVec]=None,
-        ksp: Optional['PETSc.KSP']=None
-    ) -> Tuple[PETScVec, 'PETSc.KSP']:
+    mat: PETScMat,
+    b: PETScVec,
+    out: Optional[PETScVec] = None,
+    ksp: Optional['PETSc.KSP'] = None,
+) -> Tuple[PETScVec, 'PETSc.KSP']:
     """
     Solve Ax=b using PETSc's LU solver
     """
@@ -338,7 +365,8 @@ def solve_superlu(
     ksp.solve(b, out)
     return out, ksp
 
-def mult_mat_vec(mat: M, vec: V, out: Optional[V]=None) -> V:
+
+def mult_mat_vec(mat: M, vec: V, out: Optional[V] = None) -> V:
     """
     Return a matrix-vector product
 
@@ -360,12 +388,15 @@ def mult_mat_vec(mat: M, vec: V, out: Optional[V]=None) -> V:
         out = mat.createVecLeft() if out is None else out
         mat.mult(vec, out)
     elif isinstance(mat, DfnMat) and isinstance(vec, DfnVec):
-        out = mat*vec
+        out = mat * vec
     else:
-        raise TypeError(f"Unknown matrix-vector product between types {type(mat)} and {type(vec)}")
+        raise TypeError(
+            f"Unknown matrix-vector product between types {type(mat)} and {type(vec)}"
+        )
     return out
 
-def mult_mat_mat(mata: M, matb: M, out: Optional[M]=None) -> M:
+
+def mult_mat_mat(mata: M, matb: M, out: Optional[M] = None) -> M:
     """
     Return a matrix-matrix product
 
@@ -379,16 +410,19 @@ def mult_mat_mat(mata: M, matb: M, out: Optional[M]=None) -> M:
     """
     if isinstance(mata, NDARRAY_TYPES) and isinstance(matb, NDARRAY_TYPES):
         if out is None:
-            out = mata@matb
+            out = mata @ matb
         else:
             np.matmul(mata, matb, out=out)
     elif isinstance(mata, PETScMat) and isinstance(matb, PETScMat):
-        out = mata*matb
+        out = mata * matb
     elif isinstance(mata, PETScMat) and isinstance(matb, PETScMat):
-        out = mata*matb
+        out = mata * matb
     else:
-        raise TypeError(f"Unknown matrix-matrix product between types {type(mata)} and {type(matb)}")
+        raise TypeError(
+            f"Unknown matrix-matrix product between types {type(mata)} and {type(matb)}"
+        )
     return out
+
 
 def norm_vec(vec: V) -> float:
     """
@@ -411,6 +445,7 @@ def norm_vec(vec: V) -> float:
     else:
         raise TypeError(f"Unknown norm for vector type {type(vec)}")
 
+
 def norm_mat(mat: M) -> float:
     """
     Return the frobenius norm of a matrix
@@ -432,9 +467,10 @@ def norm_mat(mat: M) -> float:
     else:
         raise TypeError(f"Unknown norm for matrix type {type(mat)}")
 
+
 ## Convert matrix/vector types
 @require_petsc
-def convert_mat_to_petsc(mat: M, comm=None, keep_diagonal: bool=True) -> PETScMat:
+def convert_mat_to_petsc(mat: M, comm=None, keep_diagonal: bool = True) -> PETScMat:
     """
     Return a `PETScMat` representation of `mat`
     """
@@ -443,11 +479,14 @@ def convert_mat_to_petsc(mat: M, comm=None, keep_diagonal: bool=True) -> PETScMa
     elif isinstance(mat, DfnMat):
         out = mat.mat()
     elif isinstance(mat, NDARRAY_TYPES):
-        out = _numpy_mat_to_petsc_mat_via_csr(mat, comm=comm, keep_diagonal=keep_diagonal)
+        out = _numpy_mat_to_petsc_mat_via_csr(
+            mat, comm=comm, keep_diagonal=keep_diagonal
+        )
     else:
         raise TypeError(f"Can't convert matrix of type {type(mat)} to PETScMat")
 
     return out
+
 
 @require_petsc
 def convert_vec_to_petsc(vec: V, comm=None) -> PETScVec:
@@ -473,6 +512,7 @@ def convert_vec_to_petsc(vec: V, comm=None) -> PETScVec:
 
     return out
 
+
 def convert_vec_to_numpy(vec: V) -> np.ndarray:
     """
     Return a `np.ndarray` representation of `vec`
@@ -493,8 +533,11 @@ def convert_vec_to_numpy(vec: V) -> np.ndarray:
 
     return out
 
+
 @require_petsc
-def _numpy_mat_to_petsc_mat_via_csr(mat: np.ndarray, comm=None, keep_diagonal: bool=True):
+def _numpy_mat_to_petsc_mat_via_csr(
+    mat: np.ndarray, comm=None, keep_diagonal: bool = True
+):
     # converting mat to a numpy array seems to signifcantly affect speed
     mat = np.array(mat)
     mat_shape = mat.shape
@@ -517,8 +560,11 @@ def _numpy_mat_to_petsc_mat_via_csr(mat: np.ndarray, comm=None, keep_diagonal: b
     out.assemble()
     return out
 
+
 @require_petsc
-def _numpy_mat_to_petsc_mat_via_setvalues(mat: np.ndarray, comm=None, keep_diagonal=True):
+def _numpy_mat_to_petsc_mat_via_setvalues(
+    mat: np.ndarray, comm=None, keep_diagonal=True
+):
     # Converting mat to a numpy array seems to signifcantly affect speed
     mat = np.array(mat)
     mat_shape = shape(mat)
@@ -542,6 +588,7 @@ def _numpy_mat_to_petsc_mat_via_setvalues(mat: np.ndarray, comm=None, keep_diago
     out.assemble()
     return out
 
+
 ## Convert vectors to row/column PETScMat
 @require_petsc
 def convert_vec_to_rowmat(vec: Union[PETScVec, np.ndarray], comm=None) -> PETScMat:
@@ -559,6 +606,7 @@ def convert_vec_to_rowmat(vec: Union[PETScVec, np.ndarray], comm=None) -> PETScM
 
     return convert_mat_to_petsc(vec.reshape(1, vec.size), comm)
 
+
 @require_petsc
 def convert_vec_to_colmat(vec, comm=None):
     """
@@ -575,7 +623,9 @@ def convert_vec_to_colmat(vec, comm=None):
 
     return convert_mat_to_petsc(vec.reshape(vec.size, 1), comm)
 
+
 ## Specialized PETScMat routines
+
 
 # Utilities for making specific types of matrices
 @require_petsc
@@ -587,8 +637,9 @@ def zero_mat(n: int, m: int, comm=None) -> PETScMat:
     mat.assemble()
     return mat
 
+
 @require_petsc
-def diag_mat(n: int, diag: float=1.0, comm=None) -> PETScMat:
+def diag_mat(n: int, diag: float = 1.0, comm=None) -> PETScMat:
     """
     Return a diagonal matrix
     """
@@ -610,6 +661,7 @@ def diag_mat(n: int, diag: float=1.0, comm=None) -> PETScMat:
     mat.setDiagonal(diag_vec)
     mat.assemble()
     return mat
+
 
 @require_petsc
 def ident_mat(n, comm=None) -> PETScMat:

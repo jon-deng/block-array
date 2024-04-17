@@ -8,10 +8,10 @@ from typing import List, TypeVar, Any
 
 T = TypeVar('T')
 
+
 def replace(
-        array: List[Any], keys: List[int], values: List[Any],
-        copy: bool=True
-    ) -> List[Any]:
+    array: List[Any], keys: List[int], values: List[Any], copy: bool = True
+) -> List[Any]:
     """
     Replace items in a list at specified indices
 

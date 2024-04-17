@@ -11,6 +11,7 @@ from blockarray import subops
 from blockarray import blockmat as bmat
 from blockarray import linalg as bla
 
+
 def _setup_submats_petsc():
     """
     Return submatrices A, B, C, D of a block matrix
@@ -48,6 +49,7 @@ def _setup_submats_petsc():
     D.assemble()
     return A, B, C, D
 
+
 @pytest.fixture()
 def setup_mat_petsc():
     """
@@ -55,6 +57,7 @@ def setup_mat_petsc():
     """
     submats = _setup_submats_petsc()
     return bmat.BlockMatrix(submats, (2, 2), labels=(('a', 'b'), ('a', 'b')))
+
 
 @pytest.fixture()
 def setup_mat_petsc_pair(setup_mat_petsc):
@@ -64,6 +67,7 @@ def setup_mat_petsc_pair(setup_mat_petsc):
     mata = setup_mat_petsc
     matb = mata.copy()
     return mata, matb
+
 
 def test_add(setup_mat_petsc_pair):
     """
@@ -75,13 +79,17 @@ def test_add(setup_mat_petsc_pair):
     print(f"B: {_res.to_mono_petsc()[:, :]}")
     print(f"A+B: {_res.to_mono_petsc()[:, :]}")
 
+
 def test_concatenate_mat(setup_mat_petsc_pair):
     """
     Test concatenation of two `BlockMatrix` instances
     """
     mata, matb = setup_mat_petsc_pair
-    cbmat = bmat.concatenate([[mata], [matb]], labels=[['a', 'b', 'c', 'd'], ['a', 'b']])
+    cbmat = bmat.concatenate(
+        [[mata], [matb]], labels=[['a', 'b', 'c', 'd'], ['a', 'b']]
+    )
     print(cbmat.f_shape)
+
 
 def test_mult_mat(setup_mat_petsc_pair):
     """
@@ -90,6 +98,7 @@ def test_mult_mat(setup_mat_petsc_pair):
     mata, matb = setup_mat_petsc_pair
     out = bla.mult_mat_mat(mata, matb)
     print(out.f_shape)
+
 
 def test_transpose(setup_mat_petsc):
     """
@@ -101,6 +110,7 @@ def test_transpose(setup_mat_petsc):
     D = mat.transpose()
     print(D.to_mono_petsc()[:, :])
     print(mat.to_mono_petsc()[:, :])
+
 
 def test_to_mono_petsc_aij(setup_mat_petsc):
     """

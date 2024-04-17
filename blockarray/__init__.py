@@ -2,6 +2,7 @@
 This package provides functionality for working block arrays (also called nested arrays)
 """
 
+
 ## Detect if optional packages exist
 def make_require(module_name, has_module):
     def require_module(func):
@@ -9,12 +10,17 @@ def make_require(module_name, has_module):
             if has_module:
                 return func(*args, **kwargs)
             else:
-                raise ImportError(f"Function {func} this can't be called without {module_name}")
+                raise ImportError(
+                    f"Function {func} this can't be called without {module_name}"
+                )
+
         return dec_func
+
     return require_module
 
+
 try:
-    import jax as _ 
+    import jax as _
 except ImportError as e:
     _HAS_JAX = False
 else:
@@ -30,7 +36,7 @@ else:
 require_petsc = make_require('petsc4py', _HAS_PETSC)
 
 try:
-    import dolfin as _ 
+    import dolfin as _
 except ImportError:
     _HAS_FENICS = False
 else:
@@ -38,7 +44,7 @@ else:
 require_fenics = make_require('fenics', _HAS_FENICS)
 
 try:
-    import h5py as _ 
+    import h5py as _
 except ImportError:
     _HAS_H5PY = False
 else:

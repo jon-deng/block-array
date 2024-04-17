@@ -1,9 +1,11 @@
 """
 Modules to collect all types used for type hints
 """
+
 from typing import TypeVar, Tuple, List, Union, Mapping, Any
 
 from . import _HAS_PETSC, _HAS_FENICS, _HAS_JAX
+
 if _HAS_PETSC:
     from petsc4py import PETSc
 if _HAS_FENICS:

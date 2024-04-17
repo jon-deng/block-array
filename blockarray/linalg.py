@@ -17,6 +17,7 @@ dot = bv.dot
 
 T = typing.TypeVar('T')
 
+
 def mult_mat_vec(mat: bm.BlockMatrix[T], vec: bv.BlockVector[T]) -> bv.BlockVector[T]:
     """
     Return the block matrix-vector product
@@ -40,16 +41,19 @@ def mult_mat_vec(mat: bm.BlockMatrix[T], vec: bv.BlockVector[T]) -> bv.BlockVect
     # from `ret_shape`
     for submat_row in mat.unsqueeze():
         ret_subvec = reduce(
-            lambda a, b: a+b,
+            lambda a, b: a + b,
             [
                 gops.mult_mat_vec(submat, subvec)
                 for submat, subvec in zip(submat_row.sub_blocks, vec.sub_blocks)
-            ]
+            ],
         )
         ret_subvecs.append(ret_subvec)
     return bv.BlockVector(ret_subvecs, shape=ret_shape, labels=mat.f_labels[0:1])
 
-def mult_mat_mat(mat_a: bm.BlockMatrix[T], mat_b: bm.BlockMatrix[T]) -> bm.BlockMatrix[T]:
+
+def mult_mat_mat(
+    mat_a: bm.BlockMatrix[T], mat_b: bm.BlockMatrix[T]
+) -> bm.BlockMatrix[T]:
     """
     Return the block matrix-matrix product
 
@@ -79,13 +83,12 @@ def mult_mat_mat(mat_a: bm.BlockMatrix[T], mat_b: bm.BlockMatrix[T]) -> bm.Block
 
     ret_mats = [
         reduce(
-            lambda a, b: a+b,
+            lambda a, b: a + b,
             [
                 gops.mult_mat_mat(mat_a.sub_blocks[ii, kk], mat_b.sub_blocks[kk, jj])
                 for kk in range(NREDUCE)
-            ]
+            ],
         )
         for ii, jj in itertools.product(range(NROW), range(NCOL))
     ]
     return bm.BlockMatrix(ret_mats, shape=ret_shape, labels=ret_labels)
-

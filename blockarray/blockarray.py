@@ -14,13 +14,19 @@ from . import labelledarray as larr
 from . import subops as gops
 from .typing import (
     BlockShape,
-    FlatArray, Labels, Shape, MultiLabels,
-    Scalar, MultiGenIndex, AxisSize
+    FlatArray,
+    Labels,
+    Shape,
+    MultiLabels,
+    Scalar,
+    MultiGenIndex,
+    AxisSize,
 )
 from .misc import replace
 
 T = TypeVar('T')
 V = TypeVar('V')
+
 
 ## `BlockArray` object + core functions
 class BlockArray(Generic[T]):
@@ -112,20 +118,21 @@ class BlockArray(Generic[T]):
         The `LabelledArray` instance used to store the subtensors in a block
         format
     """
+
     def __new__(
-            cls,
-            subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
-            shape: Optional[Shape]=None,
-            labels: Optional[MultiLabels]=None,
-            wrap: Callable[[T], gops.GenericSubarray[T]]=gops.wrap,
-            check_bshape: bool=True
-        ):
+        cls,
+        subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
+        shape: Optional[Shape] = None,
+        labels: Optional[MultiLabels] = None,
+        wrap: Callable[[T], gops.GenericSubarray[T]] = gops.wrap,
+        check_bshape: bool = True,
+    ):
         # Return a subarray instance if an explicit `shape` indicates all
         # block axes are collapsed
         # i.e. if `shape=(-1, -1, ..., -1)` then just return the single subarray
         if shape is None:
             return object.__new__(cls)
-        elif shape == (-1,)*len(shape):
+        elif shape == (-1,) * len(shape):
             # Get the flat list of subarrays and the shape to validate the shape
             assert len(subarrays) == 1
             return subarrays[0]
@@ -133,13 +140,13 @@ class BlockArray(Generic[T]):
             return object.__new__(cls)
 
     def __init__(
-            self,
-            subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
-            shape: Optional[Shape]=None,
-            labels: Optional[MultiLabels]=None,
-            wrap: Callable[[T], gops.GenericSubarray[T]]=gops.wrap,
-            check_bshape: bool=True
-        ):
+        self,
+        subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
+        shape: Optional[Shape] = None,
+        labels: Optional[MultiLabels] = None,
+        wrap: Callable[[T], gops.GenericSubarray[T]] = gops.wrap,
+        check_bshape: bool = True,
+    ):
 
         self._larray = larr.LabelledArray(
             *self._process_subarrays(subarrays, shape, labels, wrap=wrap)
@@ -151,11 +158,11 @@ class BlockArray(Generic[T]):
 
     @staticmethod
     def _process_subarrays(
-            subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
-            shape: Optional[Shape]=None,
-            labels: Optional[MultiLabels]=None,
-            wrap: Callable[[T], gops.GenericSubarray[T]]=gops.wrap
-        ) -> Tuple[larr.FlatArray[T], Shape, Optional[MultiLabels]]:
+        subarrays: Union[larr.LabelledArray[T], larr.NestedArray[T], larr.FlatArray[T]],
+        shape: Optional[Shape] = None,
+        labels: Optional[MultiLabels] = None,
+        wrap: Callable[[T], gops.GenericSubarray[T]] = gops.wrap,
+    ) -> Tuple[larr.FlatArray[T], Shape, Optional[MultiLabels]]:
         """
         Return a 'standard' `BlockArray` input format from general formats
 
@@ -203,7 +210,9 @@ class BlockArray(Generic[T]):
         return f"{self.__class__.__name__}({repr(self.blocks)}, {self.f_shape}, {self.f_labels})"
 
     def __str__(self):
-        return f"{self.__class__.__name__}(bshape={self.f_bshape} labels={self.f_labels})"
+        return (
+            f"{self.__class__.__name__}(bshape={self.f_bshape} labels={self.f_labels})"
+        )
 
     ## Basic string representation functions
     def stats(self, stats=(np.min, np.max, np.mean)):
@@ -211,20 +220,14 @@ class BlockArray(Generic[T]):
         Return a dictionary of summary statistics for each subarray
         """
         multi_label_to_idx = self.larray._MULTI_LABEL_TO_IDX
-        if any([
-                axis_label_to_idx == ()
-                for axis_label_to_idx in multi_label_to_idx
-            ]):
+        if any([axis_label_to_idx == () for axis_label_to_idx in multi_label_to_idx]):
             raise ValueError("Can't print state due to missing axis labels")
 
         dim_labels = [x.keys() for x in multi_label_to_idx]
         dim_idxs = [x.values() for x in multi_label_to_idx]
         return {
             idx_labels: tuple(stat(self[idx_ints]) for stat in stats)
-            for idx_labels, idx_ints in zip(
-                product(*dim_labels),
-                product(*dim_idxs)
-            )
+            for idx_labels, idx_ints in zip(product(*dim_labels), product(*dim_idxs))
         }
 
     def print_summary(self):
@@ -232,6 +235,7 @@ class BlockArray(Generic[T]):
         Pretty-print the stats
         """
         import pprint as pp
+
         summary_dict = self.stats((np.min, np.max, np.mean))
         print('(min/max/mean):')
         pp.pprint(summary_dict)
@@ -319,7 +323,9 @@ class BlockArray(Generic[T]):
         """
         Return the reduced block shape (number of blocks in each non-reduced axis)
         """
-        ret_rbshape = [axis_sizes for axis_sizes in self.f_bshape if isinstance(axis_sizes, tuple)]
+        ret_rbshape = [
+            axis_sizes for axis_sizes in self.f_bshape if isinstance(axis_sizes, tuple)
+        ]
         return tuple(ret_rbshape)
 
     @property
@@ -376,10 +382,12 @@ class BlockArray(Generic[T]):
         """
         Return an object that allows indexing into unwrapped subarrays
         """
+
         class SubIndex:
             """
             Object to allow indexing into unwrapped subarrays
             """
+
             def __init__(self, barray: BlockArray):
                 self._barray = barray
 
@@ -388,6 +396,7 @@ class BlockArray(Generic[T]):
                 if isinstance(result, BlockArray):
                     result = result.blocks
                 return gops.unwrap(result)
+
         return SubIndex(self)
 
     def __getitem__(self, key: MultiGenIndex) -> Union['BlockArray[T]', T]:
@@ -408,11 +417,7 @@ class BlockArray(Generic[T]):
         else:
             return ret
 
-    def __setitem__(
-            self,
-            key: MultiGenIndex,
-            value: Union['BlockArray', T]
-        ):
+    def __setitem__(self, key: MultiGenIndex, value: Union['BlockArray', T]):
         """
         Set subarrays to a given value
 
@@ -428,16 +433,22 @@ class BlockArray(Generic[T]):
             # Set values to a `BlockArray` from a `BlockArray`
             if isinstance(value, BlockArray):
                 if value.bshape != set_array.bshape:
-                    raise ValueError(f"Can't assign input values with bshape {value.bshape} to array with bshape {set_array.bshape}")
+                    raise ValueError(
+                        f"Can't assign input values with bshape {value.bshape} to array with bshape {set_array.bshape}"
+                    )
                 for subarray, sub_value in zip(set_array, value.sub_blocks):
                     subarray.set(sub_value)
             # Set values to a flat `BlockArray` from a flat container
             elif isinstance(value, (list, tuple)):
                 # Only allow assigning from flat lists to flat `set_array`
                 if set_array.ndim != 1:
-                    raise ValueError(f"Can't assign list of input values to `BlockArray` with ndim {set_array.ndim}")
+                    raise ValueError(
+                        f"Can't assign list of input values to `BlockArray` with ndim {set_array.ndim}"
+                    )
                 elif set_array.size != len(value):
-                    raise ValueError(f"Can't assign list with {len(value)} items to `BlockArray` with {len(set_array)} blocks")
+                    raise ValueError(
+                        f"Can't assign list with {len(value)} items to `BlockArray` with {len(set_array)} blocks"
+                    )
                 else:
                     for subarray, subvalue in zip(set_array.blocks.flat, value):
                         subarray.set(subvalue)
@@ -567,7 +578,9 @@ class BlockArray(Generic[T]):
         # Import this here to avoid ciruclar import errors
         # TODO: Fix bad module layout?
         from . import ufunc as _ufunc
+
         return _ufunc.apply_ufunc_array(ufunc, method, *inputs, **kwargs)
+
 
 def _f_bshape_from_larray(larray: larr.LabelledArray[T]) -> BlockShape:
     """
@@ -579,7 +592,7 @@ def _f_bshape_from_larray(larray: larr.LabelledArray[T]) -> BlockShape:
     blocks = larray.array
     f_ndim = larray.f_ndim
     dims = larray.dims
-    _midx = [0]*f_ndim
+    _midx = [0] * f_ndim
 
     ret_bshape = []
     for dim, ax_size in enumerate(larray.f_shape):
@@ -601,10 +614,8 @@ def _f_bshape_from_larray(larray: larr.LabelledArray[T]) -> BlockShape:
 
     return tuple(ret_bshape)
 
-def _validate_f_bshape_from_larray(
-        larray: larr.LabelledArray[T],
-        f_bshape: BlockShape
-    ):
+
+def _validate_f_bshape_from_larray(larray: larr.LabelledArray[T], f_bshape: BlockShape):
     """
     Validate subarrays have consistent shapes with supplied `f_bshape`
 
@@ -621,7 +632,9 @@ def _validate_f_bshape_from_larray(
     """
     # Check that `larray.f_shape` and `f_bshape` agree
     assert len(larray.f_shape) == len(f_bshape)
-    _f_shape = tuple(-1 if isinstance(bax_size, int) else len(bax_size) for bax_size in f_bshape)
+    _f_shape = tuple(
+        -1 if isinstance(bax_size, int) else len(bax_size) for bax_size in f_bshape
+    )
     assert larray.f_shape == _f_shape
 
     # Check that subarray shapes agree with `f_bshape`
@@ -630,7 +643,7 @@ def _validate_f_bshape_from_larray(
     # `subarray[i, j, k, ...].shape == (bshape[i], bshape[j], bshape[k], ...)`
     # where `bshape` has any collapsed axes removed (this works because
     # `subarray[i, j, k, ...]` selects from non-collapsed axes).
-    dims =  tuple(ii for ii, bsize in enumerate(f_bshape) if not isinstance(bsize, int))
+    dims = tuple(ii for ii, bsize in enumerate(f_bshape) if not isinstance(bsize, int))
     bshape = tuple(f_bshape[ii] for ii in dims)
     shape = tuple(len(bsize) for bsize in bshape)
     midxs = [range(size) for size in shape]
@@ -647,9 +660,13 @@ def _validate_f_bshape_from_larray(
                 f" with `f_bshape` {f_bshape}"
             )
 
+
 def _validate_shape(ndim: int, shape: Shape):
     if len(shape) != ndim:
-        raise ValueError(f"`shape` {shape} must have same number of dimensions as {ndim:d}")
+        raise ValueError(
+            f"`shape` {shape} must have same number of dimensions as {ndim:d}"
+        )
+
 
 def axis_size(size: AxisSize) -> int:
     """
@@ -662,6 +679,7 @@ def axis_size(size: AxisSize) -> int:
     else:
         raise TypeError(f"`size` must be int or tuple, not {type(size)}")
 
+
 def axis_bsize(size: AxisSize) -> int:
     """
     Return the axis block size (number of blocks) from a block axis size
@@ -673,10 +691,8 @@ def axis_bsize(size: AxisSize) -> int:
     else:
         raise TypeError(f"`size` must be int or tuple, not {type(size)}")
 
-def unsqueeze_shape(
-        shape: Shape,
-        axes: Tuple[int, ...] = None
-    ) -> Shape:
+
+def unsqueeze_shape(shape: Shape, axes: Tuple[int, ...] = None) -> Shape:
     """
     Return a shape tuple with unreduced axes
 
@@ -704,6 +720,7 @@ def unsqueeze_shape(
             ret_shape[ax] = 1
     return tuple(ret_shape)
 
+
 ## `BlockArray` creation routines
 def _require_tuple(ax_bsize: AxisSize) -> AxisSize:
     """
@@ -718,6 +735,7 @@ def _require_tuple(ax_bsize: AxisSize) -> AxisSize:
     else:
         raise TypeError(f"`ax_bshape` must be `tuple` or `int`, not {type(ax_bsize)}")
 
+
 def make_create_array(create_numpy_array):
     """
     Derive a `BlockArray` creation routine from a `numpy` creation routine
@@ -729,6 +747,7 @@ def make_create_array(create_numpy_array):
         `create_numpy_array(shape, *args, **kwargs)`
         Examples are `np.zeros`, `np.ones`, etc.
     """
+
     def create_subarray(sub_shape):
         if all(isinstance(axsize, int) for axsize in sub_shape):
             return create_numpy_array(sub_shape)
@@ -746,11 +765,13 @@ def make_create_array(create_numpy_array):
 
     return create_block_array
 
+
 zeros = make_create_array(np.zeros)
 
 ones = make_create_array(np.ones)
 
 rand = make_create_array(lambda shape: np.random.rand(*shape))
+
 
 ## Binary operations
 def _validate_elementwise_binary_op(a: BlockArray[T], b: BlockArray[T]):
@@ -759,11 +780,10 @@ def _validate_elementwise_binary_op(a: BlockArray[T], b: BlockArray[T]):
     """
     assert a.f_bshape == b.f_bshape
 
+
 def _elementwise_binary_op(
-        op: Callable[[T, T], T],
-        a: BlockArray[T],
-        b: BlockArray[T]
-    ) -> BlockArray[T]:
+    op: Callable[[T, T], T], a: BlockArray[T], b: BlockArray[T]
+) -> BlockArray[T]:
     """
     Compute elementwise binary operation on block arrays
 
@@ -783,6 +803,7 @@ def _elementwise_binary_op(
     larrayay = larr.LabelledArray(array, a.f_shape, a.f_labels)
     return type(a)(larrayay)
 
+
 add = functools.partial(_elementwise_binary_op, operator.add)
 
 sub = functools.partial(_elementwise_binary_op, operator.sub)
@@ -795,9 +816,7 @@ power = functools.partial(_elementwise_binary_op, operator.pow)
 
 
 ## Unary operations
-def _elementwise_unary_op(
-        op: Callable[[T], T], a: BlockArray[T]
-    ) -> BlockArray[T]:
+def _elementwise_unary_op(op: Callable[[T], T], a: BlockArray[T]) -> BlockArray[T]:
     """
     Compute elementwise unary operation on a BlockArray
 
@@ -816,26 +835,32 @@ def _elementwise_unary_op(
     BlockArray
         The resultant block array
     """
-    array = larr.LabelledArray([op(ai) for ai in a.sub_blocks.flat], a.f_shape, a.f_labels)
+    array = larr.LabelledArray(
+        [op(ai) for ai in a.sub_blocks.flat], a.f_shape, a.f_labels
+    )
     return type(a)(array)
+
 
 neg = functools.partial(_elementwise_unary_op, operator.neg)
 
 pos = functools.partial(_elementwise_unary_op, operator.pos)
+
 
 def scalar_mul(alpha: Scalar, a: BlockArray[T]) -> BlockArray[T]:
     """
     Multiply a block array by a scalar
     """
     alpha = float(alpha)
-    return _elementwise_unary_op(lambda subvec: alpha*subvec, a)
+    return _elementwise_unary_op(lambda subvec: alpha * subvec, a)
+
 
 def scalar_div(alpha: Scalar, a: BlockArray[T]) -> BlockArray[T]:
     """
     Divide a block array by a scalar
     """
     alpha = float(alpha)
-    return _elementwise_unary_op(lambda subvec: subvec/alpha, a)
+    return _elementwise_unary_op(lambda subvec: subvec / alpha, a)
+
 
 def to_mono_ndarray(barray: BlockArray[T]) -> np.ndarray:
     """
@@ -857,18 +882,18 @@ def to_mono_ndarray(barray: BlockArray[T]) -> np.ndarray:
     # cumulative block shape gives lower/upper block index bounds for assigning
     # individual blocks into the ndarray
     cum_r_bshape = [
-        [nn for nn in accumulate(axis_shape, initial=0)]
-        for axis_shape in barray.bshape]
+        [nn for nn in accumulate(axis_shape, initial=0)] for axis_shape in barray.bshape
+    ]
 
     # loop through each block and assign its elements to the appropriate
     # part of the monolithic ndarray
     for block_idx in product(*[range(n) for n in barray.shape]):
         lbs = [ax_strides[ii] for ii, ax_strides in zip(block_idx, cum_r_bshape)]
-        ubs = [ax_strides[ii+1] for ii, ax_strides in zip(block_idx, cum_r_bshape)]
+        ubs = [ax_strides[ii + 1] for ii, ax_strides in zip(block_idx, cum_r_bshape)]
 
         idxs = tuple(slice(lb, ub) for lb, ub in zip(lbs, ubs))
 
-        midx = [slice(None)]*len(barray.f_shape)
+        midx = [slice(None)] * len(barray.f_shape)
         for ii, idx in zip(barray.dims, idxs):
             midx[ii] = idx
         ret_array[tuple(midx)] = barray.sub_blocks[block_idx]

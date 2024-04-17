@@ -8,17 +8,23 @@ from petsc4py import PETSc
 
 from blockarray import subops
 
-@pytest.fixture(params=[10,])
+
+@pytest.fixture(
+    params=[
+        10,
+    ]
+)
 def setup_mat(request):
     n = request.param
     mat = PETSc.Mat().createAIJ((n, n), nnz=3)
-    for ii in range(1, n-1):
-        mat.setValues([ii-1, ii, ii+1], [ii], [0.5, 1, 0.5])
+    for ii in range(1, n - 1):
+        mat.setValues([ii - 1, ii, ii + 1], [ii], [0.5, 1, 0.5])
 
     mat.setValue(0, 0, 1)
-    mat.setValue(n-1, n-1, 1)
+    mat.setValue(n - 1, n - 1, 1)
     mat.assemble()
     return mat
+
 
 def test_solve_petsc_lu_reuse_ksp(setup_mat):
     """
@@ -34,7 +40,4 @@ def test_solve_petsc_lu_reuse_ksp(setup_mat):
 
     x2, ksp = subops.solve_petsc_lu(mat, b, x2, ksp=ksp)
 
-    assert (x2-x1).norm() == 0
-
-
-
+    assert (x2 - x1).norm() == 0

@@ -20,20 +20,18 @@ from .typing import (
     Shape,
     Strides,
     MultiLabels,
-
     GenIndex,
     StdIndex,
-
     MultiStdIndex,
     MultiGenIndex,
-
     LabelToStdIndex,
-    MultiLabelToStdIndex
+    MultiLabelToStdIndex,
 )
 
 # TODO: Inconsistent types for 'list of integer' indexes;
 # some functions use, tuples or lists, etc...
 # Think of standard way to allow list of integer indices
+
 
 def flatten_array(array: NestedArray[T]) -> Tuple[FlatArray[T], Shape]:
     """
@@ -51,6 +49,7 @@ def flatten_array(array: NestedArray[T]) -> Tuple[FlatArray[T], Shape]:
     shape :
         The shape of the nested array
     """
+
     def check_is_nested(array):
         """
         Check whether an array is nested
@@ -74,6 +73,7 @@ def flatten_array(array: NestedArray[T]) -> Tuple[FlatArray[T], Shape]:
         flat_array = [elem for elem in chain(*flat_array)]
 
     return flat_array, shape
+
 
 def nest_array(array: FlatArray[T], strides: Strides) -> NestedArray[T]:
     """
@@ -102,10 +102,11 @@ def nest_array(array: FlatArray[T], strides: Strides) -> NestedArray[T]:
     else:
         stride = strides[0]
         ret_array = [
-            nest_array(array[ii*stride:(ii+1)*stride], strides[1:])
-            for ii in range(size//stride)
+            nest_array(array[ii * stride : (ii + 1) * stride], strides[1:])
+            for ii in range(size // stride)
         ]
         return ret_array
+
 
 def validate_shape(array: FlatArray[T], shape: Shape):
     """
@@ -125,7 +126,10 @@ def validate_shape(array: FlatArray[T], shape: Shape):
     """
     # use `abs()` as hacky way to account for collapsed dimensions (size -1)
     if len(array) != abs(math.prod(shape)):
-        raise ValueError(f"`shape` {shape} is incompatible with array of length {len(array)}")
+        raise ValueError(
+            f"`shape` {shape} is incompatible with array of length {len(array)}"
+        )
+
 
 def validate_labels(labels: MultiLabels, shape: Shape):
     """
@@ -151,28 +155,33 @@ def validate_labels(labels: MultiLabels, shape: Shape):
     """
     # Check that the number of dimensions in labels and shape is compatible
     if len(labels) != len(shape):
-        raise ValueError(f"{len(labels)} axis labels is incompatible for array with {len(shape)} dimensions")
+        raise ValueError(
+            f"{len(labels)} axis labels is incompatible for array with {len(shape)} dimensions"
+        )
 
     for dim, (axis_labels, axis_size) in enumerate(zip(labels, shape)):
         if axis_size == -1:
             # Check that collapsed dimensions should have no labels
             if axis_labels != ():
-                raise ValueError(f"Invalid non-empty axis labels {axis_labels} for reduced axis {dim}")
+                raise ValueError(
+                    f"Invalid non-empty axis labels {axis_labels} for reduced axis {dim}"
+                )
         else:
             if len(axis_labels) != 0:
                 # Check that there is one label for each index along an axis
                 if len(axis_labels) != axis_size:
-                    raise ValueError(f"Invalid {len(axis_labels)} axis labels for axis {dim} with size {axis_size}")
+                    raise ValueError(
+                        f"Invalid {len(axis_labels)} axis labels for axis {dim} with size {axis_size}"
+                    )
 
                 # Check that axis labels are unique
                 if len(set(axis_labels)) != len(axis_labels):
-                    raise ValueError(f"Invalid duplicate labels for axis {dim} with labels {axis_labels}")
+                    raise ValueError(
+                        f"Invalid duplicate labels for axis {dim} with labels {axis_labels}"
+                    )
 
-def validate_gen_index_range(
-        idx: GenIndex,
-        label_to_idx: LabelToStdIndex,
-        size: int
-    ):
+
+def validate_gen_index_range(idx: GenIndex, label_to_idx: LabelToStdIndex, size: int):
     """
     Validate an index selects a correct number of elements
 
@@ -199,13 +208,14 @@ def validate_gen_index_range(
         if len(set(_idx)) != len(_idx):
             raise ValueError(f"{idx} selects the same element multiple times")
         elif len(_idx) > size:
-            raise ValueError(f"{idx} selects {len(idx)} elements for an axis of size {size:d}")
+            raise ValueError(
+                f"{idx} selects {len(idx)} elements for an axis of size {size:d}"
+            )
+
 
 def validate_multi_gen_index_range(
-        midx: MultiGenIndex,
-        multi_label_to_idx: MultiLabelToStdIndex,
-        shape: Shape
-    ):
+    midx: MultiGenIndex, multi_label_to_idx: MultiLabelToStdIndex, shape: Shape
+):
     """
     Validate a multi index selects a correct number of elements
 
@@ -213,6 +223,7 @@ def validate_multi_gen_index_range(
     """
     for idx, label_to_idx, size in zip(midx, multi_label_to_idx, shape):
         validate_gen_index_range(idx, label_to_idx, size)
+
 
 class LabelledArray(Generic[T]):
     """
@@ -246,15 +257,16 @@ class LabelledArray(Generic[T]):
     multi_label_to_idx :
         A mapping of labels to indices for each axis
     """
+
     def __init__(
-            self,
-            array: Union[FlatArray[T], np.ndarray],
-            shape: Shape,
-            labels: Optional[MultiLabels]=None
-        ):
+        self,
+        array: Union[FlatArray[T], np.ndarray],
+        shape: Shape,
+        labels: Optional[MultiLabels] = None,
+    ):
         # If no labels are supplied, use empty label tuples for each axis
         if labels is None:
-            labels = ((),)*len(shape)
+            labels = ((),) * len(shape)
         # otherwise use supplied labels
         else:
             # Convert any lists to tuples in labels
@@ -308,7 +320,9 @@ class LabelledArray(Generic[T]):
     @property
     def dims(self) -> Tuple[int, ...]:
         """Return the reduced axis/dimensions indices"""
-        return tuple(ii for ii, ax_size in zip(self.f_dims, self.f_shape) if ax_size != -1)
+        return tuple(
+            ii for ii, ax_size in zip(self.f_dims, self.f_shape) if ax_size != -1
+        )
 
     @property
     def f_labels(self) -> MultiLabels:
@@ -355,9 +369,9 @@ class LabelledArray(Generic[T]):
 
         # Makes indexing slightly faster by handling special indexing cases
         n_idx = len(multi_idx)
-        if (n_int == n_idx and f_ndim == 1):
+        if n_int == n_idx and f_ndim == 1:
             ret_array, f_shape, f_labels = self._getitem_from_int(multi_idx)
-        elif (n_str == n_idx and f_ndim == 1):
+        elif n_str == n_idx and f_ndim == 1:
             ret_array, f_shape, f_labels = self._getitem_from_label(multi_idx)
         elif n_slice == n_idx:
             ret_array, f_shape, f_labels = self._getitem_from_slice(multi_idx)
@@ -373,11 +387,11 @@ class LabelledArray(Generic[T]):
     def _getitem_from_label(self, multi_idx) -> Tuple[FlatArray[T], Shape, MultiLabels]:
         # Convert the label based index to an integer index
         _multi_idx = tuple(
-            label_to_idx[label] for label_to_idx, label
-            in zip(self._MULTI_LABEL_TO_IDX, multi_idx)
+            label_to_idx[label]
+            for label_to_idx, label in zip(self._MULTI_LABEL_TO_IDX, multi_idx)
         )
         ret_array = [self.array[_multi_idx]]
-        f_shape = (-1,)*self.f_ndim
+        f_shape = (-1,) * self.f_ndim
         f_labels = ()
         return ret_array, f_shape, f_labels
 
@@ -390,7 +404,10 @@ class LabelledArray(Generic[T]):
         f_labels = replace(
             list(self.f_labels),
             self.dims,
-            [ax_labels[ax_slice] for ax_slice, ax_labels in zip(multi_idx, self.labels)]
+            [
+                ax_labels[ax_slice]
+                for ax_slice, ax_labels in zip(multi_idx, self.labels)
+            ],
         )
         return ret_array.reshape(-1), tuple(f_shape), tuple(f_labels)
 
@@ -399,17 +416,21 @@ class LabelledArray(Generic[T]):
         Return the subarrays, shape and labels corresponding to a multi-index
         """
         ret_array = [self.array[multi_idx]]
-        f_shape = (-1,)*self.f_ndim
+        f_shape = (-1,) * self.f_ndim
         f_labels = ()
         return ret_array, f_shape, f_labels
 
-    def _getitem_from_general(self, multi_idx) -> Tuple[FlatArray[T], Shape, MultiLabels]:
+    def _getitem_from_general(
+        self, multi_idx
+    ) -> Tuple[FlatArray[T], Shape, MultiLabels]:
         """
         Return the subarrays, shape and labels corresponding to a multi-index
         """
         multi_idx = expand_multi_gen_idx(multi_idx, self.ndim)
         validate_multi_gen_index_range(multi_idx, self._MULTI_LABEL_TO_IDX, self.shape)
-        multi_idx = conv_multi_gen_to_std_idx(multi_idx, self.shape, self._MULTI_LABEL_TO_IDX)
+        multi_idx = conv_multi_gen_to_std_idx(
+            multi_idx, self.shape, self._MULTI_LABEL_TO_IDX
+        )
 
         ## Find the returned `BlockArray` shape and labels
         # Get the reduced/collapsed shape + labels (these are collapsed since
@@ -421,6 +442,7 @@ class LabelledArray(Generic[T]):
                 return -1
             else:
                 assert False
+
         ret_shape = tuple(_ax_size_from_idx(axis_idx) for axis_idx in multi_idx)
 
         def _ax_labels_from_idx(axis_idx, ax_labels):
@@ -433,6 +455,7 @@ class LabelledArray(Generic[T]):
                 return ()
             else:
                 assert False
+
         ret_labels = tuple(
             _ax_labels_from_idx(axis_idx, axis_labels)
             for axis_labels, axis_idx in zip(self.labels, multi_idx)
@@ -455,8 +478,8 @@ class LabelledArray(Generic[T]):
         # Add empty axes so that numpys advanced indexing broadcasts to the
         # correct shape
         midx = [
-            np.array(idx, dtype=np.intp)[(slice(None),)+(None,)*n]
-            for n, idx in zip(range(ndim-1, -1, -1), midx)
+            np.array(idx, dtype=np.intp)[(slice(None),) + (None,) * n]
+            for n, idx in zip(range(ndim - 1, -1, -1), midx)
         ]
         ret_array = self.array[tuple(midx)].reshape(-1)
         return ret_array, f_shape, f_labels
@@ -485,13 +508,11 @@ class LabelledArray(Generic[T]):
         for ii in range(self.shape[0]):
             yield self[ii]
 
+
 # For the below, the naming convention where applicable is:
 # dnote multi-indexes by `multidx`
 # use `gen_` and `std_` to denote general and standard indexes
-def expand_multi_gen_idx(
-        multidx: MultiGenIndex, 
-        ndim: int
-    ) -> MultiGenIndex:
+def expand_multi_gen_idx(multidx: MultiGenIndex, ndim: int) -> MultiGenIndex:
     """
     Expands missing axis indices and/or ellipses in a general multi-index
 
@@ -521,18 +542,17 @@ def expand_multi_gen_idx(
 
     new_multi_gidx = (
         multidx[:axis_expand]
-        + tuple(num_ax_expand*[slice(None)])
-        + multidx[axis_expand+num_ellipse:]
+        + tuple(num_ax_expand * [slice(None)])
+        + multidx[axis_expand + num_ellipse :]
     )
     return new_multi_gidx
+
 
 # This function handles conversion of any of the general index/indices
 # to a standard index/indices
 def conv_multi_gen_to_std_idx(
-        multidx: MultiGenIndex,
-        shape: Shape,
-        multi_label_to_idx: MultiLabelToStdIndex
-    ) -> MultiStdIndex:
+    multidx: MultiGenIndex, shape: Shape, multi_label_to_idx: MultiLabelToStdIndex
+) -> MultiStdIndex:
     """
     Return a standard multi-index from a general multi-index
 
@@ -552,19 +572,19 @@ def conv_multi_gen_to_std_idx(
     """
     multi_sidx = [
         conv_gen_to_std_idx(index, axis_label_to_idx, axis_size)
-        for index, axis_size, axis_label_to_idx
-        in zip(multidx, shape, multi_label_to_idx)
+        for index, axis_size, axis_label_to_idx in zip(
+            multidx, shape, multi_label_to_idx
+        )
     ]
     # Sanity check
     for idx in multi_sidx:
         assert isinstance(idx, (List, int))
     return tuple(multi_sidx)
 
+
 def conv_gen_to_std_idx(
-        idx: GenIndex,
-        label_to_idx: LabelToStdIndex,
-        size: int
-    ) -> StdIndex:
+    idx: GenIndex, label_to_idx: LabelToStdIndex, size: int
+) -> StdIndex:
     """
     Return a standard index(s) form any of the 3 valid general index formats
 
@@ -590,13 +610,14 @@ def conv_gen_to_std_idx(
     else:
         raise TypeError(f"Unknown index {idx} of type {type(idx)}.")
 
+
 # These functions convert general indices (GeneralIndex) to standard indices
 # (StandardIndex)
 def conv_list_to_std_idx(
-        idx: Union[List[Union[str, int]], Tuple[Union[str, int]]],
-        label_to_idx: LabelToStdIndex,
-        size: int
-    ) -> StdIndex:
+    idx: Union[List[Union[str, int]], Tuple[Union[str, int]]],
+    label_to_idx: LabelToStdIndex,
+    size: int,
+) -> StdIndex:
     """
     Return a sequence of indices so that each index is a positive integer
 
@@ -614,10 +635,14 @@ def conv_list_to_std_idx(
         A list of positive integer indices
     """
     return [
-        conv_label_to_std_idx(ii, label_to_idx, size)
-        if isinstance(ii, str) else conv_neg_to_std_idx(ii, size)
+        (
+            conv_label_to_std_idx(ii, label_to_idx, size)
+            if isinstance(ii, str)
+            else conv_neg_to_std_idx(ii, size)
+        )
         for ii in idx
     ]
+
 
 def conv_slice_to_std_idx(idx: slice, size: int) -> StdIndex:
     """
@@ -642,13 +667,12 @@ def conv_slice_to_std_idx(idx: slice, size: int) -> StdIndex:
         step = idx.step
     return list(range(start, stop, step))
 
+
 # These functions convert a general single index (GeneralIndex)
 # to a standard single index (StandardIndex, specifically StdIndex)
 def conv_label_to_std_idx(
-        idx: str,
-        label_to_idx: LabelToStdIndex,
-        size: int
-    ) -> StdIndex:
+    idx: str, label_to_idx: LabelToStdIndex, size: int
+) -> StdIndex:
     """
     Return the integer index corresponding to a labelled index
 
@@ -664,6 +688,7 @@ def conv_label_to_std_idx(
     ret_index = label_to_idx[idx]
     assert ret_index >= 0 and ret_index < size
     return ret_index
+
 
 def conv_neg_to_std_idx(idx: int, size: int) -> StdIndex:
     """
@@ -682,7 +707,8 @@ def conv_neg_to_std_idx(idx: int, size: int) -> StdIndex:
     if idx >= 0:
         return idx
     else:
-        return size+idx
+        return size + idx
+
 
 def conv_slice_start_to_idx(idx: Union[int, None], size: int) -> StdIndex:
     """
@@ -699,6 +725,7 @@ def conv_slice_start_to_idx(idx: Union[int, None], size: int) -> StdIndex:
         return 0
     else:
         return conv_neg_to_std_idx(idx, size)
+
 
 def conv_slice_stop_to_idx(idx: Union[int, None], size: int) -> StdIndex:
     """

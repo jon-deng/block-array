@@ -11,8 +11,9 @@ from blockarray import blockvec as bvec
 from blockarray.h5utils import (
     create_resizable_block_vector_group,
     append_block_vector_to_group,
-    read_block_vector_from_group
+    read_block_vector_from_group,
 )
+
 
 @pytest.fixture()
 def setup_bvec():
@@ -20,8 +21,9 @@ def setup_bvec():
     Return a `BlockVector` instance
     """
     labels = (('a', 'b', 'c'),)
-    subvecs = (1*np.ones(2), 4*np.ones(10), 2*np.ones(3))
+    subvecs = (1 * np.ones(2), 4 * np.ones(10), 2 * np.ones(3))
     return bvec.BlockVector(subvecs, labels=labels)
+
 
 def test_create_resizable_block_vector_group(setup_bvec, tmp_path):
     vec = setup_bvec
@@ -33,14 +35,16 @@ def test_create_resizable_block_vector_group(setup_bvec, tmp_path):
 
         valid_sizes = [
             h5_subvec_size == bvec_subvec_size
-            for h5_subvec_size, bvec_subvec_size
-            in zip(h5_subvec_sizes, bvec_subvec_sizes)
+            for h5_subvec_size, bvec_subvec_size in zip(
+                h5_subvec_sizes, bvec_subvec_sizes
+            )
         ]
         assert all(valid_sizes)
 
+
 def test_append_block_vector_to_group(setup_bvec, tmp_path):
     vec = setup_bvec
-    vecs = [i*setup_bvec.copy() for i in range(1, 4)]
+    vecs = [i * setup_bvec.copy() for i in range(1, 4)]
 
     with h5py.File(f"{tmp_path/'test.h5'}", mode='w') as f:
         create_resizable_block_vector_group(f, vec.labels, vec.bshape)
@@ -57,9 +61,10 @@ def test_append_block_vector_to_group(setup_bvec, tmp_path):
             ]
             assert all(subvecs_valid)
 
+
 def test_read_block_vector_from_group(setup_bvec, tmp_path):
     vec = setup_bvec
-    vecs = [i*setup_bvec.copy() for i in range(1, 4)]
+    vecs = [i * setup_bvec.copy() for i in range(1, 4)]
 
     with h5py.File(f"{tmp_path/'test.h5'}", mode='w') as f:
         create_resizable_block_vector_group(f, vec.labels, vec.bshape)
@@ -70,4 +75,4 @@ def test_read_block_vector_from_group(setup_bvec, tmp_path):
             blockvector_h5 = read_block_vector_from_group(f, -1)
             blockvector_ref = blockvector
 
-            assert (blockvector_h5-blockvector_ref).norm() == 0
+            assert (blockvector_h5 - blockvector_ref).norm() == 0

@@ -7,5 +7,5 @@ setup(
     version='0.0',
     description='Package for working with block/nested arrays',
     author='Jonathan Deng',
-    packages=['blockarray']
+    packages=['blockarray'],
 )
