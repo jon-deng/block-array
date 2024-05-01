@@ -28,7 +28,7 @@ def setup_mat(request):
 
 def test_solve_petsc_lu_reuse_ksp(setup_mat):
     """
-    Test `solve_petsc_lu` is consistent when reusing the `ksp` context
+    Test `solve_petsc_preonly_lu` is consistent when reusing the `ksp` context
     """
     mat = setup_mat
     b = mat.getVecLeft()
