@@ -320,7 +320,7 @@ def solve_petsc_preonly(
     b: PETScVec,
     out: Optional[PETScVec] = None,
     ksp: Optional['PETSc.KSP'] = None,
-    pc_type: str = 'lu'
+    pc_solver_type: str = 'petsc'
 ) -> Tuple[PETScVec, 'PETSc.KSP']:
     """
     Solve Ax=b using PETSc's LU solver
@@ -333,7 +333,7 @@ def solve_petsc_preonly(
 
         pc = ksp.getPC()
         pc.setType(pc.Type.LU)
-        pc.setFactorSolverType(pc_type)
+        pc.setFactorSolverType(pc_solver_type)
 
     if out is None:
         out = mat.getVecRight()
@@ -351,7 +351,7 @@ def solve_petsc_preonly_lu(
     """
     Solve Ax=b using PETSc's LU solver
     """
-    return solve_petsc_preonly(mat, b, out, ksp, pc_type='lu')
+    return solve_petsc_preonly(mat, b, out, ksp, pc_solver_type='lu')
 
 
 @require_petsc
@@ -364,7 +364,7 @@ def solve_petsc_preonly_superlu(
     """
     Solve Ax=b using PETSc's LU solver
     """
-    return solve_petsc_preonly(mat, b, out, ksp, pc_type='superlu')
+    return solve_petsc_preonly(mat, b, out, ksp, pc_solver_type='superlu')
 
 
 def mult_mat_vec(mat: M, vec: V, out: Optional[V] = None) -> V:
