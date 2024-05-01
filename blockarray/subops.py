@@ -557,7 +557,7 @@ def _numpy_mat_to_petsc_mat_via_csr(
     # create a boolean array indicating non-zeros in each row
     COL_IDXS = np.arange(mat_shape[1], dtype=np.int32)
     rows_is_nonzero = [current_row != 0 for current_row in mat]
-    rows_j = [np.array(COL_IDXS[is_nonzero]) for is_nonzero in rows_is_nonzero]
+    rows_j = [COL_IDXS[is_nonzero] for is_nonzero in rows_is_nonzero]
     J = np.concatenate(rows_j, dtype=np.int32)
 
     # To find the values for each row:
