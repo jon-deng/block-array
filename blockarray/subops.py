@@ -538,23 +538,40 @@ def convert_vec_to_numpy(vec: V) -> np.ndarray:
 def _numpy_mat_to_petsc_mat_via_csr(
     mat: np.ndarray, comm=None, keep_diagonal: bool = True
 ):
-    # converting mat to a numpy array seems to signifcantly affect speed
+    """
+    Return a `PETSc.Mat` from a 2D `numpy` array
+
+    This also removes all non-zeros from the mat
+    """
+    # Converting `mat` to a numpy array first can signifcantly affect speed
     mat = np.array(mat)
     mat_shape = mat.shape
 
     # Build the CSR format of the resulting matrix by adding only non-zero values
+    # from each row
+    # This involves getting the `I`, `J`, `V` values for the sparse matrix
+    # (the COO format, see https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.coo_matrix.html)
+
+    # To find the column indices for each row:
+    # create a boolean array indicating non-zeros in each row
     COL_IDXS = np.arange(mat_shape[1], dtype=np.int32)
-    nz_row_idxs = [current_row != 0 for current_row in mat]
-    Js = [COL_IDXS[nz_row_idx] for nz_row_idx in nz_row_idxs]
-    Vs = [current_row[nz_row_idx] for nz_row_idx, current_row in zip(nz_row_idxs, mat)]
+    rows_is_nonzero = [current_row != 0 for current_row in mat]
+    rows_j = [np.array(COL_IDXS[is_nonzero]) for is_nonzero in rows_is_nonzero]
+    J = np.concatenate(rows_j, dtype=np.int32)
 
-    # number of nonzeros in each row
-    nnz = [len(sub_v) for sub_v in Vs]
-    Is = [0] + [ii for ii in np.cumsum(nnz)]
+    # To find the values for each row:
+    # use the boolean array indicating non-zeros in each row, to pick out the row values
+    rows_v = [
+        np.array(current_row[is_nonzero])
+        for is_nonzero, current_row in zip(rows_is_nonzero, mat)
+    ]
+    V = np.concatenate(rows_v)
 
-    I = np.array(Is, dtype=np.int32)
-    J = np.concatenate(Js, dtype=np.int32)
-    V = np.concatenate(Vs)
+    # To find the row indices and the range they occupy in `I` and `J`:
+    # Find the number of non-zeros in each row, `nnz`,
+    # and use this to find the range of indices for each row
+    nnz = [len(sub_v) for sub_v in rows_v]
+    I = np.concatenate((np.array([0]), np.cumsum(nnz)), dtype=np.int32)
 
     out = PETScMat().createAIJ(mat_shape, comm=comm, csr=(I, J, V))
     out.assemble()
