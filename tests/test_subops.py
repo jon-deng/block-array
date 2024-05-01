@@ -36,8 +36,8 @@ def test_solve_petsc_lu_reuse_ksp(setup_mat):
     x1 = mat.getVecRight()
     x2 = mat.getVecRight()
 
-    x1, ksp = subops.solve_petsc_lu(mat, b, x1)
+    x1, ksp = subops.solve_petsc_preonly_lu(mat, b, x1)
 
-    x2, ksp = subops.solve_petsc_lu(mat, b, x2, ksp=ksp)
+    x2, ksp = subops.solve_petsc_preonly_lu(mat, b, x2, ksp=ksp)
 
     assert (x2 - x1).norm() == 0

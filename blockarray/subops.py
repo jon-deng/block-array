@@ -314,13 +314,13 @@ class NumpyArrayLike(GenericSubarray[V]):
     def set(self, value):
         self.data[:] = value
 
-
 @require_petsc
-def solve_petsc_lu(
+def solve_petsc_preonly(
     mat: PETScMat,
     b: PETScVec,
     out: Optional[PETScVec] = None,
     ksp: Optional['PETSc.KSP'] = None,
+    pc_type: str = 'lu'
 ) -> Tuple[PETScVec, 'PETSc.KSP']:
     """
     Solve Ax=b using PETSc's LU solver
@@ -333,6 +333,7 @@ def solve_petsc_lu(
 
         pc = ksp.getPC()
         pc.setType(pc.Type.LU)
+        pc.setFactorSolverType(pc_type)
 
     if out is None:
         out = mat.getVecRight()
@@ -341,7 +342,7 @@ def solve_petsc_lu(
 
 
 @require_petsc
-def solve_superlu(
+def solve_petsc_preonly_lu(
     mat: PETScMat,
     b: PETScVec,
     out: Optional[PETScVec] = None,
@@ -350,20 +351,20 @@ def solve_superlu(
     """
     Solve Ax=b using PETSc's LU solver
     """
-    if ksp is None:
-        ksp = PETSc.KSP().create()
-        ksp.setType(ksp.Type.PREONLY)
-        ksp.setOperators(mat)
-        ksp.setUp()
+    return solve_petsc_preonly(mat, b, out, ksp, pc_type='lu')
 
-        pc = ksp.getPC()
-        pc.setType(pc.Type.LU)
-        pc.setFactorSolverType('superlu')
 
-    if out is None:
-        out = mat.getVecRight()
-    ksp.solve(b, out)
-    return out, ksp
+@require_petsc
+def solve_petsc_preonly_superlu(
+    mat: PETScMat,
+    b: PETScVec,
+    out: Optional[PETScVec] = None,
+    ksp: Optional['PETSc.KSP'] = None,
+) -> Tuple[PETScVec, 'PETSc.KSP']:
+    """
+    Solve Ax=b using PETSc's LU solver
+    """
+    return solve_petsc_preonly(mat, b, out, ksp, pc_type='superlu')
 
 
 def mult_mat_vec(mat: M, vec: V, out: Optional[V] = None) -> V:
