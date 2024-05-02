@@ -320,10 +320,10 @@ def solve_petsc_preonly(
     b: PETScVec,
     out: Optional[PETScVec] = None,
     ksp: Optional['PETSc.KSP'] = None,
-    pc_solver_type: str = 'petsc'
+    pc_solver_type: str = 'superlu'
 ) -> Tuple[PETScVec, 'PETSc.KSP']:
     """
-    Solve Ax=b using PETSc's LU solver
+    Solve Ax=b using the PETSc interface to LU solvers
     """
     if ksp is None:
         ksp = PETSc.KSP().create()
